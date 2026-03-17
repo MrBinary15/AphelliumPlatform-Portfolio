@@ -393,10 +393,10 @@ ${metrics.length > 0 ? `<div class="metrics">${metrics.map(m => `<div class="met
         {/* Actions */}
         <div className="pt-4 border-t border-white/10">
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link href="/admin/proyectos" className="min-w-[160px] text-center px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-medium transition-colors">Cancelar</Link>
-            <button type="button" onClick={saveDraft} className="min-w-[160px] px-6 py-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 font-medium transition-colors">Guardar borrador</button>
-            <button type="button" onClick={() => setPreviewOpen(true)} className="min-w-[160px] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 font-medium transition-colors"><Eye size={18} /> Previsualizar</button>
-            <button type="submit" disabled={submitting} className="min-w-[180px] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[var(--accent-cyan)] text-black font-bold hover:bg-[var(--accent-cyan)]/90 transition-colors disabled:opacity-50">
+            <Link href="/admin/proyectos" className="w-full sm:w-auto sm:min-w-[160px] text-center px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-medium transition-colors">Cancelar</Link>
+            <button type="button" onClick={saveDraft} className="w-full sm:w-auto sm:min-w-[160px] px-6 py-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 font-medium transition-colors">Guardar borrador</button>
+            <button type="button" onClick={() => setPreviewOpen(true)} className="w-full sm:w-auto sm:min-w-[160px] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 font-medium transition-colors"><Eye size={18} /> Previsualizar</button>
+            <button type="submit" disabled={submitting} className="w-full sm:w-auto sm:min-w-[180px] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[var(--accent-cyan)] text-black font-bold hover:bg-[var(--accent-cyan)]/90 transition-colors disabled:opacity-50">
               {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} Publicar Proyecto
             </button>
           </div>

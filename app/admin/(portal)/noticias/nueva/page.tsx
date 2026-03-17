@@ -294,7 +294,7 @@ export default function NuevaNoticiaPage() {
           <div className="flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/admin/noticias"
-            className="min-w-[170px] text-center px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-medium transition-colors"
+            className="w-full sm:w-auto sm:min-w-[170px] text-center px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-medium transition-colors"
           >
             Cancelar
           </Link>
@@ -302,7 +302,7 @@ export default function NuevaNoticiaPage() {
           <button
             type="button"
             onClick={saveDraft}
-            className="min-w-[170px] px-6 py-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 font-medium transition-colors"
+            className="w-full sm:w-auto sm:min-w-[170px] px-6 py-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 font-medium transition-colors"
           >
             Guardar borrador
           </button>
@@ -310,7 +310,7 @@ export default function NuevaNoticiaPage() {
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
-            className="min-w-[170px] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 font-medium transition-colors"
+            className="w-full sm:w-auto sm:min-w-[170px] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 font-medium transition-colors"
           >
             <Eye size={18} />
             Previsualizar
@@ -319,7 +319,7 @@ export default function NuevaNoticiaPage() {
           <button 
             type="submit" 
             disabled={loading}
-            className="min-w-[190px] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[var(--accent-cyan)] text-black font-bold hover:bg-[var(--accent-cyan)]/90 transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto sm:min-w-[190px] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[var(--accent-cyan)] text-black font-bold hover:bg-[var(--accent-cyan)]/90 transition-colors disabled:opacity-50"
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
             Publicar Artículo
