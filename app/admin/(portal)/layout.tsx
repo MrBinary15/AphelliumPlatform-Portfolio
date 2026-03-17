@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3, Headset, Bot } from "lucide-react";
 import { getAuthUser } from "@/utils/auth";
 import { hasPermission, canModifyContent, ROLE_LABELS } from "@/utils/roles";
 
@@ -66,6 +66,20 @@ export default async function AdminLayout({
               <span>Estadísticas</span>
             </Link>
           )}
+
+          {hasPermission(role, "view_mensajes") && (
+            <Link href="/admin/soporte" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+              <Headset size={20} />
+              <span>Soporte</span>
+            </Link>
+          )}
+
+          {role === "admin" && (
+            <Link href="/admin/documentos-ia" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+              <Bot size={20} />
+              <span>Documentos IA</span>
+            </Link>
+          )}
           
           <div className="pt-4 mt-4 border-t border-white/5">
             <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Cuenta</p>
@@ -113,6 +127,12 @@ export default async function AdminLayout({
             <Link href="/admin/proyectos" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Proyectos</Link>
             {hasPermission(role, "view_tasks") && (
               <Link href="/admin/tareas" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Tareas</Link>
+            )}
+            {hasPermission(role, "view_mensajes") && (
+              <Link href="/admin/soporte" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Soporte</Link>
+            )}
+            {role === "admin" && (
+              <Link href="/admin/documentos-ia" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Docs IA</Link>
             )}
             <Link href="/admin/perfil" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Perfil</Link>
           </div>

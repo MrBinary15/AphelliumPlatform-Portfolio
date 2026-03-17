@@ -6,15 +6,16 @@ import { ArrowLeft, Clock, User, Building, Mail, Tag } from "lucide-react";
 export default async function MensajeDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const supabase = await createClient();
 
   // Obtener el mensaje y marcarlo como leído si estaba no leído
   const { data: mensaje } = await supabase
     .from("mensajes")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!mensaje) {
@@ -26,7 +27,7 @@ export default async function MensajeDetailsPage({
     const { error } = await supabase
       .from("mensajes")
       .update({ status: "read" })
-      .eq("id", params.id);
+      .eq("id", id);
       
     if (!error) {
       mensaje.status = "read";

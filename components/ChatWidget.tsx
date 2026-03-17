@@ -18,6 +18,10 @@ import {
   MoreVertical,
   Users,
   Plus,
+  Bot,
+  Headset,
+  Loader2,
+  ArrowRightCircle,
 } from "lucide-react";
 
 type Member = {
@@ -136,6 +140,32 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const canManageGroups = userRole === "admin" || userRole === "coordinador";
   const userIdSafe: string = userId ?? "";
   const storageIdentity = userId || "guest";
+
+  // ── Visitor chat state ──
+  type VisitorMode = "menu" | "ai" | "support";
+  type VisitorMsg = { id: string; role: "user" | "assistant" | "system"; content: string; timestamp: string };
+  const [visitorMode, setVisitorMode] = useState<VisitorMode>("menu");
+  const [visitorAiMessages, setVisitorAiMessages] = useState<VisitorMsg[]>([]);
+  const [visitorSupportMessages, setVisitorSupportMessages] = useState<VisitorMsg[]>([]);
+  const [visitorDraft, setVisitorDraft] = useState("");
+  const [visitorAiLoading, setVisitorAiLoading] = useState(false);
+  const [visitorSupportConvId, setVisitorSupportConvId] = useState<string | null>(null);
+  const [visitorSupportStatus, setVisitorSupportStatus] = useState<string>("open");
+  const visitorSupportPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const visitorMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  const getVisitorId = useCallback(() => {
+    if (typeof window === "undefined") return "visitor-unknown";
+    let vid = window.localStorage.getItem("aphellium-visitor-id");
+    if (!vid) {
+      vid = `visitor-${crypto.randomUUID()}`;
+      window.localStorage.setItem("aphellium-visitor-id", vid);
+    }
+    return vid;
+  }, []);
+
+  // ── Authenticated chat state ──
+  // ── Authenticated chat state ──
   const [isOpen, setIsOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
@@ -250,6 +280,163 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToast(null), 2800);
   }, []);
+
+  // ── Visitor chat functions ──
+  const sendVisitorAiMessage = useCallback(async (text: string) => {
+    const content = text.trim();
+    if (!content || visitorAiLoading) return;
+
+    const userMsg: VisitorMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date().toISOString() };
+    setVisitorAiMessages((prev) => [...prev, userMsg]);
+    setVisitorDraft("");
+    setVisitorAiLoading(true);
+
+    try {
+      const history = visitorAiMessages.map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }));
+      const res = await fetch("/api/chat/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: content, messages: history }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error");
+
+      const aiMsg: VisitorMsg = { id: crypto.randomUUID(), role: "assistant", content: data.reply, timestamp: new Date().toISOString() };
+      setVisitorAiMessages((prev) => [...prev, aiMsg]);
+
+      if (data.escalate) {
+        const escalateMsg: VisitorMsg = {
+          id: crypto.randomUUID(),
+          role: "system",
+          content: "¿Te gustaría hablar con un asesor humano? Puedo transferirte a soporte técnico.",
+          timestamp: new Date().toISOString(),
+        };
+        setVisitorAiMessages((prev) => [...prev, escalateMsg]);
+      }
+    } catch {
+      const errMsg: VisitorMsg = { id: crypto.randomUUID(), role: "assistant", content: "Lo siento, hubo un error al procesar tu mensaje. Intenta de nuevo.", timestamp: new Date().toISOString() };
+      setVisitorAiMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setVisitorAiLoading(false);
+    }
+  }, [visitorAiMessages, visitorAiLoading]);
+
+  const startSupportConversation = useCallback(async (escalatedFromAi = false) => {
+    const visitorId = getVisitorId();
+    try {
+      const res = await fetch("/api/chat/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create", visitorId, visitorName: "Visitante", escalatedFromAi }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setVisitorSupportConvId(data.conversationId);
+      setVisitorMode("support");
+
+      // Load initial messages
+      const msgRes = await fetch(`/api/chat/support?conversationId=${data.conversationId}&visitorId=${visitorId}`);
+      const msgData = await msgRes.json();
+      if (msgData.messages) {
+        setVisitorSupportMessages(msgData.messages.map((m: { id: string; sender_type: string; content: string; created_at: string }) => ({
+          id: m.id,
+          role: m.sender_type === "visitor" ? "user" as const : m.sender_type === "system" ? "system" as const : "assistant" as const,
+          content: m.content,
+          timestamp: m.created_at,
+        })));
+      }
+    } catch {
+      alert("No se pudo iniciar la conversación de soporte.");
+    }
+  }, [getVisitorId]);
+
+  const sendVisitorSupportMessage = useCallback(async (text: string) => {
+    const content = text.trim();
+    if (!content || !visitorSupportConvId) return;
+
+    const visitorId = getVisitorId();
+    const userMsg: VisitorMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date().toISOString() };
+    setVisitorSupportMessages((prev) => [...prev, userMsg]);
+    setVisitorDraft("");
+
+    try {
+      await fetch("/api/chat/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send", conversationId: visitorSupportConvId, visitorId, content }),
+      });
+    } catch {
+      // Message was already optimistically added
+    }
+  }, [visitorSupportConvId, getVisitorId]);
+
+  // Poll for support messages
+  useEffect(() => {
+    if (isAuthenticated || visitorMode !== "support" || !visitorSupportConvId || !isOpen) {
+      if (visitorSupportPollRef.current) {
+        clearInterval(visitorSupportPollRef.current);
+        visitorSupportPollRef.current = null;
+      }
+      return;
+    }
+
+    const visitorId = getVisitorId();
+    let lastTimestamp = visitorSupportMessages.length > 0
+      ? visitorSupportMessages[visitorSupportMessages.length - 1].timestamp
+      : "";
+
+    const poll = async () => {
+      try {
+        const params = new URLSearchParams({
+          conversationId: visitorSupportConvId,
+          visitorId,
+          ...(lastTimestamp ? { after: lastTimestamp } : {}),
+        });
+        const res = await fetch(`/api/chat/support?${params}`);
+        const data = await res.json();
+
+        if (data.status) setVisitorSupportStatus(data.status);
+
+        if (data.messages?.length > 0) {
+          const newMsgs: VisitorMsg[] = data.messages
+            .filter((m: { sender_type: string; sender_id?: string }) => !(m.sender_type === "visitor" && m.sender_id === visitorId))
+            .map((m: { id: string; sender_type: string; content: string; created_at: string }) => ({
+              id: m.id,
+              role: m.sender_type === "visitor" ? "user" as const : m.sender_type === "system" ? "system" as const : "assistant" as const,
+              content: m.content,
+              timestamp: m.created_at,
+            }));
+
+          if (newMsgs.length > 0) {
+            setVisitorSupportMessages((prev) => {
+              const existingIds = new Set(prev.map((m) => m.id));
+              const unique = newMsgs.filter((m: VisitorMsg) => !existingIds.has(m.id));
+              return unique.length > 0 ? [...prev, ...unique] : prev;
+            });
+            lastTimestamp = data.messages[data.messages.length - 1].created_at;
+          }
+        }
+      } catch {
+        // Ignore poll errors
+      }
+    };
+
+    poll();
+    visitorSupportPollRef.current = setInterval(poll, 3000);
+
+    return () => {
+      if (visitorSupportPollRef.current) {
+        clearInterval(visitorSupportPollRef.current);
+        visitorSupportPollRef.current = null;
+      }
+    };
+  }, [isAuthenticated, visitorMode, visitorSupportConvId, isOpen, getVisitorId, visitorSupportMessages]);
+
+  // Scroll visitor messages
+  useEffect(() => {
+    visitorMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [visitorAiMessages.length, visitorSupportMessages.length]);
 
   useEffect(() => {
     return () => {
@@ -920,7 +1107,15 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         >
           <div className="h-12 shrink-0 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-transparent to-emerald-500/10 px-3 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              {hasActiveDirect || hasActiveRoom ? (
+              {!isAuthenticated && visitorMode !== "menu" ? (
+                <button
+                  type="button"
+                  onClick={() => { setVisitorMode("menu"); setVisitorDraft(""); }}
+                  className="p-1.5 rounded-lg text-gray-300 hover:bg-white/10"
+                >
+                  <ArrowLeft size={14} />
+                </button>
+              ) : hasActiveDirect || hasActiveRoom ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -940,10 +1135,14 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
               <div className="min-w-0">
                 <p className="text-sm text-white font-semibold truncate">
-                  {hasActiveRoom ? (activeRoom?.name || "Grupo") : activeMember ? (activeMember.full_name || "Sin nombre") : "Chat interno"}
+                  {!isAuthenticated
+                    ? (visitorMode === "ai" ? "Asistente IA" : visitorMode === "support" ? "Soporte Técnico" : "Aphellium Chat")
+                    : hasActiveRoom ? (activeRoom?.name || "Grupo") : activeMember ? (activeMember.full_name || "Sin nombre") : "Chat interno"}
                 </p>
                 <p className="text-[10px] text-gray-400">
-                  {hasActiveRoom
+                  {!isAuthenticated
+                    ? (visitorMode === "ai" ? "Respuestas instantáneas" : visitorMode === "support" ? "Chat en vivo" : "¿Cómo te podemos ayudar?")
+                    : hasActiveRoom
                     ? (activeRoom?.room_type === "task" ? "Grupo de tarea" : "Grupo manual")
                     : activeMember
                     ? (onlineIds.has(activeMember.id) ? "En linea" : "Desconectado")
@@ -1119,21 +1318,209 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
               </div>
             </>
           ) : !isAuthenticated ? (
-            <div className="flex-1 flex items-center justify-center p-6 text-center">
-              <div className="space-y-3 max-w-[280px]">
-                <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-400/20 flex items-center justify-center">
-                  <MessageCircle size={20} className="text-emerald-300" />
+            visitorMode === "menu" ? (
+              <div className="flex-1 flex items-center justify-center p-6 text-center">
+                <div className="space-y-4 max-w-[280px]">
+                  <div className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-white/10 flex items-center justify-center">
+                    <MessageCircle size={24} className="text-emerald-300" />
+                  </div>
+                  <p className="text-sm text-white font-semibold">¡Hola! ¿En qué podemos ayudarte?</p>
+                  <p className="text-xs text-gray-400">Elige una opción para comenzar</p>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVisitorMode("ai");
+                        if (visitorAiMessages.length === 0) {
+                          setVisitorAiMessages([{
+                            id: "welcome-ai",
+                            role: "assistant",
+                            content: "¡Hola! Soy el asistente virtual de Aphellium. Puedo ayudarte con información sobre nuestros productos, servicios y tecnología. ¿En qué puedo ayudarte?",
+                            timestamp: new Date().toISOString(),
+                          }]);
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-cyan-400/20 bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
+                        <Bot size={18} className="text-cyan-300" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-white font-semibold">Asistente IA</p>
+                        <p className="text-[10px] text-gray-400">Respuestas instantáneas sobre Aphellium</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startSupportConversation(false)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                        <Headset size={18} className="text-emerald-300" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-white font-semibold">Soporte Técnico</p>
+                        <p className="text-[10px] text-gray-400">Habla con nuestro equipo en vivo</p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
-                <p className="text-sm text-white font-semibold">Chat interno del equipo</p>
-                <p className="text-xs text-gray-400">Para usar el chat e interactuar con miembros conectados, inicia sesión.</p>
-                <a
-                  href="/admin/login"
-                  className="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/20 hover:bg-emerald-500/30 transition-colors"
-                >
-                  Iniciar sesión
-                </a>
               </div>
-            </div>
+            ) : visitorMode === "ai" ? (
+              <>
+                <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.06),_transparent_45%)]">
+                  {visitorAiMessages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                      {msg.role === "system" ? (
+                        <div className="w-full space-y-2">
+                          <div className="mx-auto max-w-[90%] p-3 rounded-xl border border-amber-400/20 bg-amber-500/10 text-center">
+                            <p className="text-xs text-amber-200">{msg.content}</p>
+                          </div>
+                          <div className="flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => startSupportConversation(true)}
+                              className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/20 hover:bg-emerald-500/30 transition-colors flex items-center gap-1.5"
+                            >
+                              <Headset size={12} /> Sí, conectar con asesor
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setVisitorAiMessages((prev) => prev.filter((m) => m.role !== "system"));
+                              }}
+                              className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/10 text-gray-300 hover:bg-white/15 transition-colors"
+                            >
+                              Continuar con IA
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={`max-w-[85%] flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                          {msg.role === "assistant" && (
+                            <span className="text-[10px] text-cyan-300 mb-1 px-1 flex items-center gap-1"><Bot size={10} /> Aphellium IA</span>
+                          )}
+                          <div className={`px-3 py-2 text-xs leading-relaxed break-words shadow-lg whitespace-pre-wrap ${
+                            msg.role === "user"
+                              ? "bg-gradient-to-br from-cyan-400/35 to-cyan-500/20 text-white rounded-2xl rounded-br-md border border-cyan-300/20"
+                              : "bg-white/[0.08] text-gray-100 rounded-2xl rounded-bl-md border border-white/10"
+                          }`}>
+                            {msg.content}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {visitorAiLoading && (
+                    <div className="flex justify-start">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.08] rounded-2xl rounded-bl-md border border-white/10">
+                        <Loader2 size={14} className="text-cyan-300 animate-spin" />
+                        <span className="text-xs text-gray-400">Escribiendo...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={visitorMessagesEndRef} />
+                </div>
+                <div className="px-3 py-2 border-t border-white/10 bg-black/40 shrink-0">
+                  <div className="flex items-center gap-1.5 w-full">
+                    <input
+                      value={visitorDraft}
+                      onChange={(e) => setVisitorDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          sendVisitorAiMessage(visitorDraft);
+                        }
+                      }}
+                      placeholder="Escribe tu pregunta..."
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-cyan-400/50 transition-colors"
+                      disabled={visitorAiLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => sendVisitorAiMessage(visitorDraft)}
+                      disabled={!visitorDraft.trim() || visitorAiLoading}
+                      className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition-colors disabled:opacity-30"
+                    >
+                      <Send size={14} />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => startSupportConversation(false)}
+                    className="mt-2 w-full text-center text-[10px] text-gray-500 hover:text-emerald-300 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <ArrowRightCircle size={10} /> ¿Prefieres hablar con una persona?
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.06),_transparent_45%)]">
+                  {visitorSupportMessages.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-gray-500 text-xs text-center px-6">
+                      <div className="space-y-2">
+                        <Headset size={24} className="mx-auto text-emerald-300/50" />
+                        <p>Conectando con soporte técnico...</p>
+                        <p className="text-[10px]">Un asesor responderá pronto</p>
+                      </div>
+                    </div>
+                  ) : (
+                    visitorSupportMessages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
+                        {msg.role === "system" ? (
+                          <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                            <p className="text-[10px] text-gray-400">{msg.content}</p>
+                          </div>
+                        ) : (
+                          <div className={`max-w-[85%] flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                            {msg.role === "assistant" && (
+                              <span className="text-[10px] text-emerald-300 mb-1 px-1 flex items-center gap-1"><Headset size={10} /> Soporte</span>
+                            )}
+                            <div className={`px-3 py-2 text-xs leading-relaxed break-words shadow-lg ${
+                              msg.role === "user"
+                                ? "bg-gradient-to-br from-emerald-400/35 to-emerald-500/20 text-white rounded-2xl rounded-br-md border border-emerald-300/20"
+                                : "bg-white/[0.08] text-gray-100 rounded-2xl rounded-bl-md border border-white/10"
+                            }`}>
+                              {msg.content}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  <div ref={visitorMessagesEndRef} />
+                </div>
+                <div className="px-3 py-2 border-t border-white/10 bg-black/40 shrink-0">
+                  {visitorSupportStatus === "closed" ? (
+                    <p className="text-center text-xs text-gray-500 py-1">Esta conversación ha sido cerrada</p>
+                  ) : (
+                    <div className="flex items-center gap-1.5 w-full">
+                      <input
+                        value={visitorDraft}
+                        onChange={(e) => setVisitorDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            sendVisitorSupportMessage(visitorDraft);
+                          }
+                        }}
+                        placeholder="Escribe tu mensaje..."
+                        className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-emerald-400/50 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => sendVisitorSupportMessage(visitorDraft)}
+                        disabled={!visitorDraft.trim()}
+                        className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors disabled:opacity-30"
+                      >
+                        <Send size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )
           ) : (
             <>
               <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.08),_transparent_45%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.08),_transparent_45%)]">
