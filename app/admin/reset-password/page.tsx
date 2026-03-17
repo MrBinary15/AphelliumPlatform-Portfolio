@@ -23,18 +23,18 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--bg-darker)] p-4 relative overflow-hidden">
+    <main className="flex min-h-[100dvh] items-center justify-center bg-[var(--bg-darker)] p-3 sm:p-4 relative overflow-hidden">
       {/* Background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[var(--accent-cyan)]/5 rounded-full blur-[150px] -z-10 pointer-events-none"></div>
 
-      <div className="w-full max-w-md bg-glass/80 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl relative">
+      <div className="w-full max-w-md bg-glass/80 backdrop-blur-xl p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl relative">
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-green)]"></div>
 
-        <div className="text-center mb-10">
+        <div className="text-center mb-7 sm:mb-10">
           <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-cyan)]/20 to-[var(--accent-green)]/20 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="text-[var(--accent-cyan)]" size={32} />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             Nueva <span className="text-gradient">Contraseña</span>
           </h1>
           <p className="text-sm text-gray-400 mt-2">
@@ -94,7 +94,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-white text-black font-bold text-lg py-3 rounded-xl hover:bg-gray-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-white text-black font-bold text-base sm:text-lg py-3 rounded-xl hover:bg-gray-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -122,7 +122,7 @@ export default function ResetPasswordPage() {
             </div>
             <Link
               href="/admin/dashboard"
-              className="inline-block w-full bg-white text-black font-bold text-lg py-3 rounded-xl hover:bg-gray-200 transition-colors text-center"
+              className="inline-block w-full bg-white text-black font-bold text-base sm:text-lg py-3 rounded-xl hover:bg-gray-200 transition-colors text-center"
             >
               Ir al Panel
             </Link>

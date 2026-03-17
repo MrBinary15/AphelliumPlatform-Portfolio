@@ -20,7 +20,7 @@ export default async function MainLayout({
       <div className="fixed top-16 md:top-24 right-3 sm:right-4 z-[52] md:z-[60]">
         <LanguageSwitcher />
       </div>
-      <main id="main-content" className="min-h-screen relative z-[1] pt-[72px] md:pt-0" role="main">
+      <main id="main-content" className="min-h-screen relative z-[1]" role="main">
         {children}
       </main>
       <Footer />
