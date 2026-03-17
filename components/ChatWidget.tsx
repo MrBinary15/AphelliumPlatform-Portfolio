@@ -80,8 +80,11 @@ const PANEL_W = 360;
 const PANEL_H = 560;
 const PANEL_MIN_W = 320;
 const PANEL_MIN_H = 460;
+const PANEL_MOBILE_MIN_W = 260;
+const PANEL_MOBILE_MIN_H = 320;
 const LAUNCHER_W = 176;
 const LAUNCHER_H = 52;
+const LAUNCHER_MOBILE_SIZE = 58;
 const SAFE_MARGIN = 12;
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -235,27 +238,33 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     if (typeof window === "undefined") {
       return { maxW: PANEL_W, maxH: PANEL_H };
     }
+    const minW = isMobileViewport ? PANEL_MOBILE_MIN_W : PANEL_MIN_W;
+    const minH = isMobileViewport ? PANEL_MOBILE_MIN_H : PANEL_MIN_H;
     return {
-      maxW: Math.max(PANEL_MIN_W, window.innerWidth - 24),
-      maxH: Math.max(PANEL_MIN_H, window.innerHeight - 24),
+      maxW: Math.max(minW, window.innerWidth - 24),
+      maxH: Math.max(minH, window.innerHeight - 24),
     };
-  }, []);
+  }, [isMobileViewport]);
 
   const clampLauncherPosition = useCallback((x: number, y: number) => {
     if (typeof window === "undefined") return { x, y };
+    const launcherW = isMobileViewport ? LAUNCHER_MOBILE_SIZE : LAUNCHER_W;
+    const launcherH = isMobileViewport ? LAUNCHER_MOBILE_SIZE : LAUNCHER_H;
     return {
-      x: clamp(x, SAFE_MARGIN, Math.max(SAFE_MARGIN, window.innerWidth - LAUNCHER_W - SAFE_MARGIN)),
-      y: clamp(y, SAFE_MARGIN, Math.max(SAFE_MARGIN, window.innerHeight - LAUNCHER_H - SAFE_MARGIN)),
+      x: clamp(x, SAFE_MARGIN, Math.max(SAFE_MARGIN, window.innerWidth - launcherW - SAFE_MARGIN)),
+      y: clamp(y, SAFE_MARGIN, Math.max(SAFE_MARGIN, window.innerHeight - launcherH - SAFE_MARGIN)),
     };
-  }, []);
+  }, [isMobileViewport]);
 
   const clampPanelSize = useCallback((width: number, height: number) => {
+    const minW = isMobileViewport ? PANEL_MOBILE_MIN_W : PANEL_MIN_W;
+    const minH = isMobileViewport ? PANEL_MOBILE_MIN_H : PANEL_MIN_H;
     const { maxW, maxH } = getPanelMax();
     return {
-      width: clamp(width, PANEL_MIN_W, maxW),
-      height: clamp(height, PANEL_MIN_H, maxH),
+      width: clamp(width, minW, maxW),
+      height: clamp(height, minH, maxH),
     };
-  }, [getPanelMax]);
+  }, [getPanelMax, isMobileViewport]);
 
   const persistPanelSize = useCallback((width: number, height: number) => {
     if (typeof window === "undefined") return;
@@ -473,7 +482,9 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const fallback = clampLauncherPosition(window.innerWidth - LAUNCHER_W - 24, window.innerHeight - LAUNCHER_H - 24);
+    const launcherW = isMobileViewport ? LAUNCHER_MOBILE_SIZE : LAUNCHER_W;
+    const launcherH = isMobileViewport ? LAUNCHER_MOBILE_SIZE : LAUNCHER_H;
+    const fallback = clampLauncherPosition(window.innerWidth - launcherW - 24, window.innerHeight - launcherH - 24);
 
     try {
       const raw = window.localStorage.getItem(launcherStorageKey);
@@ -490,7 +501,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     } catch {
       setLauncherPosition(fallback);
     }
-  }, [clampLauncherPosition, launcherStorageKey]);
+  }, [clampLauncherPosition, launcherStorageKey, isMobileViewport]);
 
   useEffect(() => {
     const onResize = () => {
@@ -511,24 +522,20 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   }, [clampPanelSize, persistPanelSize, clampLauncherPosition, persistLauncherPosition]);
 
   const panelAnchor = useMemo(() => {
-    if (isMobileViewport && typeof window !== "undefined") {
-      return {
-        x: 8,
-        y: 8,
-      };
-    }
+    const launcherW = isMobileViewport ? LAUNCHER_MOBILE_SIZE : LAUNCHER_W;
+    const launcherH = isMobileViewport ? LAUNCHER_MOBILE_SIZE : LAUNCHER_H;
 
     if (typeof window === "undefined") {
-      return { x: launcherPosition.x, y: launcherPosition.y + LAUNCHER_H + 8 };
+      return { x: launcherPosition.x, y: launcherPosition.y + launcherH + 8 };
     }
 
     const gap = 8;
-    const placeAbove = launcherPosition.y + LAUNCHER_H + gap + panelSize.height > window.innerHeight - SAFE_MARGIN;
+    const placeAbove = launcherPosition.y + launcherH + gap + panelSize.height > window.innerHeight - SAFE_MARGIN;
     const preferredY = placeAbove
       ? launcherPosition.y - panelSize.height - gap
-      : launcherPosition.y + LAUNCHER_H + gap;
+      : launcherPosition.y + launcherH + gap;
 
-    const preferredX = launcherPosition.x + LAUNCHER_W - panelSize.width;
+    const preferredX = launcherPosition.x + launcherW - panelSize.width;
 
     return {
       x: clamp(preferredX, SAFE_MARGIN, Math.max(SAFE_MARGIN, window.innerWidth - panelSize.width - SAFE_MARGIN)),
@@ -546,13 +553,9 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     };
   }, [launcherPosition]);
 
-  const startLauncherDrag = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (isMobileViewport) {
-      setIsOpen((prev) => !prev);
-      return;
-    }
-
+  const startLauncherDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
     launcherDragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -561,7 +564,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       moved: false,
     };
 
-    const onMove = (ev: MouseEvent) => {
+    const onMove = (ev: PointerEvent) => {
       if (!launcherDragRef.current) return;
       const dx = ev.clientX - launcherDragRef.current.startX;
       const dy = ev.clientY - launcherDragRef.current.startY;
@@ -577,17 +580,20 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       }
       persistLauncherPosition(launcherPositionRef.current.x, launcherPositionRef.current.y);
       launcherDragRef.current = null;
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
-  const startResize = (e: React.MouseEvent<HTMLDivElement>) => {
+  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
 
     resizingRef.current = {
       startX: e.clientX,
@@ -596,7 +602,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       startH: panelSize.height,
     };
 
-    const onMove = (ev: MouseEvent) => {
+    const onMove = (ev: PointerEvent) => {
       if (!resizingRef.current) return;
       const dx = ev.clientX - resizingRef.current.startX;
       const dy = ev.clientY - resizingRef.current.startY;
@@ -610,12 +616,14 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         persistPanelSize(finalSize.width, finalSize.height);
       }
       resizingRef.current = null;
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
   const markAsRead = useCallback(async (senderId: string) => {
@@ -1051,10 +1059,10 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   return (
     <>
       <button
-        onMouseDown={startLauncherDrag}
+        onPointerDown={startLauncherDrag}
         className={`fixed z-[70] flex items-center gap-2 px-4 py-3 rounded-2xl bg-[var(--bg-darker)] border border-white/10 shadow-2xl hover:border-[var(--accent-green)]/50 transition-all duration-200 ${isMobileViewport ? "cursor-pointer" : "cursor-move"} select-none`}
         style={isMobileViewport
-          ? { right: 14, bottom: 92, width: 58, height: 58, left: "auto", top: "auto", borderRadius: 16 }
+          ? { left: launcherPosition.x, top: launcherPosition.y, width: LAUNCHER_MOBILE_SIZE, height: LAUNCHER_MOBILE_SIZE, borderRadius: 16, touchAction: "none" }
           : { left: launcherPosition.x, top: launcherPosition.y, width: LAUNCHER_W, height: LAUNCHER_H }}
       >
         <div className="relative">
@@ -1097,8 +1105,8 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         <div
           className={`fixed z-[69] border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${isMobileViewport ? "rounded-2xl" : "rounded-3xl"}`}
           style={{
-            width: isMobileViewport ? "calc(100vw - 16px)" : panelSize.width,
-            height: isMobileViewport ? "calc(100dvh - 16px)" : panelSize.height,
+            width: panelSize.width,
+            height: panelSize.height,
             left: panelAnchor.x,
             top: panelAnchor.y,
             background: "linear-gradient(180deg, rgba(6, 13, 26, 0.98) 0%, rgba(2, 6, 14, 0.96) 100%)",
@@ -1832,17 +1840,16 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
             </div>
           )}
 
-          {!isMobileViewport && (
-            <div
-              onMouseDown={startResize}
-              className="absolute right-1 bottom-1 h-4 w-4 cursor-nwse-resize rounded-sm opacity-60 hover:opacity-100"
-              title="Cambiar tamaño"
-              style={{
-                background:
-                  "linear-gradient(135deg, transparent 0%, transparent 45%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.35) 55%, transparent 55%, transparent 100%)",
-              }}
-            />
-          )}
+          <div
+            onPointerDown={startResize}
+            className={`absolute right-1 bottom-1 ${isMobileViewport ? "h-6 w-6" : "h-4 w-4"} cursor-nwse-resize rounded-sm opacity-60 hover:opacity-100`}
+            title="Cambiar tamaño"
+            style={{
+              touchAction: "none",
+              background:
+                "linear-gradient(135deg, transparent 0%, transparent 45%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.35) 55%, transparent 55%, transparent 100%)",
+            }}
+          />
         </div>
       )}
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { publishNoticia, publishProyecto } from "@/app/actions/panel";
 import {
@@ -15,6 +15,16 @@ type Mensaje = {
 };
 
 type Tab = "mensajes" | "noticia" | "proyecto";
+
+const ADMIN_PANEL_W = 720;
+const ADMIN_PANEL_H = 540;
+const ADMIN_PANEL_MIN_W = 300;
+const ADMIN_PANEL_MIN_H = 280;
+const ADMIN_LAUNCHER_W = 138;
+const ADMIN_LAUNCHER_H = 54;
+const ADMIN_SAFE_MARGIN = 12;
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 /* ─── Small reusable input ─── */
 function Field({ label, name, placeholder, textarea, required, type = "text", accept }: {
@@ -57,6 +67,91 @@ export default function AdminFloatingPanel() {
   const [proyectoError, setProyectoError] = useState("");
 
   const [loading, setLoading] = useState(true);
+  const [panelSize, setPanelSize] = useState({ width: ADMIN_PANEL_W, height: ADMIN_PANEL_H });
+  const [launcherPosition, setLauncherPosition] = useState({ x: 24, y: 24 });
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  const panelSizeRef = useRef(panelSize);
+  const launcherPositionRef = useRef(launcherPosition);
+  const launcherDragRef = useRef<{
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+    moved: boolean;
+  } | null>(null);
+  const resizingRef = useRef<{
+    startX: number;
+    startY: number;
+    startW: number;
+    startH: number;
+  } | null>(null);
+
+  const panelSizeStorageKey = "aphellium-admin-panel-size";
+  const launcherStorageKey = "aphellium-admin-launcher-pos";
+
+  const getPanelMax = useCallback(() => {
+    if (typeof window === "undefined") {
+      return { maxW: ADMIN_PANEL_W, maxH: ADMIN_PANEL_H };
+    }
+    return {
+      maxW: Math.max(ADMIN_PANEL_MIN_W, window.innerWidth - 24),
+      maxH: Math.max(ADMIN_PANEL_MIN_H, window.innerHeight - 24),
+    };
+  }, []);
+
+  const clampPanelSize = useCallback((width: number, height: number) => {
+    const { maxW, maxH } = getPanelMax();
+    return {
+      width: clamp(width, ADMIN_PANEL_MIN_W, maxW),
+      height: clamp(height, ADMIN_PANEL_MIN_H, maxH),
+    };
+  }, [getPanelMax]);
+
+  const clampLauncherPosition = useCallback((x: number, y: number) => {
+    if (typeof window === "undefined") return { x, y };
+    return {
+      x: clamp(x, ADMIN_SAFE_MARGIN, Math.max(ADMIN_SAFE_MARGIN, window.innerWidth - ADMIN_LAUNCHER_W - ADMIN_SAFE_MARGIN)),
+      y: clamp(y, ADMIN_SAFE_MARGIN, Math.max(ADMIN_SAFE_MARGIN, window.innerHeight - ADMIN_LAUNCHER_H - ADMIN_SAFE_MARGIN)),
+    };
+  }, []);
+
+  const persistPanelSize = useCallback((width: number, height: number) => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(panelSizeStorageKey, JSON.stringify({ width, height }));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, []);
+
+  const persistLauncherPosition = useCallback((x: number, y: number) => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(launcherStorageKey, JSON.stringify({ x, y }));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, []);
+
+  const panelAnchor = useMemo(() => {
+    if (typeof window === "undefined") {
+      return { x: launcherPosition.x, y: launcherPosition.y + ADMIN_LAUNCHER_H + 8 };
+    }
+
+    const gap = 8;
+    const placeAbove = launcherPosition.y + ADMIN_LAUNCHER_H + gap + panelSize.height > window.innerHeight - ADMIN_SAFE_MARGIN;
+    const preferredY = placeAbove
+      ? launcherPosition.y - panelSize.height - gap
+      : launcherPosition.y + ADMIN_LAUNCHER_H + gap;
+    const preferredX = launcherPosition.x + ADMIN_LAUNCHER_W - panelSize.width;
+
+    return {
+      x: clamp(preferredX, ADMIN_SAFE_MARGIN, Math.max(ADMIN_SAFE_MARGIN, window.innerWidth - panelSize.width - ADMIN_SAFE_MARGIN)),
+      y: clamp(preferredY, ADMIN_SAFE_MARGIN, Math.max(ADMIN_SAFE_MARGIN, window.innerHeight - panelSize.height - ADMIN_SAFE_MARGIN)),
+    };
+  }, [launcherPosition, panelSize.height, panelSize.width]);
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -96,6 +191,149 @@ export default function AdminFloatingPanel() {
     return () => listener.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    panelSizeRef.current = panelSize;
+  }, [panelSize]);
+
+  useEffect(() => {
+    launcherPositionRef.current = launcherPosition;
+  }, [launcherPosition]);
+
+  useEffect(() => {
+    const syncViewport = () => {
+      if (typeof window === "undefined") return;
+      setIsMobileViewport(window.innerWidth < 768);
+    };
+
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    return () => window.removeEventListener("resize", syncViewport);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const raw = window.localStorage.getItem(panelSizeStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { width?: number; height?: number };
+        if (typeof parsed?.width === "number" && typeof parsed?.height === "number") {
+          setPanelSize(clampPanelSize(parsed.width, parsed.height));
+        }
+      }
+    } catch {
+      // Ignore invalid storage payload.
+    }
+
+    const fallback = clampLauncherPosition(window.innerWidth - ADMIN_LAUNCHER_W - 24, window.innerHeight - ADMIN_LAUNCHER_H - 24);
+    try {
+      const raw = window.localStorage.getItem(launcherStorageKey);
+      if (!raw) {
+        setLauncherPosition(fallback);
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as { x?: number; y?: number };
+      if (typeof parsed?.x === "number" && typeof parsed?.y === "number") {
+        setLauncherPosition(clampLauncherPosition(parsed.x, parsed.y));
+      } else {
+        setLauncherPosition(fallback);
+      }
+    } catch {
+      setLauncherPosition(fallback);
+    }
+  }, [clampLauncherPosition, clampPanelSize]);
+
+  useEffect(() => {
+    const onResize = () => {
+      setPanelSize((prev) => {
+        const next = clampPanelSize(prev.width, prev.height);
+        persistPanelSize(next.width, next.height);
+        return next;
+      });
+      setLauncherPosition((prev) => {
+        const next = clampLauncherPosition(prev.x, prev.y);
+        persistLauncherPosition(next.x, next.y);
+        return next;
+      });
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [clampPanelSize, persistPanelSize, clampLauncherPosition, persistLauncherPosition]);
+
+  const startLauncherDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    launcherDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: launcherPosition.x,
+      originY: launcherPosition.y,
+      moved: false,
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!launcherDragRef.current) return;
+      const dx = ev.clientX - launcherDragRef.current.startX;
+      const dy = ev.clientY - launcherDragRef.current.startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) launcherDragRef.current.moved = true;
+      setLauncherPosition(clampLauncherPosition(launcherDragRef.current.originX + dx, launcherDragRef.current.originY + dy));
+    };
+
+    const onUp = () => {
+      if (!launcherDragRef.current) return;
+      if (!launcherDragRef.current.moved) {
+        setIsOpen((prev) => !prev);
+      }
+      persistLauncherPosition(launcherPositionRef.current.x, launcherPositionRef.current.y);
+      launcherDragRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  };
+
+  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    resizingRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: panelSize.width,
+      startH: panelSize.height,
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!resizingRef.current) return;
+      const dx = ev.clientX - resizingRef.current.startX;
+      const dy = ev.clientY - resizingRef.current.startY;
+      setPanelSize(clampPanelSize(resizingRef.current.startW + dx, resizingRef.current.startH + dy));
+    };
+
+    const onUp = () => {
+      if (resizingRef.current) {
+        const finalSize = clampPanelSize(panelSizeRef.current.width, panelSizeRef.current.height);
+        persistPanelSize(finalSize.width, finalSize.height);
+      }
+      resizingRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  };
 
   const fetchMessages = useCallback(async () => {
     const { data } = await supabase.from("mensajes").select("*").order("created_at", { ascending: false });
@@ -156,8 +394,15 @@ export default function AdminFloatingPanel() {
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-[var(--bg-darker)] border border-white/10 shadow-2xl hover:border-[var(--accent-cyan)]/50 transition-all duration-200 group"
+        onPointerDown={startLauncherDrag}
+        className="fixed z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-[var(--bg-darker)] border border-white/10 shadow-2xl hover:border-[var(--accent-cyan)]/50 transition-all duration-200 group select-none"
+        style={{
+          left: launcherPosition.x,
+          top: launcherPosition.y,
+          width: ADMIN_LAUNCHER_W,
+          height: ADMIN_LAUNCHER_H,
+          touchAction: "none",
+        }}
       >
         <div className="relative">
           <Mail size={20} className="text-[var(--accent-cyan)]" />
@@ -174,13 +419,23 @@ export default function AdminFloatingPanel() {
   }
 
   /* ── Full Panel ── */
-  const panelWidth = isMinimized ? "w-80 h-12" : activeTab === "mensajes" ? "w-[720px] max-w-[95vw] h-[540px] max-h-[82vh]" : "w-[480px] max-w-[95vw] h-[560px] max-h-[82vh]";
+  const currentWidth = isMinimized ? 320 : panelSize.width;
+  const currentHeight = isMinimized ? 48 : panelSize.height;
 
   return (
     <div
       id="admin-floating-panel"
-      className={`fixed bottom-6 right-6 z-50 flex flex-col rounded-2xl shadow-2xl border border-white/10 overflow-hidden transition-all duration-300 ${panelWidth}`}
-      style={{ background: "rgba(2, 4, 10, 0.96)", backdropFilter: "blur(24px)" }}
+      className="fixed z-50 flex flex-col rounded-2xl shadow-2xl border border-white/10 overflow-hidden transition-all duration-300"
+      style={{
+        width: currentWidth,
+        height: currentHeight,
+        left: panelAnchor.x,
+        top: panelAnchor.y,
+        maxWidth: "calc(100vw - 24px)",
+        maxHeight: "calc(100dvh - 24px)",
+        background: "rgba(2, 4, 10, 0.96)",
+        backdropFilter: "blur(24px)",
+      }}
     >
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-black/60 shrink-0">
@@ -350,6 +605,17 @@ export default function AdminFloatingPanel() {
               </button>
             </div>
           )}
+
+          <div
+            onPointerDown={startResize}
+            className={`absolute right-1 bottom-1 ${isMobileViewport ? "h-6 w-6" : "h-4 w-4"} cursor-nwse-resize rounded-sm opacity-60 hover:opacity-100`}
+            title="Cambiar tamaño"
+            style={{
+              touchAction: "none",
+              background:
+                "linear-gradient(135deg, transparent 0%, transparent 45%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.35) 55%, transparent 55%, transparent 100%)",
+            }}
+          />
         </>
       )}
     </div>
