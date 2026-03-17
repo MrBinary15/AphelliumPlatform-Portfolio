@@ -508,7 +508,7 @@ export default function TaskDetailClient({
                 { key: "members", icon: Users },
                 ...(!mustAcceptBeforeInternalAccess ? [{ key: "files", icon: Paperclip }, { key: "activity", icon: Clock }] : []),
               ] as const).map((t) => (
-                <button key={t.key} onClick={() => setSidebarTab(t.key)}
+                <button key={t.key} onClick={() => setSidebarTab(t.key as "info" | "members" | "files" | "activity")}
                   className={`flex-1 p-2 rounded-lg flex items-center justify-center transition-colors ${sidebarTab === t.key ? "bg-white/10 text-white" : "text-gray-600 hover:text-gray-400"}`}>
                   <t.icon size={14} />
                 </button>
