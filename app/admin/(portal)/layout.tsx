@@ -24,9 +24,9 @@ export default async function AdminLayout({
   };
 
   return (
-    <div className="flex h-screen bg-[var(--bg-darker)] overflow-hidden">
+    <div className="flex min-h-screen md:h-screen bg-[var(--bg-darker)] overflow-hidden md:overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-black/50 border-r border-white/5 flex flex-col">
+      <aside className="hidden md:flex w-64 bg-black/50 border-r border-white/5 flex-col">
         <div className="p-6">
           <h2 className="text-xl font-bold tracking-tight text-white">APHE <span className="text-[var(--accent-cyan)]">Admin</span></h2>
           <p className="text-xs text-gray-400 mt-1">{auth.user.email}</p>
@@ -101,7 +101,22 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-8 relative">
+      <main className="flex-1 w-full overflow-y-auto p-4 md:p-8 relative">
+        <div className="md:hidden mb-4 sticky top-0 z-20 bg-[var(--bg-darker)]/90 backdrop-blur border border-white/10 rounded-xl p-3">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-sm font-semibold text-white">APHE Admin</p>
+            <div><RoleBadge /></div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <Link href="/admin/dashboard" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Dashboard</Link>
+            <Link href="/admin/noticias" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Noticias</Link>
+            <Link href="/admin/proyectos" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Proyectos</Link>
+            {hasPermission(role, "view_tasks") && (
+              <Link href="/admin/tareas" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Tareas</Link>
+            )}
+            <Link href="/admin/perfil" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Perfil</Link>
+          </div>
+        </div>
         {/* Background glow for the content area */}
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-[var(--accent-cyan)]/5 rounded-full blur-[150px] -z-10 pointer-events-none"></div>
         {children}
