@@ -221,10 +221,10 @@ export default function DocumentosIAClient({ initialDocs }: { initialDocs: Knowl
                 setUploadMessage("");
               }}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-cyan-300"
-              accept=".txt,.md,.markdown,.log,.json,.csv,.xml,.html,.htm,.docx,.pdf,.xls,.xlsx"
+              accept=".txt,.md,.markdown,.log,.json,.csv,.xml,.html,.htm,.docx,.odt,.pdf,.xls,.xlsx"
             />
             <p className="text-[10px] text-gray-500">
-              Formatos soportados: TXT, MD, JSON, CSV, XML, HTML, DOCX, PDF, XLS, XLSX. Tamaño máximo: 10MB.
+              Formatos soportados: TXT, MD, JSON, CSV, XML, HTML, DOCX, ODT, PDF, XLS, XLSX. Tamaño máximo: 10MB.
             </p>
             <button
               type="button"

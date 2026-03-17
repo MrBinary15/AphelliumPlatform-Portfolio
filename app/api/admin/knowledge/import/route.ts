@@ -4,6 +4,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import * as mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
 import * as XLSX from "xlsx";
+import JSZip from "jszip";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_TOTAL_CHARS = 120_000;
@@ -99,6 +100,18 @@ async function extractText(file: File): Promise<string> {
     return normalizeText(result.value || "");
   }
 
+  if (name.endsWith(".odt") || mime.includes("opendocument")) {
+    const zip = await JSZip.loadAsync(buffer);
+    const contentXml = await zip.file("content.xml")?.async("string");
+    if (!contentXml) return "";
+    const withoutTags = contentXml
+      .replace(/<text:line-break\s*\/?>/g, "\n")
+      .replace(/<text:p[^>]*>/g, "\n")
+      .replace(/<text:h[^>]*>/g, "\n")
+      .replace(/<[^>]+>/g, " ");
+    return normalizeText(withoutTags);
+  }
+
   if (name.endsWith(".pdf") || mime.includes("pdf")) {
     const parser = new PDFParse({ data: buffer });
     const parsed = await parser.getText();
@@ -122,7 +135,7 @@ async function extractText(file: File): Promise<string> {
     return normalizeText(sheetTexts.join("\n\n"));
   }
 
-  throw new Error("Formato no soportado. Usa: txt, md, json, csv, xml, html, docx, pdf, xls, xlsx");
+  throw new Error("Formato no soportado. Usa: txt, md, json, csv, xml, html, docx, odt, pdf, xls, xlsx");
 }
 
 export async function POST(request: NextRequest) {

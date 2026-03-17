@@ -17,24 +17,28 @@ CREATE TABLE IF NOT EXISTS public.knowledge_documents (
 ALTER TABLE public.knowledge_documents ENABLE ROW LEVEL SECURITY;
 
 -- Solo admins pueden gestionar documentos de conocimiento
+DROP POLICY IF EXISTS "knowledge_docs_admin_select" ON public.knowledge_documents;
 CREATE POLICY "knowledge_docs_admin_select"
   ON public.knowledge_documents FOR SELECT
   USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
+DROP POLICY IF EXISTS "knowledge_docs_admin_insert" ON public.knowledge_documents;
 CREATE POLICY "knowledge_docs_admin_insert"
   ON public.knowledge_documents FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
+DROP POLICY IF EXISTS "knowledge_docs_admin_update" ON public.knowledge_documents;
 CREATE POLICY "knowledge_docs_admin_update"
   ON public.knowledge_documents FOR UPDATE
   USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
+DROP POLICY IF EXISTS "knowledge_docs_admin_delete" ON public.knowledge_documents;
 CREATE POLICY "knowledge_docs_admin_delete"
   ON public.knowledge_documents FOR DELETE
   USING (
@@ -65,12 +69,14 @@ CREATE INDEX IF NOT EXISTS idx_support_conv_status
 ALTER TABLE public.support_conversations ENABLE ROW LEVEL SECURITY;
 
 -- Solo staff autenticado puede ver conversaciones de soporte
+DROP POLICY IF EXISTS "support_conv_staff_select" ON public.support_conversations;
 CREATE POLICY "support_conv_staff_select"
   ON public.support_conversations FOR SELECT
   USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'coordinador', 'editor'))
   );
 
+DROP POLICY IF EXISTS "support_conv_staff_update" ON public.support_conversations;
 CREATE POLICY "support_conv_staff_update"
   ON public.support_conversations FOR UPDATE
   USING (
@@ -93,6 +99,7 @@ CREATE INDEX IF NOT EXISTS idx_support_msg_conversation
 ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
 
 -- Staff puede leer mensajes de soporte
+DROP POLICY IF EXISTS "support_msg_staff_select" ON public.support_messages;
 CREATE POLICY "support_msg_staff_select"
   ON public.support_messages FOR SELECT
   USING (
@@ -100,6 +107,7 @@ CREATE POLICY "support_msg_staff_select"
   );
 
 -- Staff puede insertar mensajes (respuestas)
+DROP POLICY IF EXISTS "support_msg_staff_insert" ON public.support_messages;
 CREATE POLICY "support_msg_staff_insert"
   ON public.support_messages FOR INSERT
   WITH CHECK (
@@ -107,8 +115,28 @@ CREATE POLICY "support_msg_staff_insert"
   );
 
 -- 4. Habilitar Realtime para mensajes de soporte
-ALTER PUBLICATION supabase_realtime ADD TABLE public.support_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.support_conversations;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'support_messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.support_messages;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'support_conversations'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.support_conversations;
+  END IF;
+END $$;
 
 -- =============================================
 -- VERIFICACIÓN
