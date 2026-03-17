@@ -167,6 +167,19 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     return vid;
   }, []);
 
+  const getSupportIdentity = useCallback(() => {
+    if (isAuthenticated) {
+      return {
+        id: userIdSafe,
+        name: userName || "Usuario",
+      };
+    }
+    return {
+      id: getVisitorId(),
+      name: "Visitante",
+    };
+  }, [isAuthenticated, userIdSafe, userName, getVisitorId]);
+
   // ── Authenticated chat state ──
   // ── Authenticated chat state ──
   const [isOpen, setIsOpen] = useState(false);
@@ -177,7 +190,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMsg[]>>({});
   const [draftByUser, setDraftByUser] = useState<Record<string, string>>({});
   const [uploadingByUser, setUploadingByUser] = useState<Record<string, boolean>>({});
-  const [chatMode, setChatMode] = useState<"direct" | "group">("direct");
+  const [chatMode, setChatMode] = useState<"direct" | "group" | "ai" | "support">("direct");
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [roomMessagesById, setRoomMessagesById] = useState<Record<string, ChatRoomMessage[]>>({});
@@ -332,20 +345,20 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   }, [visitorAiMessages, visitorAiLoading]);
 
   const startSupportConversation = useCallback(async (escalatedFromAi = false) => {
-    const visitorId = getVisitorId();
+    const actor = getSupportIdentity();
     try {
       const res = await fetch("/api/chat/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", visitorId, visitorName: "Visitante", escalatedFromAi }),
+        body: JSON.stringify({ action: "create", visitorId: actor.id, visitorName: actor.name, escalatedFromAi }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setVisitorSupportConvId(data.conversationId);
-      setVisitorMode("support");
+      if (!isAuthenticated) setVisitorMode("support");
 
       // Load initial messages
-      const msgRes = await fetch(`/api/chat/support?conversationId=${data.conversationId}&visitorId=${visitorId}`);
+      const msgRes = await fetch(`/api/chat/support?conversationId=${data.conversationId}&visitorId=${actor.id}`);
       const msgData = await msgRes.json();
       if (msgData.messages) {
         setVisitorSupportMessages(msgData.messages.map((m: { id: string; sender_type: string; content: string; created_at: string }) => ({
@@ -358,13 +371,13 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     } catch {
       alert("No se pudo iniciar la conversación de soporte.");
     }
-  }, [getVisitorId]);
+  }, [getSupportIdentity, isAuthenticated]);
 
   const sendVisitorSupportMessage = useCallback(async (text: string) => {
     const content = text.trim();
     if (!content || !visitorSupportConvId) return;
 
-    const visitorId = getVisitorId();
+    const actor = getSupportIdentity();
     const userMsg: VisitorMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date().toISOString() };
     setVisitorSupportMessages((prev) => [...prev, userMsg]);
     setVisitorDraft("");
@@ -373,16 +386,17 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       await fetch("/api/chat/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send", conversationId: visitorSupportConvId, visitorId, content }),
+        body: JSON.stringify({ action: "send", conversationId: visitorSupportConvId, visitorId: actor.id, content }),
       });
     } catch {
       // Message was already optimistically added
     }
-  }, [visitorSupportConvId, getVisitorId]);
+  }, [visitorSupportConvId, getSupportIdentity]);
 
   // Poll for support messages
   useEffect(() => {
-    if (isAuthenticated || visitorMode !== "support" || !visitorSupportConvId || !isOpen) {
+    const supportActive = (!isAuthenticated && visitorMode === "support") || (isAuthenticated && chatMode === "support");
+    if (!supportActive || !visitorSupportConvId || !isOpen) {
       if (visitorSupportPollRef.current) {
         clearInterval(visitorSupportPollRef.current);
         visitorSupportPollRef.current = null;
@@ -390,7 +404,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       return;
     }
 
-    const visitorId = getVisitorId();
+    const actor = getSupportIdentity();
     let lastTimestamp = visitorSupportMessages.length > 0
       ? visitorSupportMessages[visitorSupportMessages.length - 1].timestamp
       : "";
@@ -399,7 +413,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       try {
         const params = new URLSearchParams({
           conversationId: visitorSupportConvId,
-          visitorId,
+          visitorId: actor.id,
           ...(lastTimestamp ? { after: lastTimestamp } : {}),
         });
         const res = await fetch(`/api/chat/support?${params}`);
@@ -409,7 +423,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
         if (data.messages?.length > 0) {
           const newMsgs: VisitorMsg[] = data.messages
-            .filter((m: { sender_type: string; sender_id?: string }) => !(m.sender_type === "visitor" && m.sender_id === visitorId))
+            .filter((m: { sender_type: string; sender_id?: string }) => !(m.sender_type === "visitor" && m.sender_id === actor.id))
             .map((m: { id: string; sender_type: string; content: string; created_at: string }) => ({
               id: m.id,
               role: m.sender_type === "visitor" ? "user" as const : m.sender_type === "system" ? "system" as const : "assistant" as const,
@@ -440,7 +454,14 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         visitorSupportPollRef.current = null;
       }
     };
-  }, [isAuthenticated, visitorMode, visitorSupportConvId, isOpen, getVisitorId, visitorSupportMessages]);
+  }, [isAuthenticated, visitorMode, visitorSupportConvId, isOpen, visitorSupportMessages, chatMode, getSupportIdentity]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (chatMode !== "support") return;
+    if (visitorSupportConvId) return;
+    startSupportConversation(false);
+  }, [isAuthenticated, chatMode, visitorSupportConvId, startSupportConversation]);
 
   // Scroll visitor messages
   useEffect(() => {
@@ -1144,12 +1165,20 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
               <div className="min-w-0">
                 <p className="text-sm text-white font-semibold truncate">
                   {!isAuthenticated
-                    ? (visitorMode === "ai" ? "Asistente IA" : visitorMode === "support" ? "Soporte Técnico" : "Aphellium Chat")
+                    ? (visitorMode === "ai" ? "Aphellium AI" : visitorMode === "support" ? "Soporte Técnico" : "Aphellium Chat")
+                    : (!hasActiveDirect && !hasActiveRoom && chatMode === "ai")
+                    ? "Aphellium AI"
+                    : (!hasActiveDirect && !hasActiveRoom && chatMode === "support")
+                    ? "Soporte Técnico"
                     : hasActiveRoom ? (activeRoom?.name || "Grupo") : activeMember ? (activeMember.full_name || "Sin nombre") : "Chat interno"}
                 </p>
                 <p className="text-[10px] text-gray-400">
                   {!isAuthenticated
                     ? (visitorMode === "ai" ? "Respuestas instantáneas" : visitorMode === "support" ? "Chat en vivo" : "¿Cómo te podemos ayudar?")
+                    : (!hasActiveDirect && !hasActiveRoom && chatMode === "ai")
+                    ? "Asistente inteligente de Aphellium"
+                    : (!hasActiveDirect && !hasActiveRoom && chatMode === "support")
+                    ? "Atención en vivo con nuestro equipo"
                     : hasActiveRoom
                     ? (activeRoom?.room_type === "task" ? "Grupo de tarea" : "Grupo manual")
                     : activeMember
@@ -1171,161 +1200,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
             </button>
           </div>
 
-          {!hasActiveDirect && !hasActiveRoom ? (
-            <>
-              <div className="px-3 py-2 border-b border-white/5">
-                <div className="mb-2 grid grid-cols-2 gap-1 rounded-lg bg-white/5 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setChatMode("direct")}
-                    className={`h-7 rounded-md text-[11px] font-medium transition-colors ${chatMode === "direct" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
-                  >
-                    Directos
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChatMode("group")}
-                    className={`h-7 rounded-md text-[11px] font-medium transition-colors ${chatMode === "group" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
-                  >
-                    Grupos
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-1.5">
-                  <Search size={14} className="text-gray-500 shrink-0" />
-                  <input
-                    value={searchQ}
-                    onChange={(e) => setSearchQ(e.target.value)}
-                    placeholder={chatMode === "direct" ? "Buscar contacto..." : "Buscar grupo..."}
-                    className="bg-transparent text-xs text-white placeholder-gray-600 outline-none w-full"
-                  />
-                  {chatMode === "group" && canManageGroups && (
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateRoom((prev) => !prev)}
-                      className="h-6 w-6 rounded-md bg-white/10 text-gray-200 hover:bg-white/20 inline-flex items-center justify-center"
-                      title="Crear grupo"
-                    >
-                      <Plus size={12} />
-                    </button>
-                  )}
-                </div>
-
-                {chatMode === "group" && showCreateRoom && canManageGroups && (
-                  <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-2 space-y-2">
-                    <input
-                      value={newRoomName}
-                      onChange={(e) => setNewRoomName(e.target.value)}
-                      placeholder="Nombre del grupo"
-                      className="w-full rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white outline-none focus:border-[var(--accent-green)]/50"
-                    />
-                    <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
-                      {members.map((m) => (
-                        <label key={m.id} className="flex items-center gap-2 text-[11px] text-gray-300">
-                          <input
-                            type="checkbox"
-                            checked={newRoomMemberIds.includes(m.id)}
-                            onChange={() => setNewRoomMemberIds((prev) => prev.includes(m.id) ? prev.filter((x) => x !== m.id) : [...prev, m.id])}
-                          />
-                          <span className="truncate">{m.full_name || "Sin nombre"}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={createGroupRoom}
-                      disabled={creatingRoom || !newRoomName.trim()}
-                      className="w-full h-7 rounded-md bg-emerald-500/20 text-emerald-200 text-[11px] font-semibold disabled:opacity-40"
-                    >
-                      {creatingRoom ? "Creando..." : "Crear grupo"}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 overflow-y-auto">
-                {chatMode === "direct" ? (
-                  filteredMembers.length === 0 ? (
-                    <div className="p-6 text-center text-gray-500 text-xs">No hay resultados</div>
-                  ) : (
-                  filteredMembers.map((m) => {
-                    const unread = unreadMap[m.id] || 0;
-                    const isOnline = onlineIds.has(m.id);
-                    const lastMsg = (messagesByUser[m.id] || []).slice(-1)[0];
-
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => openConversation(m)}
-                        className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors flex items-center gap-2"
-                      >
-                        <div className="relative shrink-0">
-                          {m.avatar_url ? (
-                            <img src={m.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover border border-white/10" />
-                          ) : (
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/30 to-emerald-500/30 flex items-center justify-center text-xs font-bold text-white border border-white/10">
-                              {initials(m.full_name)}
-                            </div>
-                          )}
-                          <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-darker)] ${isOnline ? "bg-emerald-400" : "bg-gray-600"}`} />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className={`text-xs truncate ${unread > 0 ? "text-white font-semibold" : "text-gray-300"}`}>
-                              {m.full_name || "Sin nombre"}
-                            </p>
-                            {lastMsg && <span className="text-[10px] text-gray-600 shrink-0">{fmtTime(lastMsg.created_at)}</span>}
-                          </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-[11px] text-gray-500 truncate">{previewText(lastMsg, userIdSafe)}</p>
-                            {unread > 0 && (
-                              <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
-                                {unread > 9 ? "9+" : unread}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })
-                  )
-                ) : (
-                  (() => {
-                    const filteredRooms = rooms.filter((r) => !searchQ || r.name.toLowerCase().includes(searchQ.toLowerCase()));
-                    if (filteredRooms.length === 0) {
-                      return <div className="p-6 text-center text-gray-500 text-xs">No hay grupos todavía</div>;
-                    }
-
-                    return filteredRooms.map((room) => {
-                      const last = (roomMessagesById[room.id] || []).slice(-1)[0];
-                      return (
-                        <button
-                          key={room.id}
-                          onClick={() => openRoomConversation(room)}
-                          className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors flex items-center gap-2"
-                        >
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500/25 to-cyan-500/25 border border-white/10 inline-flex items-center justify-center text-white">
-                            <Users size={14} />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs text-white truncate">{room.name}</p>
-                              {last && <span className="text-[10px] text-gray-600 shrink-0">{fmtTime(last.created_at)}</span>}
-                            </div>
-                            <p className="text-[11px] text-gray-500 truncate">
-                              {last ? previewText({ ...last, receiver_id: "", read_at: null } as ChatMsg, userIdSafe) : (room.room_type === "task" ? "Grupo de tarea" : "Grupo manual")}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    });
-                  })()
-                )}
-              </div>
-            </>
-          ) : !isAuthenticated ? (
+          {!isAuthenticated ? (
             visitorMode === "menu" ? (
               <div className="flex-1 flex items-center justify-center p-6 text-center">
                 <div className="space-y-4 max-w-[280px]">
@@ -1343,7 +1218,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                           setVisitorAiMessages([{
                             id: "welcome-ai",
                             role: "assistant",
-                            content: "¡Hola! Soy el asistente virtual de Aphellium. Puedo ayudarte con información sobre nuestros productos, servicios y tecnología. ¿En qué puedo ayudarte?",
+                            content: "¡Hola! Soy Aphellium AI. Puedo ayudarte con información sobre nuestros productos, servicios y tecnología. ¿En qué puedo ayudarte?",
                             timestamp: new Date().toISOString(),
                           }]);
                         }
@@ -1354,7 +1229,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                         <Bot size={18} className="text-cyan-300" />
                       </div>
                       <div>
-                        <p className="text-xs text-white font-semibold">Asistente IA</p>
+                        <p className="text-xs text-white font-semibold">Aphellium AI</p>
                         <p className="text-[10px] text-gray-400">Respuestas instantáneas sobre Aphellium</p>
                       </div>
                     </button>
@@ -1406,7 +1281,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                       ) : (
                         <div className={`max-w-[85%] flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
                           {msg.role === "assistant" && (
-                            <span className="text-[10px] text-cyan-300 mb-1 px-1 flex items-center gap-1"><Bot size={10} /> Aphellium IA</span>
+                            <span className="text-[10px] text-cyan-300 mb-1 px-1 flex items-center gap-1"><Bot size={10} /> Aphellium AI</span>
                           )}
                           <div className={`px-3 py-2 text-xs leading-relaxed break-words shadow-lg whitespace-pre-wrap ${
                             msg.role === "user"
@@ -1529,6 +1404,318 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                 </div>
               </>
             )
+          ) : !hasActiveDirect && !hasActiveRoom ? (
+            <>
+              <div className="px-3 py-2 border-b border-white/5">
+                <div className="mb-2 grid grid-cols-4 gap-1 rounded-lg bg-white/5 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setChatMode("direct")}
+                    className={`h-7 rounded-md text-[11px] font-medium transition-colors ${chatMode === "direct" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+                  >
+                    Directos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChatMode("group")}
+                    className={`h-7 rounded-md text-[11px] font-medium transition-colors ${chatMode === "group" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+                  >
+                    Grupos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChatMode("ai");
+                      if (visitorAiMessages.length === 0) {
+                        setVisitorAiMessages([{
+                          id: "welcome-ai-auth",
+                          role: "assistant",
+                          content: "¡Hola! Soy Aphellium AI. Estoy listo para ayudarte con información sobre Aphellium.",
+                          timestamp: new Date().toISOString(),
+                        }]);
+                      }
+                    }}
+                    className={`h-7 rounded-md text-[11px] font-medium transition-colors ${chatMode === "ai" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+                  >
+                    Aphellium AI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChatMode("support");
+                      if (!visitorSupportConvId) {
+                        startSupportConversation(false);
+                      }
+                    }}
+                    className={`h-7 rounded-md text-[11px] font-medium transition-colors ${chatMode === "support" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+                  >
+                    Soporte
+                  </button>
+                </div>
+
+                {chatMode !== "ai" && chatMode !== "support" && (
+                  <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-1.5">
+                  <Search size={14} className="text-gray-500 shrink-0" />
+                  <input
+                    value={searchQ}
+                    onChange={(e) => setSearchQ(e.target.value)}
+                    placeholder={chatMode === "direct" ? "Buscar contacto..." : "Buscar grupo..."}
+                    className="bg-transparent text-xs text-white placeholder-gray-600 outline-none w-full"
+                  />
+                  {chatMode === "group" && canManageGroups && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateRoom((prev) => !prev)}
+                      className="h-6 w-6 rounded-md bg-white/10 text-gray-200 hover:bg-white/20 inline-flex items-center justify-center"
+                      title="Crear grupo"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  )}
+                  </div>
+                )}
+
+                {chatMode === "group" && showCreateRoom && canManageGroups && (
+                  <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-2 space-y-2">
+                    <input
+                      value={newRoomName}
+                      onChange={(e) => setNewRoomName(e.target.value)}
+                      placeholder="Nombre del grupo"
+                      className="w-full rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white outline-none focus:border-[var(--accent-green)]/50"
+                    />
+                    <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
+                      {members.map((m) => (
+                        <label key={m.id} className="flex items-center gap-2 text-[11px] text-gray-300">
+                          <input
+                            type="checkbox"
+                            checked={newRoomMemberIds.includes(m.id)}
+                            onChange={() => setNewRoomMemberIds((prev) => prev.includes(m.id) ? prev.filter((x) => x !== m.id) : [...prev, m.id])}
+                          />
+                          <span className="truncate">{m.full_name || "Sin nombre"}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={createGroupRoom}
+                      disabled={creatingRoom || !newRoomName.trim()}
+                      className="w-full h-7 rounded-md bg-emerald-500/20 text-emerald-200 text-[11px] font-semibold disabled:opacity-40"
+                    >
+                      {creatingRoom ? "Creando..." : "Crear grupo"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                {chatMode === "ai" ? (
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.06),_transparent_45%)]">
+                      {visitorAiMessages.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-gray-500 text-xs text-center px-6">
+                          Escribe para empezar a conversar con Aphellium AI
+                        </div>
+                      ) : (
+                        visitorAiMessages.map((msg) => (
+                          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                            <div className={`max-w-[85%] flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                              {msg.role === "assistant" && (
+                                <span className="text-[10px] text-cyan-300 mb-1 px-1 flex items-center gap-1"><Bot size={10} /> Aphellium AI</span>
+                              )}
+                              <div className={`px-3 py-2 text-xs leading-relaxed break-words shadow-lg whitespace-pre-wrap ${
+                                msg.role === "user"
+                                  ? "bg-gradient-to-br from-cyan-400/35 to-cyan-500/20 text-white rounded-2xl rounded-br-md border border-cyan-300/20"
+                                  : "bg-white/[0.08] text-gray-100 rounded-2xl rounded-bl-md border border-white/10"
+                              }`}>
+                                {msg.content}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      {visitorAiLoading && (
+                        <div className="flex justify-start">
+                          <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.08] rounded-2xl rounded-bl-md border border-white/10">
+                            <Loader2 size={14} className="text-cyan-300 animate-spin" />
+                            <span className="text-xs text-gray-400">Escribiendo...</span>
+                          </div>
+                        </div>
+                      )}
+                      <div ref={visitorMessagesEndRef} />
+                    </div>
+                    <div className="px-3 py-2 border-t border-white/10 bg-black/40 shrink-0">
+                      <div className="flex items-center gap-1.5 w-full">
+                        <input
+                          value={visitorDraft}
+                          onChange={(e) => setVisitorDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              sendVisitorAiMessage(visitorDraft);
+                            }
+                          }}
+                          placeholder="Escribe tu pregunta..."
+                          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-cyan-400/50 transition-colors"
+                          disabled={visitorAiLoading}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => sendVisitorAiMessage(visitorDraft)}
+                          disabled={!visitorDraft.trim() || visitorAiLoading}
+                          className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition-colors disabled:opacity-30"
+                        >
+                          <Send size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : chatMode === "support" ? (
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.06),_transparent_45%)]">
+                      {visitorSupportMessages.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-gray-500 text-xs text-center px-6">
+                          <div className="space-y-2">
+                            <Headset size={24} className="mx-auto text-emerald-300/50" />
+                            <p>Conectando con soporte técnico...</p>
+                            <p className="text-[10px]">Un asesor responderá pronto</p>
+                          </div>
+                        </div>
+                      ) : (
+                        visitorSupportMessages.map((msg) => (
+                          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
+                            {msg.role === "system" ? (
+                              <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                                <p className="text-[10px] text-gray-400">{msg.content}</p>
+                              </div>
+                            ) : (
+                              <div className={`max-w-[85%] flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                                {msg.role === "assistant" && (
+                                  <span className="text-[10px] text-emerald-300 mb-1 px-1 flex items-center gap-1"><Headset size={10} /> Soporte</span>
+                                )}
+                                <div className={`px-3 py-2 text-xs leading-relaxed break-words shadow-lg ${
+                                  msg.role === "user"
+                                    ? "bg-gradient-to-br from-emerald-400/35 to-emerald-500/20 text-white rounded-2xl rounded-br-md border border-emerald-300/20"
+                                    : "bg-white/[0.08] text-gray-100 rounded-2xl rounded-bl-md border border-white/10"
+                                }`}>
+                                  {msg.content}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                      <div ref={visitorMessagesEndRef} />
+                    </div>
+                    <div className="px-3 py-2 border-t border-white/10 bg-black/40 shrink-0">
+                      {visitorSupportStatus === "closed" ? (
+                        <p className="text-center text-xs text-gray-500 py-1">Esta conversación ha sido cerrada</p>
+                      ) : (
+                        <div className="flex items-center gap-1.5 w-full">
+                          <input
+                            value={visitorDraft}
+                            onChange={(e) => setVisitorDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                sendVisitorSupportMessage(visitorDraft);
+                              }
+                            }}
+                            placeholder="Escribe tu mensaje..."
+                            className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-emerald-400/50 transition-colors"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => sendVisitorSupportMessage(visitorDraft)}
+                            disabled={!visitorDraft.trim()}
+                            className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors disabled:opacity-30"
+                          >
+                            <Send size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : chatMode === "direct" ? (
+                  filteredMembers.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 text-xs">No hay resultados</div>
+                  ) : (
+                  filteredMembers.map((m) => {
+                    const unread = unreadMap[m.id] || 0;
+                    const isOnline = onlineIds.has(m.id);
+                    const lastMsg = (messagesByUser[m.id] || []).slice(-1)[0];
+
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => openConversation(m)}
+                        className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors flex items-center gap-2"
+                      >
+                        <div className="relative shrink-0">
+                          {m.avatar_url ? (
+                            <img src={m.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover border border-white/10" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/30 to-emerald-500/30 flex items-center justify-center text-xs font-bold text-white border border-white/10">
+                              {initials(m.full_name)}
+                            </div>
+                          )}
+                          <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-darker)] ${isOnline ? "bg-emerald-400" : "bg-gray-600"}`} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-xs truncate ${unread > 0 ? "text-white font-semibold" : "text-gray-300"}`}>
+                              {m.full_name || "Sin nombre"}
+                            </p>
+                            {lastMsg && <span className="text-[10px] text-gray-600 shrink-0">{fmtTime(lastMsg.created_at)}</span>}
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-[11px] text-gray-500 truncate">{previewText(lastMsg, userIdSafe)}</p>
+                            {unread > 0 && (
+                              <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
+                                {unread > 9 ? "9+" : unread}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
+                  )
+                ) : (
+                  (() => {
+                    const filteredRooms = rooms.filter((r) => !searchQ || r.name.toLowerCase().includes(searchQ.toLowerCase()));
+                    if (filteredRooms.length === 0) {
+                      return <div className="p-6 text-center text-gray-500 text-xs">No hay grupos todavía</div>;
+                    }
+
+                    return filteredRooms.map((room) => {
+                      const last = (roomMessagesById[room.id] || []).slice(-1)[0];
+                      return (
+                        <button
+                          key={room.id}
+                          onClick={() => openRoomConversation(room)}
+                          className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors flex items-center gap-2"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500/25 to-cyan-500/25 border border-white/10 inline-flex items-center justify-center text-white">
+                            <Users size={14} />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs text-white truncate">{room.name}</p>
+                              {last && <span className="text-[10px] text-gray-600 shrink-0">{fmtTime(last.created_at)}</span>}
+                            </div>
+                            <p className="text-[11px] text-gray-500 truncate">
+                              {last ? previewText({ ...last, receiver_id: "", read_at: null } as ChatMsg, userIdSafe) : (room.room_type === "task" ? "Grupo de tarea" : "Grupo manual")}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    });
+                  })()
+                )}
+              </div>
+            </>
           ) : (
             <>
               <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.08),_transparent_45%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.08),_transparent_45%)]">
