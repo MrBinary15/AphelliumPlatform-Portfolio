@@ -1,6 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { requirePermission } from "@/utils/auth";
 
 type Mensaje = {
   id: string;
@@ -14,9 +16,12 @@ type Mensaje = {
 };
 
 export default async function AdminMensajesPage() {
+  // --- RBAC: require view_mensajes permission ---
+  const permResult = await requirePermission("view_mensajes");
+  if ("error" in permResult) redirect("/admin/dashboard");
+
   const supabase = await createClient();
 
-  
   const { data: mensajes } = await supabase
     .from("mensajes")
     .select("*")

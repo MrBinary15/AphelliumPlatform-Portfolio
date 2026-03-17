@@ -1,36 +1,57 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Refresh session (important for SSR)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { pathname } = request.nextUrl;
 
-  // Get the Supabase auth token from cookies
-  // Supabase stores session in cookies prefixed with `sb-` 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const projectRef = supabaseUrl?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
-  
-  const hasSession = projectRef 
-    ? request.cookies.has(`sb-${projectRef}-auth-token`) ||
-      request.cookies.has(`sb-${projectRef}-auth-token.0`) ||
-      [...request.cookies.getAll()].some(c => c.name.startsWith(`sb-`) && c.name.includes(`auth-token`))
-    : false;
+  // Redirect logged-in users away from login page
+  if (pathname === "/admin/login") {
+    if (user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/dashboard";
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
 
-  // Protect admin routes (except login)
-  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
-    if (!hasSession) {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = "/admin/login";
-      return NextResponse.redirect(loginUrl);
+  // Protect all /admin routes — require authentication
+  if (pathname.startsWith("/admin")) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      return NextResponse.redirect(url);
     }
   }
 
-  // Redirect logged-in users away from login page
-  if (pathname.startsWith("/admin/login") && hasSession) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/admin/dashboard";
-    return NextResponse.redirect(dashboardUrl);
-  }
-
-  return NextResponse.next();
+  return supabaseResponse;
 }
 
 export const config = {

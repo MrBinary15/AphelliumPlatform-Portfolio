@@ -37,7 +37,7 @@ function Field({ label, name, placeholder, textarea, required, type = "text", ac
 }
 
 export default function AdminFloatingPanel() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("mensajes");
@@ -60,16 +60,39 @@ export default function AdminFloatingPanel() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
+    const resolveAdminAccess = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setIsAdmin(false);
+        setMessages([]);
+        setIsOpen(false);
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      const canUsePanel = profile?.role === "admin";
+      setIsAdmin(canUsePanel);
       setLoading(false);
-      if (session) fetchMessages();
+
+      if (canUsePanel) fetchMessages();
+      else {
+        setMessages([]);
+        setIsOpen(false);
+      }
+    };
+
+    resolveAdminAccess();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      resolveAdminAccess();
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-      if (session) fetchMessages();
-      else { setMessages([]); setIsOpen(false); }
-    });
+
     return () => listener.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -127,7 +150,7 @@ export default function AdminFloatingPanel() {
     setTimeout(() => setProyectoStatus("idle"), 3000);
   };
 
-  if (loading || !isAuthenticated) return null;
+  if (loading || !isAdmin) return null;
 
   /* ── Minimized Tab ── */
   if (!isOpen) {

@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/utils/supabase/server';
+import { getServerLanguage } from '@/utils/i18n';
 
 export default async function Footer() {
+  const lang = await getServerLanguage();
   const supabase = await createClient();
   const { data: settings } = await supabase.from('site_settings').select('*');
   const settingsMap = settings?.reduce((acc, curr) => {
@@ -16,25 +18,53 @@ export default async function Footer() {
   const socialLinkedin = settingsMap['social_linkedin'] || "";
   const socialTwitter = settingsMap['social_twitter'] || "";
 
+  const t = lang === 'en'
+    ? {
+        tagline: 'Shaping the future of eco-friendly, highly profitable global trade.',
+        navigation: 'Navigation',
+        home: 'Home',
+        about: 'About',
+        projects: 'Projects',
+        news: 'News',
+        contactUs: 'Contact us',
+        ready: 'Ready to revolutionize sustainable cooling?',
+        joinVision: 'Join the Vision',
+        goToContact: 'Go to Contact',
+        rights: 'All rights reserved.',
+      }
+    : {
+        tagline: 'Construyendo el futuro del comercio global ecológico y altamente rentable.',
+        navigation: 'Navegación',
+        home: 'Inicio',
+        about: 'Nosotros',
+        projects: 'Proyectos',
+        news: 'Noticias',
+        contactUs: 'Contáctanos',
+        ready: '¿Listo para revolucionar la refrigeración sostenible?',
+        joinVision: 'Únete a la Visión',
+        goToContact: 'Ir a Contacto',
+        rights: 'Todos los derechos reservados.',
+      };
+
   return (
-    <footer className="border-t border-white/10 pt-20 pb-8 bg-[var(--bg-darker)]">
+    <footer className="border-t border-white/10 pt-12 md:pt-20 pb-8 bg-[var(--bg-darker)] relative z-[1]">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-10 md:mb-16">
           <div className="flex flex-col">
-            <Link href="/" className="inline-flex items-center gap-2 no-underline mb-6">
+            <Link href="/" className="inline-flex items-center gap-2 no-underline mb-4 sm:mb-6">
               <Image 
                 src="/assets/aphellium-logo-4.png" 
                 alt="Aphellium Logo" 
                 width={48} 
                 height={48} 
-                className="h-[48px] w-auto object-contain"
+                className="h-[36px] sm:h-[48px] w-auto object-contain"
               />
-              <span className="font-bold text-[1.8rem] tracking-[2px] text-[#f8fafc] uppercase">
+              <span className="font-bold text-xl sm:text-[1.8rem] tracking-[2px] text-[#f8fafc] uppercase">
                 APHELLIUM
               </span>
             </Link>
             <p className="text-gray-400 text-sm max-w-xs mb-4">
-              Shaping the future of eco-friendly, highly profitable global trade.
+              {t.tagline}
             </p>
             {/* Social Links if available */}
             <div className="flex gap-4">
@@ -52,19 +82,19 @@ export default async function Footer() {
           </div>
           
           <div>
-            <h4 className="text-lg font-semibold mb-6">Navegación</h4>
+            <h4 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">{t.navigation}</h4>
             <ul className="flex flex-col gap-3">
-              <li><Link href="/" className="text-gray-400 hover:text-white transition-colors">Inicio</Link></li>
-              <li><Link href="/nosotros" className="text-gray-400 hover:text-white transition-colors">Nosotros</Link></li>
-              <li><Link href="/proyectos" className="text-gray-400 hover:text-white transition-colors">Proyectos</Link></li>
-              <li><Link href="/noticias-principal" className="text-gray-400 hover:text-white transition-colors">Noticias</Link></li>
+              <li><Link href="/" className="text-gray-400 hover:text-white transition-colors">{t.home}</Link></li>
+              <li><Link href="/nosotros" className="text-gray-400 hover:text-white transition-colors">{t.about}</Link></li>
+              <li><Link href="/proyectos" className="text-gray-400 hover:text-white transition-colors">{t.projects}</Link></li>
+              <li><Link href="/noticias-principal" className="text-gray-400 hover:text-white transition-colors">{t.news}</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-lg font-semibold mb-6">Contáctanos</h4>
-            <p className="text-gray-400 mb-2">Ready to revolutionize sustainable cooling?</p>
-            <a href={`mailto:${contactEmail}`} className="text-[var(--accent-cyan)] hover:underline block mb-4">
+            <h4 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">{t.contactUs}</h4>
+            <p className="text-gray-400 mb-2 text-sm sm:text-base">{t.ready}</p>
+            <a href={`mailto:${contactEmail}`} className="text-[var(--accent-cyan)] hover:underline block mb-4 text-sm sm:text-base break-all">
               {contactEmail}
             </a>
             {contactPhone && (
@@ -76,17 +106,17 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h4 className="text-lg font-semibold mb-6">Únete a la Visión</h4>
+            <h4 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">{t.joinVision}</h4>
             <div className="flex flex-col gap-2">
               <Link href="/contacto" className="bg-[var(--accent-cyan)] text-white px-6 py-3 rounded-md text-center hover:bg-[var(--accent-cyan)]/80 transition-colors">
-                Ir a Contacto
+                {t.goToContact}
               </Link>
             </div>
           </div>
         </div>
         
         <div className="pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} Aphellium Sustainable Technologies. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Aphellium Sustainable Technologies. {t.rights}</p>
         </div>
       </div>
     </footer>

@@ -1,27 +1,18 @@
 import { createClient } from '@/utils/supabase/server';
 import { updateSiteSettings } from '../../actions/configuracion';
 import { Settings, Save, AlertCircle } from 'lucide-react';
+import { getAuthUser } from '@/utils/auth';
+import { isAdmin as checkIsAdmin, ROLE_LABELS } from '@/utils/roles';
 
 export default async function ConfigurationPage() {
-  const supabase = await createClient();
+  const auth = await getAuthUser();
 
-  // Check if there's an active session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
+  if (!auth) {
     return <div>No autorizado. Inicie sesión.</div>;
   }
 
-  // Check if current user is admin
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', session.user.id)
-    .single();
-
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = checkIsAdmin(auth.role);
+  const supabase = await createClient();
 
   // Fetch current settings
   const { data: settings } = await supabase.from('site_settings').select('*');
@@ -53,7 +44,7 @@ export default async function ConfigurationPage() {
           <div>
             <h3 className="font-medium">Acceso Restringido</h3>
             <p className="text-sm opacity-90">
-              Parece que tu cuenta no tiene permisos de administrador (Rol: {profile?.role || 'Ninguno'}). 
+              Parece que tu cuenta no tiene permisos de administrador (Rol: {ROLE_LABELS[auth.role]}). 
               Puedes ver la configuración pero no podrás guardar los cambios. Contacta a un administrador para que te asigne el rol &apos;admin&apos;.
             </p>
           </div>

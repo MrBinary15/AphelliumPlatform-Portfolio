@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Image as ImageIcon } from "lucide-react";
+import Image from "next/image";
 
 interface NoticiaImageProps {
   src: string | null;
@@ -21,12 +22,14 @@ export default function NoticiaImage({ src, alt, className = "" }: NoticiaImageP
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       src={src}
       alt={alt}
+      fill
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       onError={() => setError(true)}
-      className={`absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${className}`}
+      className={`object-cover group-hover:scale-105 transition-transform duration-500 ${className}`}
+      unoptimized
     />
   );
 }

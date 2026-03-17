@@ -5,13 +5,6 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -23,4 +16,27 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.language-switcher {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px;
+  background-color: var(--background);
+  border-bottom: 1px solid var(--foreground);
+}
+
+.language-switcher button {
+  margin: 0 5px;
+  padding: 5px 10px;
+  border: none;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.language-switcher button.active {
+  font-weight: bold;
+  text-decoration: underline;
 }

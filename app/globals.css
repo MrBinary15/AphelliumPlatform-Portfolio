@@ -62,3 +62,104 @@
     border-bottom: 1px solid var(--border-glass);
   }
 }
+
+/* ══════════════════════════════════════════════════════
+   Frost Particles — canvas overlay for all pages
+   ══════════════════════════════════════════════════════ */
+
+.frost-particles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* ══════════════════════════════════════════════════════
+   Hero Video Scene — homepage only
+   ══════════════════════════════════════════════════════ */
+
+.hero-video-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  contain: layout style paint;
+}
+
+.hero-video-wrap {
+  position: absolute;
+  /* Small overflow margin for parallax movement — keeps edges covered */
+  inset: -20px;
+  will-change: transform;
+  transform: translate3d(0, 0, 0) scale(1.04);
+}
+
+.hero-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  filter: saturate(1.06) contrast(1.03) brightness(0.88);
+}
+
+.hero-video-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 38%, rgba(2, 4, 10, 0.65) 100%);
+  pointer-events: none;
+}
+
+.hero-video-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-bg__glow {
+    animation: none !important;
+    transform: none !important;
+  }
+  .hero-video-wrap {
+    transform: scale(1.01) !important;
+  }
+  .hero-video-particles {
+    display: none;
+  }
+}
+
+.language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(3, 7, 18, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  padding: 0.2rem;
+  backdrop-filter: blur(8px);
+}
+
+.language-switcher button {
+  border: 0;
+  border-radius: 9999px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #cbd5e1;
+  background: transparent;
+  cursor: pointer;
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.language-switcher button.active {
+  color: white;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+}

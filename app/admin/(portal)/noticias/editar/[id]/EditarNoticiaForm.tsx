@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { updateNoticia } from "../../actions";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import RichTextEditor from "@/components/RichTextEditor";
 import Image from "next/image";
@@ -14,7 +14,6 @@ type Noticia = {
   content: string;
   category: string;
   img_url: string;
-  link: string;
 };
 
 export default function EditarNoticiaForm({ noticia }: { noticia: Noticia }) {
@@ -116,18 +115,6 @@ export default function EditarNoticiaForm({ noticia }: { noticia: Noticia }) {
           />
         </div>
 
-        <div className="mb-4">
-          <label htmlFor="link" className="block text-sm font-medium text-gray-700">
-            Enlace de red social (opcional)
-          </label>
-          <input
-            type="url"
-            name="link"
-            id="link"
-            defaultValue={noticia.link || ""}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          />
-        </div>
       </div>
 
       <div className="pt-6 border-t border-white/10 flex justify-end gap-4">

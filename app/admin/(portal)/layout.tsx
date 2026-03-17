@@ -1,26 +1,27 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon } from "lucide-react";
+import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3 } from "lucide-react";
+import { getAuthUser } from "@/utils/auth";
+import { hasPermission, canModifyContent, ROLE_LABELS } from "@/utils/roles";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
+  const auth = await getAuthUser();
+  if (!auth) return null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const role = auth.role;
+  const roleLabel = ROLE_LABELS[role];
 
-  // Fetch current user role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user?.id)
-    .single();
-
-  const isAdmin = profile?.role === 'admin';
+  const RoleBadge = () => {
+    if (role === "admin") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-400/10 text-cyan-400 border border-cyan-400/20"><Shield size={10} />{roleLabel}</span>;
+    if (role === "coordinador") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-400/10 text-orange-400 border border-orange-400/20"><ClipboardList size={10} />{roleLabel}</span>;
+    if (role === "editor") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-400/10 text-emerald-400 border border-emerald-400/20"><Pencil size={10} />{roleLabel}</span>;
+    if (role === "visitante") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-400/10 text-purple-300 border border-purple-400/20"><Eye size={10} />{roleLabel}</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-400/10 text-amber-300 border border-amber-400/20"><Eye size={10} />{roleLabel}</span>;
+  };
 
   return (
     <div className="flex h-screen bg-[var(--bg-darker)] overflow-hidden">
@@ -28,7 +29,8 @@ export default async function AdminLayout({
       <aside className="w-64 bg-black/50 border-r border-white/5 flex flex-col">
         <div className="p-6">
           <h2 className="text-xl font-bold tracking-tight text-white">APHE <span className="text-[var(--accent-cyan)]">Admin</span></h2>
-          <p className="text-xs text-gray-400 mt-1">{user?.email}</p>
+          <p className="text-xs text-gray-400 mt-1">{auth.user.email}</p>
+          <div className="mt-2"><RoleBadge /></div>
         </div>
 
         <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
@@ -40,10 +42,30 @@ export default async function AdminLayout({
             <Newspaper size={20} />
             <span>Noticias</span>
           </Link>
-          <Link href="/admin/mensajes" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-            <MailIcon size={20} />
-            <span>Mensajes</span>
+          <Link href="/admin/proyectos" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+            <FolderOpen size={20} />
+            <span>Proyectos</span>
           </Link>
+          {hasPermission(role, "view_mensajes") && (
+            <Link href="/admin/mensajes" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+              <MailIcon size={20} />
+              <span>Mensajes</span>
+            </Link>
+          )}
+
+          {hasPermission(role, "view_tasks") && (
+            <Link href="/admin/tareas" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+              <ClipboardList size={20} />
+              <span>Tareas</span>
+            </Link>
+          )}
+
+          {hasPermission(role, "view_all_stats") && (
+            <Link href="/admin/estadisticas" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+              <BarChart3 size={20} />
+              <span>Estadísticas</span>
+            </Link>
+          )}
           
           <div className="pt-4 mt-4 border-t border-white/5">
             <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Cuenta</p>
@@ -53,7 +75,7 @@ export default async function AdminLayout({
             </Link>
           </div>
 
-          {isAdmin && (
+          {hasPermission(role, "manage_users") && (
             <div className="pt-4 mt-4 border-t border-white/5">
               <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Administración</p>
               <Link href="/admin/usuarios" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">

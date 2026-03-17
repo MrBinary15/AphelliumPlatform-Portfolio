@@ -1,9 +1,15 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import EditarNoticiaForm from "./EditarNoticiaForm";
+import { requirePermission } from "@/utils/auth";
 
 export default async function EditarNoticiaPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
+
+  // --- RBAC: require edit_noticia permission ---
+  const permResult = await requirePermission("edit_noticia");
+  if ("error" in permResult) redirect("/admin/noticias");
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
