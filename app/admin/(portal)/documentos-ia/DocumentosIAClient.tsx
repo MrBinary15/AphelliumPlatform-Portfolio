@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Plus, Trash2, FileText, Save, X, Search, Bot } from "lucide-react";
+import { Plus, Trash2, FileText, Save, X, Search, Bot, Upload, Loader2 } from "lucide-react";
 
 type KnowledgeDoc = {
   id: string;
@@ -24,8 +24,19 @@ export default function DocumentosIAClient({ initialDocs }: { initialDocs: Knowl
   const [category, setCategory] = useState("general");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadMessage, setUploadMessage] = useState<string>("");
+  const [uploadError, setUploadError] = useState<string>("");
 
   const categories = ["general", "productos", "servicios", "tecnología", "preguntas_frecuentes", "políticas", "soporte"];
+
+  const normalizedCategory = (c: string) =>
+    c
+      .normalize("NFD")
+      .replace(/[^\w\s]/g, "")
+      .replace(/\s+/g, "_")
+      .toLowerCase();
 
   const resetForm = () => {
     setTitle("");
@@ -41,6 +52,40 @@ export default function DocumentosIAClient({ initialDocs }: { initialDocs: Knowl
     setContent(doc.content);
     setCategory(doc.category || "general");
     setShowForm(true);
+  };
+
+  const handleUpload = async () => {
+    if (!uploadFile) return;
+    setUploading(true);
+    setUploadError("");
+    setUploadMessage("");
+
+    try {
+      const fd = new FormData();
+      fd.set("file", uploadFile);
+      fd.set("category", normalizedCategory(category));
+
+      const res = await fetch("/api/admin/knowledge/import", {
+        method: "POST",
+        body: fd,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo importar el documento");
+
+      if (Array.isArray(data.docs) && data.docs.length > 0) {
+        setDocs((prev) => [...data.docs, ...prev]);
+      }
+
+      const truncated = data.truncated ? " (se recorto por tamaño)" : "";
+      setUploadMessage(`Importado correctamente: ${data.imported} documento(s), ${data.charsExtracted} caracteres${truncated}.`);
+      setUploadFile(null);
+      setShowForm(false);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Error al importar archivo");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -162,6 +207,38 @@ export default function DocumentosIAClient({ initialDocs }: { initialDocs: Knowl
             <p className="text-[10px] text-gray-600 mt-1">{content.length} caracteres</p>
           </div>
 
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Upload size={14} className="text-cyan-300" />
+              <p className="text-xs font-semibold text-cyan-300">Importar archivo para entrenar la IA</p>
+            </div>
+            <input
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setUploadFile(file);
+                setUploadError("");
+                setUploadMessage("");
+              }}
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-cyan-300"
+              accept=".txt,.md,.markdown,.log,.json,.csv,.xml,.html,.htm,.docx,.pdf,.xls,.xlsx"
+            />
+            <p className="text-[10px] text-gray-500">
+              Formatos soportados: TXT, MD, JSON, CSV, XML, HTML, DOCX, PDF, XLS, XLSX. Tamaño máximo: 10MB.
+            </p>
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={!uploadFile || uploading}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/25 disabled:opacity-40"
+            >
+              {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+              {uploading ? "Procesando..." : "Importar archivo"}
+            </button>
+            {uploadMessage && <p className="text-[11px] text-emerald-300">{uploadMessage}</p>}
+            {uploadError && <p className="text-[11px] text-red-300">{uploadError}</p>}
+          </div>
+
           <div className="flex justify-end gap-2">
             <button type="button" onClick={resetForm} className="px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
               Cancelar
@@ -248,6 +325,7 @@ export default function DocumentosIAClient({ initialDocs }: { initialDocs: Knowl
           <li>Incluye información detallada sobre productos, precios y disponibilidad</li>
           <li>Agrega preguntas frecuentes y sus respuestas</li>
           <li>Documenta políticas de servicio, envío y garantía</li>
+          <li>Puedes importar documentos en varios formatos para construir una base de conocimiento más completa</li>
           <li>Cuanto más específico sea el contenido, mejores serán las respuestas de la IA</li>
           <li>Actualiza los documentos regularmente para mantener la información al día</li>
         </ul>
