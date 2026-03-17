@@ -101,7 +101,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full overflow-y-auto p-4 md:p-8 relative">
+      <main className="flex-1 w-full overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 relative">
         <div className="md:hidden mb-4 sticky top-0 z-20 bg-[var(--bg-darker)]/90 backdrop-blur border border-white/10 rounded-xl p-3">
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-sm font-semibold text-white">APHE Admin</p>
@@ -121,6 +121,31 @@ export default async function AdminLayout({
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-[var(--accent-cyan)]/5 rounded-full blur-[150px] -z-10 pointer-events-none"></div>
         {children}
       </main>
+
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[rgba(2,6,14,0.96)] backdrop-blur-xl supports-[padding:max(0px)]:pb-[max(env(safe-area-inset-bottom),0.4rem)]">
+        <div className="grid grid-cols-5 gap-1 px-2 py-2">
+          <Link href="/admin/dashboard" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
+            <LayoutDashboard size={15} />
+            <span>Inicio</span>
+          </Link>
+          <Link href="/admin/noticias" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
+            <Newspaper size={15} />
+            <span>Noticias</span>
+          </Link>
+          <Link href="/admin/proyectos" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
+            <FolderOpen size={15} />
+            <span>Proyectos</span>
+          </Link>
+          <Link href="/admin/tareas" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
+            <ClipboardList size={15} />
+            <span>Tareas</span>
+          </Link>
+          <Link href="/admin/perfil" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
+            <UserIcon size={15} />
+            <span>Perfil</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }

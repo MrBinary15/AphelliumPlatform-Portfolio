@@ -48,6 +48,14 @@
     z-index: -2;
     pointer-events: none;
   }
+
+  @media (max-width: 768px) {
+    body::before {
+      width: 120vw;
+      height: 120vw;
+      opacity: 0.02;
+    }
+  }
 }
 
 @layer utilities {
@@ -162,4 +170,19 @@
 .language-switcher button.active {
   color: white;
   background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+}
+
+@media (max-width: 768px) {
+  .language-switcher {
+    transform: scale(0.95);
+    transform-origin: top right;
+  }
+
+  input,
+  textarea,
+  select,
+  button,
+  a {
+    touch-action: manipulation;
+  }
 }

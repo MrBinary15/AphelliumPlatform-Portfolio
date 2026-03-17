@@ -13,43 +13,43 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <header className="mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight">Dashboard General</h1>
+      <header className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Dashboard General</h1>
         <p className="text-gray-400 mt-2">Resumen de la actividad en la plataforma APHE.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-black/40 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="bg-black/40 border border-white/10 rounded-2xl p-5 md:p-6 backdrop-blur-md">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-400 font-medium">Noticias Publicadas</h3>
             <div className="p-2 bg-[var(--accent-cyan)]/10 rounded-lg">
               <Activity className="text-[var(--accent-cyan)]" size={20} />
             </div>
           </div>
-          <p className="text-3xl font-bold">{noticiasCount ?? 0}</p>
+          <p className="text-2xl md:text-3xl font-bold">{noticiasCount ?? 0}</p>
         </div>
 
-        <div className="bg-black/40 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
+        <div className="bg-black/40 border border-white/10 rounded-2xl p-5 md:p-6 backdrop-blur-md">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-400 font-medium">Mensajes Sin Leer</h3>
             <div className="p-2 bg-[var(--accent-green)]/10 rounded-lg">
               <Mail className="text-[var(--accent-green)]" size={20} />
             </div>
           </div>
-          <p className="text-3xl font-bold">{mensajesCount ?? 0}</p>
+          <p className="text-2xl md:text-3xl font-bold">{mensajesCount ?? 0}</p>
         </div>
 
-        <div className="bg-black/40 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
+        <div className="bg-black/40 border border-white/10 rounded-2xl p-5 md:p-6 backdrop-blur-md">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-400 font-medium">Proyectos</h3>
             <div className="p-2 bg-amber-500/10 rounded-lg">
               <FolderOpen className="text-amber-400" size={20} />
             </div>
           </div>
-          <p className="text-3xl font-bold">{proyectosCount ?? 0}</p>
+          <p className="text-2xl md:text-3xl font-bold">{proyectosCount ?? 0}</p>
         </div>
 
-        <div className="bg-black/40 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
+        <div className="bg-black/40 border border-white/10 rounded-2xl p-5 md:p-6 backdrop-blur-md">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-400 font-medium">Estado del Sistema</h3>
             <div className="p-2 bg-green-500/10 rounded-lg">

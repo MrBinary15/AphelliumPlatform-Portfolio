@@ -42,7 +42,7 @@ export default async function Navbar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 w-full py-3 md:py-6 z-50 bg-black/40 backdrop-blur-md border-b border-white/10 transition-all">
+    <header className="fixed top-0 left-0 w-full py-3 md:py-6 z-[120] bg-black/40 backdrop-blur-md border-b border-white/10 transition-all">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link href="/" className="inline-flex items-center gap-2 no-underline group">
           <Image 

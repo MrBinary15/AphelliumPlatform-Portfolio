@@ -163,6 +163,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const [toast, setToast] = useState<ToastData | null>(null);
   const [panelSize, setPanelSize] = useState({ width: PANEL_W, height: PANEL_H });
   const [launcherPosition, setLauncherPosition] = useState({ x: 24, y: 24 });
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -273,6 +274,17 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   }, [clampPanelSize, panelSizeStorageKey]);
 
   useEffect(() => {
+    const syncViewport = () => {
+      if (typeof window === "undefined") return;
+      setIsMobileViewport(window.innerWidth < 768);
+    };
+
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    return () => window.removeEventListener("resize", syncViewport);
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const fallback = clampLauncherPosition(window.innerWidth - LAUNCHER_W - 24, window.innerHeight - LAUNCHER_H - 24);
 
@@ -312,6 +324,13 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   }, [clampPanelSize, persistPanelSize, clampLauncherPosition, persistLauncherPosition]);
 
   const panelAnchor = useMemo(() => {
+    if (isMobileViewport && typeof window !== "undefined") {
+      return {
+        x: 8,
+        y: 8,
+      };
+    }
+
     if (typeof window === "undefined") {
       return { x: launcherPosition.x, y: launcherPosition.y + LAUNCHER_H + 8 };
     }
@@ -328,7 +347,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       x: clamp(preferredX, SAFE_MARGIN, Math.max(SAFE_MARGIN, window.innerWidth - panelSize.width - SAFE_MARGIN)),
       y: clamp(preferredY, SAFE_MARGIN, Math.max(SAFE_MARGIN, window.innerHeight - panelSize.height - SAFE_MARGIN)),
     };
-  }, [launcherPosition, panelSize.height, panelSize.width]);
+  }, [launcherPosition, panelSize.height, panelSize.width, isMobileViewport]);
 
   const toastAnchor = useMemo(() => {
     if (typeof window === "undefined") {
@@ -341,6 +360,11 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   }, [launcherPosition]);
 
   const startLauncherDrag = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isMobileViewport) {
+      setIsOpen((prev) => !prev);
+      return;
+    }
+
     e.preventDefault();
     launcherDragRef.current = {
       startX: e.clientX,
@@ -841,8 +865,10 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     <>
       <button
         onMouseDown={startLauncherDrag}
-        className="fixed z-[70] flex items-center gap-2 px-4 py-3 rounded-2xl bg-[var(--bg-darker)] border border-white/10 shadow-2xl hover:border-[var(--accent-green)]/50 transition-all duration-200 cursor-move select-none"
-        style={{ left: launcherPosition.x, top: launcherPosition.y, width: LAUNCHER_W, height: LAUNCHER_H }}
+        className={`fixed z-[70] flex items-center gap-2 px-4 py-3 rounded-2xl bg-[var(--bg-darker)] border border-white/10 shadow-2xl hover:border-[var(--accent-green)]/50 transition-all duration-200 ${isMobileViewport ? "cursor-pointer" : "cursor-move"} select-none`}
+        style={isMobileViewport
+          ? { right: 14, bottom: 92, width: 58, height: 58, left: "auto", top: "auto", borderRadius: 16 }
+          : { left: launcherPosition.x, top: launcherPosition.y, width: LAUNCHER_W, height: LAUNCHER_H }}
       >
         <div className="relative">
           <MessageCircle size={20} className="text-[var(--accent-green)]" />
@@ -882,10 +908,10 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
       {isOpen && (
         <div
-          className="fixed z-[69] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
+          className={`fixed z-[69] border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${isMobileViewport ? "rounded-2xl" : "rounded-3xl"}`}
           style={{
-            width: panelSize.width,
-            height: panelSize.height,
+            width: isMobileViewport ? "calc(100vw - 16px)" : panelSize.width,
+            height: isMobileViewport ? "calc(100dvh - 16px)" : panelSize.height,
             left: panelAnchor.x,
             top: panelAnchor.y,
             background: "linear-gradient(180deg, rgba(6, 13, 26, 0.98) 0%, rgba(2, 6, 14, 0.96) 100%)",
@@ -1419,15 +1445,17 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
             </div>
           )}
 
-          <div
-            onMouseDown={startResize}
-            className="absolute right-1 bottom-1 h-4 w-4 cursor-nwse-resize rounded-sm opacity-60 hover:opacity-100"
-            title="Cambiar tamaño"
-            style={{
-              background:
-                "linear-gradient(135deg, transparent 0%, transparent 45%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.35) 55%, transparent 55%, transparent 100%)",
-            }}
-          />
+          {!isMobileViewport && (
+            <div
+              onMouseDown={startResize}
+              className="absolute right-1 bottom-1 h-4 w-4 cursor-nwse-resize rounded-sm opacity-60 hover:opacity-100"
+              title="Cambiar tamaño"
+              style={{
+                background:
+                  "linear-gradient(135deg, transparent 0%, transparent 45%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.35) 55%, transparent 55%, transparent 100%)",
+              }}
+            />
+          )}
         </div>
       )}
     </>
