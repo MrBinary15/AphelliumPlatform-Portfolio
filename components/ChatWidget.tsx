@@ -48,6 +48,12 @@ type ChatFilePayload = {
   storagePath?: string;
 };
 
+type LightboxState = {
+  url: string;
+  name: string;
+  kind: "image" | "video";
+};
+
 type ToastData = {
   senderId: string;
   senderName: string;
@@ -205,7 +211,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const [messageMenuId, setMessageMenuId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
+  const [lightbox, setLightbox] = useState<LightboxState | null>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
   const [panelSize, setPanelSize] = useState({ width: PANEL_W, height: PANEL_H });
   const [launcherPosition, setLauncherPosition] = useState({ x: 24, y: 24 });
@@ -649,12 +655,22 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
   const markAsRead = useCallback(async (senderId: string) => {
     if (!isAuthenticated) return;
+    const readAt = new Date().toISOString();
     await supabase
       .from("chat_messages")
-      .update({ read_at: new Date().toISOString() })
+      .update({ read_at: readAt })
       .eq("sender_id", senderId)
       .eq("receiver_id", userIdSafe)
       .is("read_at", null);
+
+    setMessagesByUser((prev) => ({
+      ...prev,
+      [senderId]: (prev[senderId] || []).map((m) =>
+        m.sender_id === senderId && m.receiver_id === userIdSafe && !m.read_at
+          ? { ...m, read_at: readAt }
+          : m
+      ),
+    }));
     setUnreadMap((prev) => ({ ...prev, [senderId]: 0 }));
   }, [supabase, userIdSafe, isAuthenticated]);
 
@@ -881,6 +897,32 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       supabase.removeChannel(rx);
     };
   }, [supabase, userIdSafe, isOpen, activeChatId, members, showToast, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const rxRead = supabase
+      .channel("chat-rx-read-receipts")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chat_messages", filter: `sender_id=eq.${userIdSafe}` },
+        (payload) => {
+          const msg = payload.new as ChatMsg;
+          if (!msg.read_at) return;
+          const otherUserId = msg.receiver_id;
+
+          setMessagesByUser((prev) => ({
+            ...prev,
+            [otherUserId]: (prev[otherUserId] || []).map((m) => (m.id === msg.id ? { ...m, read_at: msg.read_at } : m)),
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(rxRead);
+    };
+  }, [supabase, isAuthenticated, userIdSafe]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1753,15 +1795,19 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                               >
                                 {filePayload ? (
                                   kind === "image" ? (
-                                    <button type="button" onClick={() => setLightbox({ url: filePayload.url, name: filePayload.name })} className="block">
+                                    <button type="button" onClick={() => setLightbox({ url: filePayload.url, name: filePayload.name, kind: "image" })} className="block">
                                       <img src={filePayload.url} alt={filePayload.name} className="max-h-52 w-auto rounded-lg border border-white/10" loading="lazy" />
                                       <div className="mt-1 text-[10px] opacity-80 truncate" title={filePayload.name}>{filePayload.name}</div>
                                     </button>
                                   ) : kind === "video" ? (
-                                    <div className="space-y-1">
-                                      <video src={filePayload.url} controls preload="metadata" className="max-h-56 w-full rounded-lg border border-white/10 bg-black" />
-                                      <a href={filePayload.url} target="_blank" rel="noreferrer" className="text-[10px] underline underline-offset-2 opacity-80">{filePayload.name}</a>
-                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setLightbox({ url: filePayload.url, name: filePayload.name, kind: "video" })}
+                                      className="space-y-1 text-left"
+                                    >
+                                      <video src={filePayload.url} preload="metadata" muted className="max-h-56 w-full rounded-lg border border-white/10 bg-black" />
+                                      <p className="text-[10px] underline underline-offset-2 opacity-80">Abrir video: {filePayload.name}</p>
+                                    </button>
                                   ) : (
                                     <a href={filePayload.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:opacity-90">
                                       <FileText size={14} className="shrink-0" />
@@ -1844,15 +1890,19 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                                 </div>
                               ) : filePayload ? (
                                 kind === "image" ? (
-                                  <button type="button" onClick={() => setLightbox({ url: filePayload.url, name: filePayload.name })} className="block">
+                                  <button type="button" onClick={() => setLightbox({ url: filePayload.url, name: filePayload.name, kind: "image" })} className="block">
                                     <img src={filePayload.url} alt={filePayload.name} className="max-h-52 w-auto rounded-lg border border-white/10" loading="lazy" />
                                     <div className="mt-1 text-[10px] opacity-80 truncate" title={filePayload.name}>{filePayload.name}</div>
                                   </button>
                                 ) : kind === "video" ? (
-                                  <div className="space-y-1">
-                                    <video src={filePayload.url} controls preload="metadata" className="max-h-56 w-full rounded-lg border border-white/10 bg-black" />
-                                    <a href={filePayload.url} target="_blank" rel="noreferrer" className="text-[10px] underline underline-offset-2 opacity-80">{filePayload.name}</a>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setLightbox({ url: filePayload.url, name: filePayload.name, kind: "video" })}
+                                    className="space-y-1 text-left"
+                                  >
+                                    <video src={filePayload.url} preload="metadata" muted className="max-h-56 w-full rounded-lg border border-white/10 bg-black" />
+                                    <p className="text-[10px] underline underline-offset-2 opacity-80">Abrir video: {filePayload.name}</p>
+                                  </button>
                                 ) : (
                                   <a href={filePayload.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:opacity-90">
                                     <FileText size={14} className="shrink-0" />
@@ -1915,7 +1965,10 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                                 </div>
                               )}
                             </div>
-                            <span className="text-[10px] text-gray-500 mt-1 px-1">{fmtTime(msg.created_at)}</span>
+                            <span className="text-[10px] text-gray-500 mt-1 px-1">
+                              {fmtTime(msg.created_at)}
+                              {isMine && (msg.read_at ? " · Visto" : " · Enviado")}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -2021,7 +2074,16 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                 <button type="button" onClick={() => setLightbox(null)} className="absolute -top-10 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20">
                   <X size={16} />
                 </button>
-                <img src={lightbox.url} alt={lightbox.name} className="max-w-[90vw] max-h-[85vh] rounded-xl border border-white/10" />
+                {lightbox.kind === "image" ? (
+                  <img src={lightbox.url} alt={lightbox.name} className="max-w-[90vw] max-h-[85vh] rounded-xl border border-white/10" />
+                ) : (
+                  <video
+                    src={lightbox.url}
+                    controls
+                    autoPlay
+                    className="max-w-[90vw] max-h-[85vh] rounded-xl border border-white/10 bg-black"
+                  />
+                )}
                 <p className="mt-2 text-xs text-gray-300 text-center truncate" title={lightbox.name}>{lightbox.name}</p>
               </div>
             </div>
