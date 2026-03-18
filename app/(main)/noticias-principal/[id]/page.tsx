@@ -115,19 +115,19 @@ export default async function NoticiaDetailPage({
   }
 
   const localizedTitle =
-    pickLocalizedField(article as Record<string, unknown>, "title", lang, { fallbackToBase: false }) ||
-    (await translateText(article.title || "", lang));
+    pickLocalizedField(article, "title", lang, { fallbackToBase: false }) ||
+    (await translateText(String(article.title ?? ""), lang));
   const localizedCategory =
-    pickLocalizedField(article as Record<string, unknown>, "category", lang, { fallbackToBase: false }) ||
-    (await translateText(article.category || "", lang));
+    pickLocalizedField(article, "category", lang, { fallbackToBase: false }) ||
+    (await translateText(String(article.category ?? ""), lang));
   const localizedExcerpt =
-    pickLocalizedField(article as Record<string, unknown>, "excerpt", lang, { fallbackToBase: false }) ||
-    (await translateText(article.excerpt || "", lang));
+    pickLocalizedField(article, "excerpt", lang, { fallbackToBase: false }) ||
+    (await translateText(String(article.excerpt ?? ""), lang));
   const localizedContent =
-    pickLocalizedField(article as Record<string, unknown>, "content", lang, { fallbackToBase: false }) ||
-    (await translateText(article.content || "", lang));
-  const articleLink = resolveArticleLink(article as Record<string, unknown>);
-  const articleEmbed = resolveArticleEmbed(article as Record<string, unknown>);
+    pickLocalizedField(article, "content", lang, { fallbackToBase: false }) ||
+    (await translateText(String(article.content ?? ""), lang));
+  const articleLink = resolveArticleLink(article);
+  const articleEmbed = resolveArticleEmbed(article);
   const hasInlineEmbed = hasInlineEmbedInContent(localizedContent);
   const rawContent = hasInlineEmbed ? localizedContent : stripEmbedIframes(localizedContent);
   const renderedContent = DOMPurify.sanitize(rawContent, {
@@ -151,7 +151,7 @@ export default async function NoticiaDetailPage({
     <main className="flex min-h-screen flex-col items-center pb-20">
       {/* Hero Image / Header */}
       <div className="w-full relative h-[35vh] sm:h-[40vh] md:h-[50vh] bg-gray-900 border-b border-white/5">
-        <NoticiaImage src={article.img_url} alt={localizedTitle} className="opacity-60" />
+        <NoticiaImage src={typeof article.img_url === "string" ? article.img_url : null} alt={localizedTitle} className="opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-dark)] via-[var(--bg-dark)]/80 to-transparent"></div>
         
         <div className="absolute bottom-0 w-full left-0 z-10">
@@ -173,7 +173,7 @@ export default async function NoticiaDetailPage({
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-400 font-medium">
               <span className="flex items-center gap-2">
                 <Calendar size={14} className="text-[var(--accent-cyan)]" /> 
-                {new Date(article.created_at).toLocaleDateString(lang === "en" ? 'en-US' : 'es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                {new Date(String(article.created_at)).toLocaleDateString(lang === "en" ? 'en-US' : 'es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
               </span>
               <span className="flex items-center gap-2">
                 <User size={14} className="text-[var(--accent-cyan)]" /> 
