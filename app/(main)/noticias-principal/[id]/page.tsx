@@ -49,28 +49,43 @@ function hasInlineEmbedInContent(html: string): boolean {
   return /<iframe[\s\S]*?<\/iframe>/i.test(html);
 }
 
+async function fetchArticleById(id: string): Promise<{ article: Record<string, unknown> | null; errorMsg: string }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("noticias")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      return { article: null, errorMsg: `Error al consultar la noticia: ${error.message}` };
+    }
+
+    return { article: (data as Record<string, unknown>) ?? null, errorMsg: "" };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { article: null, errorMsg: `Error inesperado: ${message}` };
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: article } = await supabase
-    .from("noticias")
-    .select("title, excerpt, img_url")
-    .eq("id", id)
-    .single();
+  const { article } = await fetchArticleById(id);
 
   if (!article) return { title: "Noticia no encontrada" };
 
   return {
-    title: article.title,
-    description: article.excerpt?.slice(0, 160) || article.title,
+    title: String(article.title ?? "Noticia"),
+    description: String(article.excerpt ?? article.title ?? "").slice(0, 160),
     openGraph: {
-      title: article.title,
-      description: article.excerpt?.slice(0, 160) || article.title,
-      images: article.img_url ? [article.img_url] : [],
+      title: String(article.title ?? "Noticia"),
+      description: String(article.excerpt ?? article.title ?? "").slice(0, 160),
+      images: typeof article.img_url === "string" && article.img_url.trim() ? [article.img_url] : [],
     },
   };
 }
@@ -82,22 +97,8 @@ export default async function NoticiaDetailPage({
 }) {
   const lang = await getServerLanguage();
   const { id } = await params;
-  const supabase = await createClient();
-  let article = null;
-  let errorMsg = "";
-  try {
-    const { data, error } = await supabase
-      .from("noticias")
-      .select("*")
-      .eq("id", id)
-      .single();
-    if (error) {
-      errorMsg = `Error al consultar la noticia: ${error.message}`;
-    }
-    article = data;
-  } catch (err) {
-    errorMsg = `Error inesperado: ${err?.message || err}`;
-  }
+  const { article, errorMsg } = await fetchArticleById(id);
+
   if (!article) {
     if (errorMsg) {
       return (
