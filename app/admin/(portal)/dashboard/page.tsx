@@ -1,4 +1,4 @@
-import { Activity, ShieldCheck, Mail, FolderOpen, ListTodo, BarChart3, Globe, Users, Newspaper, Phone, Briefcase } from "lucide-react";
+import { Activity, ShieldCheck, Mail, FolderOpen, ListTodo, BarChart3, Globe, Users, Newspaper, Phone, Briefcase, LogOut } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 
@@ -13,9 +13,17 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <header className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Dashboard General</h1>
-        <p className="text-gray-400 mt-2">Resumen de la actividad en la plataforma APHE.</p>
+      <header className="mb-6 md:mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Dashboard General</h1>
+          <p className="text-gray-400 mt-2">Resumen de la actividad en la plataforma APHE.</p>
+        </div>
+        <form action="/auth/signout" method="post">
+          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors text-sm font-medium">
+            <LogOut size={16} />
+            Cerrar Sesión
+          </button>
+        </form>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">

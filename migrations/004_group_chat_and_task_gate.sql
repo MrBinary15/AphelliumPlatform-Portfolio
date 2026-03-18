@@ -19,16 +19,22 @@ $$;
 
 CREATE OR REPLACE FUNCTION is_chat_room_member(room_uuid UUID, user_uuid UUID)
 RETURNS BOOLEAN
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
 AS $$
-  SELECT EXISTS (
+BEGIN
+  IF to_regclass('public.chat_room_members') IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN EXISTS (
     SELECT 1
-    FROM chat_room_members
+    FROM public.chat_room_members
     WHERE room_id = room_uuid
       AND user_id = user_uuid
   );
+END;
 $$;
 
 -- Rooms

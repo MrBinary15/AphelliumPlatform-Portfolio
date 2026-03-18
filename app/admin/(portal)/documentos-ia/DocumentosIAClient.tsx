@@ -13,6 +13,33 @@ type KnowledgeDoc = {
   updated_at: string;
 };
 
+type UploadApiResponse = {
+  error?: string;
+  imported?: number;
+  charsExtracted?: number;
+  docs?: KnowledgeDoc[];
+  truncated?: boolean;
+};
+
+async function parseApiResponse(res: Response): Promise<UploadApiResponse> {
+  const contentType = res.headers.get("content-type") || "";
+  const bodyText = await res.text();
+
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(bodyText) as UploadApiResponse;
+    } catch {
+      return { error: "La respuesta JSON del servidor no es valida" };
+    }
+  }
+
+  const cleaned = bodyText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const shortText = cleaned.slice(0, 220);
+  return {
+    error: shortText || `Respuesta inesperada del servidor (HTTP ${res.status})`,
+  };
+}
+
 export default function DocumentosIAClient({ initialDocs }: { initialDocs: KnowledgeDoc[] }) {
   const supabase = createClient();
   const [docs, setDocs] = useState<KnowledgeDoc[]>(initialDocs);
@@ -70,15 +97,18 @@ export default function DocumentosIAClient({ initialDocs }: { initialDocs: Knowl
         body: fd,
       });
 
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       if (!res.ok) throw new Error(data.error || "No se pudo importar el documento");
 
-      if (Array.isArray(data.docs) && data.docs.length > 0) {
-        setDocs((prev) => [...data.docs, ...prev]);
+      const importedDocs = Array.isArray(data.docs) ? data.docs : [];
+      if (importedDocs.length > 0) {
+        setDocs((prev) => [...importedDocs, ...prev]);
       }
 
+      const imported = typeof data.imported === "number" ? data.imported : 0;
+      const charsExtracted = typeof data.charsExtracted === "number" ? data.charsExtracted : 0;
       const truncated = data.truncated ? " (se recorto por tamaño)" : "";
-      setUploadMessage(`Importado correctamente: ${data.imported} documento(s), ${data.charsExtracted} caracteres${truncated}.`);
+      setUploadMessage(`Importado correctamente: ${imported} documento(s), ${charsExtracted} caracteres${truncated}.`);
       setUploadFile(null);
       setShowForm(false);
     } catch (err) {

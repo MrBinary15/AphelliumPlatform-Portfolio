@@ -1,8 +1,9 @@
 "use client";
 
-import { Lock, Mail, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import { Lock, Mail, Loader2, ArrowLeft, CheckCircle, Home } from "lucide-react";
 import { login, requestPasswordReset } from "./actions";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -222,6 +223,16 @@ export default function AdminLoginPage() {
         <div className="mt-8 text-center text-xs text-gray-500">
           <p>Plataforma de gestión interna comercial y operativa.</p>
           <p className="mt-1">Monitoreo de Telemetría APHE v1.0</p>
+        </div>
+
+        <div className="mt-4 flex justify-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[var(--accent-cyan)] transition-colors py-2"
+          >
+            <Home size={16} />
+            Ir al Menú Principal
+          </Link>
         </div>
       </div>
     </main>

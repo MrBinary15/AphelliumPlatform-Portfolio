@@ -309,6 +309,23 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     toastTimerRef.current = setTimeout(() => setToast(null), 2800);
   }, []);
 
+  const parseApiErrorMessage = useCallback(async (res: Response): Promise<string> => {
+    const contentType = res.headers.get("content-type") || "";
+    const bodyText = await res.text();
+
+    if (contentType.includes("application/json")) {
+      try {
+        const parsed = JSON.parse(bodyText) as { error?: string };
+        return parsed?.error || `Error ${res.status}`;
+      } catch {
+        return `Error ${res.status}`;
+      }
+    }
+
+    const compact = bodyText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    return compact.slice(0, 200) || `Error ${res.status}`;
+  }, []);
+
   // ── Visitor chat functions ──
   const sendVisitorAiMessage = useCallback(async (text: string) => {
     const content = text.trim();
@@ -327,8 +344,12 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         body: JSON.stringify({ message: content, messages: history }),
       });
 
+      if (!res.ok) {
+        const apiError = await parseApiErrorMessage(res);
+        throw new Error(apiError || "No se pudo procesar tu mensaje.");
+      }
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error");
 
       const aiMsg: VisitorMsg = { id: crypto.randomUUID(), role: "assistant", content: data.reply, timestamp: new Date().toISOString() };
       setVisitorAiMessages((prev) => [...prev, aiMsg]);
@@ -342,13 +363,14 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         };
         setVisitorAiMessages((prev) => [...prev, escalateMsg]);
       }
-    } catch {
-      const errMsg: VisitorMsg = { id: crypto.randomUUID(), role: "assistant", content: "Lo siento, hubo un error al procesar tu mensaje. Intenta de nuevo.", timestamp: new Date().toISOString() };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo procesar tu mensaje. Intenta de nuevo.";
+      const errMsg: VisitorMsg = { id: crypto.randomUUID(), role: "assistant", content: message, timestamp: new Date().toISOString() };
       setVisitorAiMessages((prev) => [...prev, errMsg]);
     } finally {
       setVisitorAiLoading(false);
     }
-  }, [visitorAiMessages, visitorAiLoading]);
+  }, [parseApiErrorMessage, visitorAiMessages, visitorAiLoading]);
 
   const startSupportConversation = useCallback(async (escalatedFromAi = false) => {
     const actor = getSupportIdentity();

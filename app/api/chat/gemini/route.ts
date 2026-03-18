@@ -7,7 +7,7 @@ type GeminiMessage = {
 };
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 function buildSystemPrompt(knowledgeBase: string): string {
   return `Eres el asistente virtual de Aphellium, una empresa de tecnología de enfriamiento sustentable.
@@ -123,7 +123,20 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errText = await response.text();
       console.error("Gemini API error:", response.status, errText);
-      return NextResponse.json({ error: "Error al comunicarse con la IA" }, { status: 502 });
+      if (response.status === 429) {
+        return NextResponse.json(
+          {
+            error:
+              "La IA esta temporalmente saturada por limite de cuota. Intenta de nuevo en unos segundos o usa soporte humano.",
+          },
+          { status: 429 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: "No se pudo responder en este momento. Intenta nuevamente en unos segundos." },
+        { status: 502 }
+      );
     }
 
     const data = await response.json();

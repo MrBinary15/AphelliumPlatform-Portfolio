@@ -82,6 +82,7 @@ export default async function ProyectosPage() {
         tags: "Technologies",
         filterBy: "Filter by category",
         resultsCount: "projects",
+        loadMore: "Load more",
         testimonial: "\"Passive technology is the future. We reduced our cold-chain incident claims to zero in the last quarter.\"",
         testimonialAuthor: "— Agro-export sector client",
       }
@@ -103,6 +104,7 @@ export default async function ProyectosPage() {
         tags: "Tecnologías",
         filterBy: "Filtrar por categoría",
         resultsCount: "proyectos",
+        loadMore: "Cargar más",
         testimonial: "\"La tecnología pasiva es el futuro. Redujimos nuestros reclamos por cortes de frío a cero en el último trimestre.\"",
         testimonialAuthor: "— Cliente del sector agroexportador",
       };

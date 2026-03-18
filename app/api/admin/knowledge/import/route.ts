@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/utils/auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 import * as mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
 import * as XLSX from "xlsx";
 import JSZip from "jszip";
 
@@ -101,18 +100,28 @@ async function extractText(file: File): Promise<string> {
   }
 
   if (name.endsWith(".odt") || mime.includes("opendocument")) {
-    const zip = await JSZip.loadAsync(buffer);
-    const contentXml = await zip.file("content.xml")?.async("string");
-    if (!contentXml) return "";
-    const withoutTags = contentXml
-      .replace(/<text:line-break\s*\/?>/g, "\n")
-      .replace(/<text:p[^>]*>/g, "\n")
-      .replace(/<text:h[^>]*>/g, "\n")
-      .replace(/<[^>]+>/g, " ");
-    return normalizeText(withoutTags);
+    try {
+      const zip = await JSZip.loadAsync(buffer);
+      const contentXml = await zip.file("content.xml")?.async("string");
+      if (!contentXml) {
+        throw new Error("El archivo ODT no contiene content.xml");
+      }
+
+      const withoutTags = contentXml
+        .replace(/<text:line-break\s*\/?>/g, "\n")
+        .replace(/<text:p[^>]*>/g, "\n")
+        .replace(/<text:h[^>]*>/g, "\n")
+        .replace(/<[^>]+>/g, " ");
+
+      return normalizeText(withoutTags);
+    } catch (error) {
+      const details = error instanceof Error ? error.message : "desconocido";
+      throw new Error(`No se pudo leer el ODT: ${details}`);
+    }
   }
 
   if (name.endsWith(".pdf") || mime.includes("pdf")) {
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: buffer });
     const parsed = await parser.getText();
     await parser.destroy();
@@ -204,6 +213,7 @@ export async function POST(request: NextRequest) {
       truncated: extracted.length > MAX_TOTAL_CHARS,
     });
   } catch (error) {
+    console.error("[knowledge/import] Error al importar documento", error);
     const message = error instanceof Error ? error.message : "Error inesperado al importar";
     return NextResponse.json({ error: message }, { status: 500 });
   }

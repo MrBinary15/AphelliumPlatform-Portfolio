@@ -51,6 +51,7 @@ type Labels = {
   filterBy: string;
   resultsCount: string;
   featured: string;
+  loadMore: string;
 };
 
 interface Props {
@@ -59,6 +60,8 @@ interface Props {
   labels: Labels;
   lang: string;
 }
+
+const PAGE_SIZE = 6;
 
 function formatDate(date: string | null) {
   if (!date) return "—";
@@ -71,6 +74,7 @@ function formatDate(date: string | null) {
 export default function ProyectosClient({ projects, categories, labels, lang }: Props) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const filtered = activeCategory
     ? projects.filter((p) => p._category === activeCategory)
@@ -78,6 +82,15 @@ export default function ProyectosClient({ projects, categories, labels, lang }: 
 
   const featuredProjects = filtered.filter((p) => p.featured);
   const regularProjects = filtered.filter((p) => !p.featured);
+  const displayProjects = featuredProjects.length > 0 ? regularProjects : filtered;
+  const visibleProjects = displayProjects.slice(0, visibleCount);
+  const hasMore = visibleCount < displayProjects.length;
+
+  // Reset visible count when category changes
+  const handleCategoryChange = (cat: string | null) => {
+    setActiveCategory(cat);
+    setVisibleCount(PAGE_SIZE);
+  };
 
   return (
     <>
@@ -88,7 +101,7 @@ export default function ProyectosClient({ projects, categories, labels, lang }: 
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <span className="text-xs text-gray-500 mr-2 shrink-0">{labels.filterBy}:</span>
               <button
-                onClick={() => setActiveCategory(null)}
+                onClick={() => handleCategoryChange(null)}
                 className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 shrink-0 ${
                   !activeCategory
                     ? "bg-[var(--accent-cyan)]/15 border-[var(--accent-cyan)]/40 text-[var(--accent-cyan)]"
@@ -102,7 +115,7 @@ export default function ProyectosClient({ projects, categories, labels, lang }: 
                 return (
                   <button
                     key={cat}
-                    onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+                    onClick={() => handleCategoryChange(activeCategory === cat ? null : cat)}
                     className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 shrink-0 ${
                       activeCategory === cat
                         ? "bg-[var(--accent-cyan)]/15 border-[var(--accent-cyan)]/40 text-[var(--accent-cyan)]"
@@ -149,8 +162,8 @@ export default function ProyectosClient({ projects, categories, labels, lang }: 
               {labels.allFilter} ({filtered.length} {labels.resultsCount})
             </h2>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(featuredProjects.length > 0 ? regularProjects : filtered).map((p) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visibleProjects.map((p) => (
               <ProjectCard
                 key={p.id}
                 project={p}
@@ -160,6 +173,18 @@ export default function ProyectosClient({ projects, categories, labels, lang }: 
               />
             ))}
           </div>
+
+          {hasMore && (
+            <div className="mt-12 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+              >
+                {labels.loadMore}
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </>

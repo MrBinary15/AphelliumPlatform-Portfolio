@@ -46,7 +46,18 @@ export async function POST(request: Request) {
     .single();
 
   if (roomError || !room) {
-    return NextResponse.json({ error: roomError?.message || "No se pudo crear el grupo" }, { status: 500 });
+    const rawMessage = roomError?.message || "No se pudo crear el grupo";
+    if (rawMessage.includes("Could not find the table 'public.chat_rooms' in the schema cache")) {
+      return NextResponse.json(
+        {
+          error:
+            "Falta la tabla de grupos en la base de datos. Ejecuta la migracion de chat de grupos (migrations/005_backfill_group_chat_tables.sql) en Supabase.",
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ error: rawMessage }, { status: 500 });
   }
 
   const uniqueMembers = Array.from(new Set([user.id, ...memberIds]));

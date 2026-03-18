@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Calendar } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Calendar, MapPin, Star } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getServerLanguage } from "@/utils/i18n";
 import { pickLocalizedField } from "@/utils/i18n";
@@ -32,6 +33,24 @@ interface NoticiaPreview {
   created_at: string;
 }
 
+interface ProyectoPreview {
+  id: string;
+  title: string;
+  title_es?: string;
+  title_en?: string;
+  excerpt: string | null;
+  excerpt_es?: string | null;
+  excerpt_en?: string | null;
+  category: string | null;
+  category_es?: string | null;
+  category_en?: string | null;
+  img_url: string | null;
+  location: string | null;
+  status: string;
+  featured: boolean;
+  created_at: string;
+}
+
 export default async function Home() {
   const lang = await getServerLanguage();
   const supabase = await createClient();
@@ -42,6 +61,14 @@ export default async function Home() {
     .order("created_at", { ascending: false })
     .limit(2)
     .returns<NoticiaPreview[]>();
+
+  const { data: latestProjectsRaw } = await supabase
+    .from("proyectos")
+    .select("id,title,excerpt,category,img_url,location,status,featured,created_at")
+    .order("featured", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(2)
+    .returns<ProyectoPreview[]>();
 
   const settingsMap = settings?.reduce((acc, curr) => {
     acc[curr.key] = curr.value;
@@ -103,6 +130,12 @@ export default async function Home() {
         heroPanelIntegrity: "Chain Integrity",
         heroPanelFleet: "Connected Fleet",
         heroPanelStatus: "All systems stable",
+        projectsBadge: "Innovation",
+        projectsTitle: "Featured Projects",
+        projectsSubtitle: "Real-world applications of our sustainable cooling technology.",
+        viewAllProjects: "View all projects",
+        viewProject: "View project",
+        projectsEmpty: "No projects available yet.",
       }
     : {
         badge: "Comercio Global Ecológico",
@@ -141,6 +174,12 @@ export default async function Home() {
         heroPanelIntegrity: "Integridad de cadena",
         heroPanelFleet: "Flota conectada",
         heroPanelStatus: "Sistemas estables",
+        projectsBadge: "Innovación",
+        projectsTitle: "Proyectos Destacados",
+        projectsSubtitle: "Aplicaciones reales de nuestra tecnología de enfriamiento sostenible.",
+        viewAllProjects: "Ver todos los proyectos",
+        viewProject: "Ver proyecto",
+        projectsEmpty: "Aún no hay proyectos disponibles.",
       };
 
   const latestArticles = latestArticlesRaw
@@ -182,6 +221,26 @@ export default async function Home() {
   ];
 
   const displayArticles = latestArticles.length > 0 ? latestArticles : placeholderArticles;
+
+  const STATUS_MAP: Record<string, { es: string; en: string }> = {
+    planning: { es: "En Planificación", en: "Planning" },
+    active: { es: "En Curso", en: "Active" },
+    completed: { es: "Completado", en: "Completed" },
+    paused: { es: "Pausado", en: "Paused" },
+  };
+
+  const latestProjects = latestProjectsRaw
+    ? await Promise.all(
+        latestProjectsRaw.map(async (project) => {
+          const record = project as unknown as Record<string, unknown>;
+          const title = pickLocalizedField(record, "title", lang, { fallbackToBase: false }) || (await translateText(project.title || "", lang));
+          const excerpt = pickLocalizedField(record, "excerpt", lang, { fallbackToBase: false }) || (await translateText(project.excerpt || "", lang));
+          const category = pickLocalizedField(record, "category", lang, { fallbackToBase: false }) || (await translateText(project.category || "", lang));
+          const statusLabel = STATUS_MAP[project.status]?.[lang] || project.status;
+          return { ...project, title, excerpt, category, statusLabel };
+        }),
+      )
+    : [];
 
   // Fancy rendering for the title (make the last two words gradient if possible)
   const titleWords = heroTitle.split(' ');
@@ -314,8 +373,10 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {displayArticles.map((article) => (
-              <article key={article.id} className="group bg-glass border border-white/10 rounded-2xl overflow-hidden hover:border-[var(--accent-cyan)]/40 transition-colors">
+            {displayArticles.map((article) => {
+              const articleHref = article.id.startsWith("placeholder-") ? "/noticias-principal" : `/noticias-principal/${article.id}`;
+              return (
+              <Link key={article.id} href={articleHref} className="group bg-glass border border-white/10 rounded-2xl overflow-hidden hover:border-[var(--accent-cyan)]/40 transition-colors block">
                 <div className="relative h-36 sm:h-44 bg-slate-900 overflow-hidden">
                   {article.img_url ? (
                     <NoticiaImage src={article.img_url} alt={article.title} />
@@ -345,17 +406,101 @@ export default async function Home() {
                   </h3>
                   <p className="text-sm text-gray-400 leading-relaxed line-clamp-3 mb-5">{article.excerpt}</p>
 
-                  <Link
-                    href={article.id.startsWith("placeholder-") ? "/noticias-principal" : `/noticias-principal/${article.id}`}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-white group-hover:text-[var(--accent-cyan)] transition-colors"
-                  >
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-white group-hover:text-[var(--accent-cyan)] transition-colors">
                     {t.readArticle}
                     <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                  </span>
                 </div>
-              </article>
-            ))}
+              </Link>
+              );
+            })}
           </div>
+        </div>
+      </section>
+
+      {/* ── PROJECTS SECTION ── */}
+      <section className="w-full py-12 md:py-20 border-t border-white/5">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-8 md:mb-10">
+            <div>
+              <span className="inline-flex px-3 py-1 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] text-xs font-semibold uppercase tracking-wider mb-3">
+                {t.projectsBadge}
+              </span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white">{t.projectsTitle}</h2>
+              <p className="text-gray-400 mt-2 max-w-2xl">{t.projectsSubtitle}</p>
+            </div>
+            <Link
+              href="/proyectos"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]/80 transition-colors"
+            >
+              {t.viewAllProjects}
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {latestProjects.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {latestProjects.map((project) => (
+                <Link key={project.id} href="/proyectos" className="group bg-glass border border-white/10 rounded-2xl overflow-hidden hover:border-[var(--accent-cyan)]/40 transition-colors block">
+                  <div className="relative h-36 sm:h-44 bg-slate-900 overflow-hidden">
+                    {project.img_url ? (
+                      <Image src={project.img_url} alt={project.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center text-4xl opacity-10">🏗️</div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute left-3 top-3 flex gap-2">
+                      {project.category && (
+                        <span className="px-2.5 py-1 rounded-full bg-black/50 border border-white/10 text-[10px] font-bold tracking-wide uppercase text-[var(--accent-green)]">
+                          {project.category}
+                        </span>
+                      )}
+                      <span className="px-2.5 py-1 rounded-full bg-black/50 border border-white/10 text-[10px] font-bold tracking-wide uppercase text-[var(--accent-cyan)]">
+                        {project.statusLabel}
+                      </span>
+                    </div>
+                    {project.featured && (
+                      <div className="absolute top-3 right-3">
+                        <Star size={16} className="text-amber-400 fill-amber-400" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-5">
+                    <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
+                      {project.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin size={12} />
+                          {project.location}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} />
+                        {new Date(project.created_at).toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 group-hover:text-[var(--accent-cyan)] transition-colors">
+                      {project.title}
+                    </h3>
+                    {project.excerpt && (
+                      <p className="text-sm text-gray-400 leading-relaxed line-clamp-3 mb-5">{project.excerpt}</p>
+                    )}
+
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-white group-hover:text-[var(--accent-cyan)] transition-colors">
+                      {t.viewProject}
+                      <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-5xl mb-4 opacity-30">🏗️</div>
+              <p className="text-gray-400">{t.projectsEmpty}</p>
+            </div>
+          )}
         </div>
       </section>
     </main>
