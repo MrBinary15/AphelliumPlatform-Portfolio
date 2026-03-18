@@ -83,14 +83,33 @@ export default async function NoticiaDetailPage({
   const lang = await getServerLanguage();
   const { id } = await params;
   const supabase = await createClient();
-
-  const { data: article } = await supabase
-    .from("noticias")
-    .select("*")
-    .eq("id", id)
-    .single();
-
+  let article = null;
+  let errorMsg = "";
+  try {
+    const { data, error } = await supabase
+      .from("noticias")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) {
+      errorMsg = `Error al consultar la noticia: ${error.message}`;
+    }
+    article = data;
+  } catch (err) {
+    errorMsg = `Error inesperado: ${err?.message || err}`;
+  }
   if (!article) {
+    if (errorMsg) {
+      return (
+        <main className="flex min-h-screen flex-col items-center justify-center">
+          <div className="bg-red-900/30 border border-red-700 rounded-xl p-6 text-center text-red-200 max-w-lg mx-auto mt-20">
+            <h2 className="text-xl font-bold mb-4">No se pudo cargar la noticia</h2>
+            <p>{errorMsg}</p>
+            <Link href="/noticias-principal" className="mt-6 inline-block text-[var(--accent-cyan)] font-semibold">Volver a Noticias</Link>
+          </div>
+        </main>
+      );
+    }
     notFound();
   }
 
