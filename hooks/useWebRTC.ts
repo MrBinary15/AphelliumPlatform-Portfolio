@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -20,14 +20,8 @@ const STUN_SERVERS = {
 };
 
 interface UseWebRTCOptions {
-  /** Supabase meetings.id – used as the signaling room */
   roomId: string;
-  /** auth.uid() of the current user */
   userId: string;
-  /**
-   * true  → host: creates and sends the offer.
-   * false → guest: reads the existing offer and sends the answer.
-   */
   isInitiator: boolean;
 }
 
@@ -45,8 +39,9 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
   const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const startedRef = useRef(false);
+  // Guard: process offer exactly once (realtime + fetch can both deliver it)
+  const offerProcessedRef = useRef(false);
 
-  /* ── Insert a signal into Supabase ── */
   const pushSignal = useCallback(
     async (
       type: "offer" | "answer" | "candidate",
@@ -59,31 +54,45 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
         payload,
       });
     },
-    [supabase, roomId, userId]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [roomId, userId]
   );
 
-  /* ── Add ICE candidate (queue if remote description isn't set yet) ── */
+  const drainCandidates = useCallback(async () => {
+    const conn = pcRef.current;
+    if (!conn) return;
+    for (const c of pendingCandidates.current) {
+      try { await conn.addIceCandidate(new RTCIceCandidate(c)); } catch { /* ignore stale candidates */ }
+    }
+    pendingCandidates.current = [];
+  }, []);
+
   const applyCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
     const conn = pcRef.current;
     if (!conn) return;
     if (conn.remoteDescription) {
-      await conn.addIceCandidate(new RTCIceCandidate(candidate));
+      try { await conn.addIceCandidate(new RTCIceCandidate(candidate)); } catch { /* ignore */ }
     } else {
       pendingCandidates.current.push(candidate);
     }
   }, []);
 
-  /* ── Flush buffered ICE candidates ── */
-  const drainCandidates = useCallback(async () => {
-    const conn = pcRef.current;
-    if (!conn) return;
-    for (const c of pendingCandidates.current) {
-      await conn.addIceCandidate(new RTCIceCandidate(c));
-    }
-    pendingCandidates.current = [];
-  }, []);
+  // Handle an inbound offer — idempotent via offerProcessedRef
+  const handleOffer = useCallback(
+    async (sdp: RTCSessionDescriptionInit) => {
+      if (offerProcessedRef.current) return;
+      offerProcessedRef.current = true;
+      const conn = pcRef.current;
+      if (!conn) return;
+      await conn.setRemoteDescription(new RTCSessionDescription(sdp));
+      await drainCandidates();
+      const answer = await conn.createAnswer();
+      await conn.setLocalDescription(answer);
+      await pushSignal("answer", answer);
+    },
+    [drainCandidates, pushSignal]
+  );
 
-  /* ── Main start function ── */
   const start = useCallback(
     async (withVideo = true) => {
       if (startedRef.current) return;
@@ -93,7 +102,7 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
         setError(null);
         setStatus("requesting_media");
 
-        // 1. Get local media
+        // 1. Capture media
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
           video: withVideo,
@@ -105,7 +114,6 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
         const conn = new RTCPeerConnection(STUN_SERVERS);
         pcRef.current = conn;
 
-        // Build up the remote stream track by track
         const remote = new MediaStream();
         setRemoteStream(remote);
 
@@ -120,55 +128,53 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
         conn.onconnectionstatechange = () => {
           if (conn.connectionState === "connected") setStatus("connected");
           if (conn.connectionState === "failed")
-            setError("La conexión P2P falló. Verifica tu conexión o firewall.");
+            setError("La conexion P2P fallo. Revisa tu red o firewall.");
         };
 
         // 3. Add local tracks
         stream.getTracks().forEach((t) => conn.addTrack(t, stream));
 
-        // 4. Subscribe to realtime signals from the other peer
-        const channel = supabase
-          .channel(`webrtc-room-${roomId}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "INSERT",
-              schema: "public",
-              table: "webrtc_signals",
-              filter: `room_id=eq.${roomId}`,
-            },
-            async (payload) => {
-              const sig = payload.new as {
-                sender_id: string;
-                type: string;
-                payload: RTCSessionDescriptionInit & RTCIceCandidateInit;
-              };
-              // Ignore our own signals
-              if (sig.sender_id === userId) return;
+        // 4. Subscribe to Realtime and WAIT until subscribed before proceeding.
+        //    This eliminates the race between realtime delivery and the fetch below.
+        await new Promise<void>((resolve) => {
+          const channel = supabase
+            .channel(`webrtc-room-${roomId}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "INSERT",
+                schema: "public",
+                table: "webrtc_signals",
+                filter: `room_id=eq.${roomId}`,
+              },
+              async (payload) => {
+                const sig = payload.new as {
+                  sender_id: string;
+                  type: string;
+                  payload: RTCSessionDescriptionInit & RTCIceCandidateInit;
+                };
+                if (sig.sender_id === userId) return;
 
-              if (sig.type === "offer") {
-                if (conn.signalingState !== "stable" && conn.signalingState !== "have-local-offer") return;
-                await conn.setRemoteDescription(new RTCSessionDescription(sig.payload));
-                await drainCandidates();
-                const answer = await conn.createAnswer();
-                await conn.setLocalDescription(answer);
-                await pushSignal("answer", answer);
-              } else if (sig.type === "answer") {
-                if (conn.signalingState === "have-local-offer") {
-                  await conn.setRemoteDescription(new RTCSessionDescription(sig.payload));
-                  await drainCandidates();
+                if (sig.type === "offer" && !isInitiator) {
+                  await handleOffer(sig.payload);
+                } else if (sig.type === "answer" && isInitiator) {
+                  if (!conn.remoteDescription) {
+                    await conn.setRemoteDescription(new RTCSessionDescription(sig.payload));
+                    await drainCandidates();
+                  }
+                } else if (sig.type === "candidate") {
+                  await applyCandidate(sig.payload);
                 }
-              } else if (sig.type === "candidate") {
-                await applyCandidate(sig.payload);
               }
-            }
-          )
-          .subscribe();
+            )
+            .subscribe((st) => {
+              if (st === "SUBSCRIBED") resolve();
+            });
 
-        channelRef.current = channel;
+          channelRef.current = channel;
+        });
 
-        // 5. Fetch any signals that already exist in the table
-        //    (handles the late-joiner case where the offer was sent before we subscribed)
+        // 5. Fetch signals that already exist (late-joiner / page-reload case)
         const { data: existing } = await supabase
           .from("webrtc_signals")
           .select("*")
@@ -178,13 +184,7 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
 
         for (const sig of existing ?? []) {
           if (sig.type === "offer" && !isInitiator) {
-            if (!conn.remoteDescription) {
-              await conn.setRemoteDescription(new RTCSessionDescription(sig.payload));
-              await drainCandidates();
-              const answer = await conn.createAnswer();
-              await conn.setLocalDescription(answer);
-              await pushSignal("answer", answer);
-            }
+            await handleOffer(sig.payload); // idempotent
           } else if (sig.type === "answer" && isInitiator) {
             if (!conn.remoteDescription) {
               await conn.setRemoteDescription(new RTCSessionDescription(sig.payload));
@@ -195,7 +195,7 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
           }
         }
 
-        // 6. Initiator creates the initial offer
+        // 6. Initiator creates offer (only if not already answered)
         if (isInitiator) {
           const alreadyAnswered = existing?.some((s) => s.type === "answer");
           if (!alreadyAnswered) {
@@ -207,11 +207,9 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
-          setError(
-            "Permiso denegado. Permite el acceso a cámara/micrófono en tu navegador y recarga."
-          );
+          setError("Permiso denegado. Permite camara/microfono en tu navegador y recarga.");
         } else if (msg.includes("NotFoundError") || msg.includes("DevicesNotFoundError")) {
-          setError("No se encontró cámara o micrófono. Conecta un dispositivo e intenta de nuevo.");
+          setError("No se encontro camara o microfono. Conecta un dispositivo.");
         } else {
           setError(`Error de inicio: ${msg}`);
         }
@@ -220,30 +218,23 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [roomId, userId, isInitiator]
+    [roomId, userId, isInitiator, handleOffer]
   );
 
-  /* ── Toggle mic ── */
   const toggleMic = useCallback(() => {
     if (!localStream) return;
     const next = !micEnabled;
-    localStream.getAudioTracks().forEach((t) => {
-      t.enabled = next;
-    });
+    localStream.getAudioTracks().forEach((t) => { t.enabled = next; });
     setMicEnabled(next);
   }, [localStream, micEnabled]);
 
-  /* ── Toggle camera ── */
   const toggleCam = useCallback(() => {
     if (!localStream) return;
     const next = !camEnabled;
-    localStream.getVideoTracks().forEach((t) => {
-      t.enabled = next;
-    });
+    localStream.getVideoTracks().forEach((t) => { t.enabled = next; });
     setCamEnabled(next);
   }, [localStream, camEnabled]);
 
-  /* ── Destroy connection and release resources ── */
   const destroy = useCallback(() => {
     channelRef.current?.unsubscribe();
     channelRef.current = null;
@@ -254,11 +245,11 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
     setRemoteStream(null);
     setStatus("idle");
     pendingCandidates.current = [];
+    offerProcessedRef.current = false;
     startedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localStream]);
 
-  /* ── Cleanup on unmount ── */
   useEffect(() => {
     return () => {
       channelRef.current?.unsubscribe();
@@ -268,16 +259,5 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return {
-    status,
-    error,
-    localStream,
-    remoteStream,
-    micEnabled,
-    camEnabled,
-    start,
-    toggleMic,
-    toggleCam,
-    destroy,
-  };
+  return { status, error, localStream, remoteStream, micEnabled, camEnabled, start, toggleMic, toggleCam, destroy };
 }
