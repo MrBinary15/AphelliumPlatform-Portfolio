@@ -22,6 +22,9 @@ import {
   Headset,
   Loader2,
   ArrowRightCircle,
+  Phone,
+  Video,
+
 } from "lucide-react";
 
 type Member = {
@@ -237,6 +240,23 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   } | null>(null);
 
   const activeMember = useMemo(() => members.find((m) => m.id === activeChatId) || null, [members, activeChatId]);
+
+  const handleDirectCall = useCallback(async (peerId: string) => {
+    try {
+      const res = await fetch("/api/meetings/direct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ peerId }),
+      });
+      if (res.ok) {
+        const { slug } = await res.json();
+        window.location.href = `/admin/reuniones/sala/${slug}`;
+      }
+    } catch {
+      // silently fail
+    }
+  }, []);
+
   const activeMessages = useMemo(() => (activeChatId ? messagesByUser[activeChatId] || [] : []), [messagesByUser, activeChatId]);
   const activeRoom = useMemo(() => rooms.find((r) => r.id === activeRoomId) || null, [rooms, activeRoomId]);
   const activeRoomMessages = useMemo(() => (activeRoomId ? roomMessagesById[activeRoomId] || [] : []), [roomMessagesById, activeRoomId]);
@@ -1252,16 +1272,38 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setIsOpen(false);
-                setEmojiOpen(false);
-              }}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-300 hover:bg-red-500/10"
-            >
-              <X size={14} />
-            </button>
+            <div className="flex items-center gap-1">
+              {isAuthenticated && activeMember && (
+                <>
+                  <button
+                    type="button"
+                    title="Llamar"
+                    onClick={() => handleDirectCall(activeMember.id)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+                  >
+                    <Phone size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    title="Videollamada"
+                    onClick={() => handleDirectCall(activeMember.id)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
+                  >
+                    <Video size={14} />
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setEmojiOpen(false);
+                }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-red-300 hover:bg-red-500/10"
+              >
+                <X size={14} />
+              </button>
+            </div>
           </div>
 
           {!isAuthenticated ? (

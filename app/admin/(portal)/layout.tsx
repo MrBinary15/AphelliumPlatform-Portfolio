@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3, Headset, Bot } from "lucide-react";
+import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3, Headset, Bot, Video } from "lucide-react";
 import { getAuthUser } from "@/utils/auth";
 import { hasPermission, canModifyContent, ROLE_LABELS } from "@/utils/roles";
 
@@ -74,6 +74,13 @@ export default async function AdminLayout({
             </Link>
           )}
 
+          {hasPermission(role, "view_tasks") && (
+            <Link href="/admin/reuniones" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+              <Video size={20} />
+              <span>Reuniones</span>
+            </Link>
+          )}
+
           {role === "admin" && (
             <Link href="/admin/documentos-ia" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
               <Bot size={20} />
@@ -130,6 +137,9 @@ export default async function AdminLayout({
             )}
             {hasPermission(role, "view_mensajes") && (
               <Link href="/admin/soporte" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Soporte</Link>
+            )}
+            {hasPermission(role, "view_tasks") && (
+              <Link href="/admin/reuniones" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Reuniones</Link>
             )}
             {role === "admin" && (
               <Link href="/admin/documentos-ia" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Docs IA</Link>
