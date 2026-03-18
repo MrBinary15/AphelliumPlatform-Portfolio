@@ -6,7 +6,6 @@ import NoticiaImage from "@/components/NoticiaImage";
 import SocialEmbed from "@/components/SocialEmbed";
 import { getServerLanguage } from "@/utils/i18n";
 import { pickLocalizedField } from "@/utils/i18n";
-import { translateText } from "@/utils/autoTranslate";
 import DOMPurify from "isomorphic-dompurify";
 import type { Metadata } from "next";
 
@@ -114,18 +113,10 @@ export default async function NoticiaDetailPage({
     notFound();
   }
 
-  const localizedTitle =
-    pickLocalizedField(article, "title", lang, { fallbackToBase: false }) ||
-    (await translateText(String(article.title ?? ""), lang));
-  const localizedCategory =
-    pickLocalizedField(article, "category", lang, { fallbackToBase: false }) ||
-    (await translateText(String(article.category ?? ""), lang));
-  const localizedExcerpt =
-    pickLocalizedField(article, "excerpt", lang, { fallbackToBase: false }) ||
-    (await translateText(String(article.excerpt ?? ""), lang));
-  const localizedContent =
-    pickLocalizedField(article, "content", lang, { fallbackToBase: false }) ||
-    (await translateText(String(article.content ?? ""), lang));
+  const localizedTitle = pickLocalizedField(article, "title", lang, { fallbackToBase: true });
+  const localizedCategory = pickLocalizedField(article, "category", lang, { fallbackToBase: true });
+  const localizedExcerpt = pickLocalizedField(article, "excerpt", lang, { fallbackToBase: true });
+  const localizedContent = pickLocalizedField(article, "content", lang, { fallbackToBase: true });
   const articleLink = resolveArticleLink(article);
   const articleEmbed = resolveArticleEmbed(article);
   const hasInlineEmbed = hasInlineEmbedInContent(localizedContent);
