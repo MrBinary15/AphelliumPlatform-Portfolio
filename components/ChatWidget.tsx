@@ -216,6 +216,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ invitationId: string; meetingSlug: string; callerName: string } | null>(null);
   const [panelSize, setPanelSize] = useState({ width: PANEL_W, height: PANEL_H });
   const [launcherPosition, setLauncherPosition] = useState({ x: 24, y: 24 });
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -1036,6 +1037,38 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     return () => window.removeEventListener("aphellium-open-chat-room", onOpenRoom as EventListener);
   }, [isAuthenticated, rooms, openRoomConversation, supabase]);
 
+  // ── Incoming call subscription ──
+  useEffect(() => {
+    if (!isAuthenticated || !userIdSafe) return;
+
+    const ch = supabase
+      .channel(`incoming-call-${userIdSafe}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "meeting_invitations", filter: `user_id=eq.${userIdSafe}` },
+        async (payload) => {
+          const inv = payload.new as { id: string; meeting_id: string; invited_by: string; status: string };
+          if (inv.status !== "pending") return;
+
+          const [{ data: mtg }, { data: callerProfile }] = await Promise.all([
+            supabase.from("meetings").select("slug, title").eq("id", inv.meeting_id).single(),
+            supabase.from("profiles").select("full_name").eq("id", inv.invited_by).single(),
+          ]);
+
+          if (mtg?.slug) {
+            setIncomingCall({
+              invitationId: inv.id,
+              meetingSlug: mtg.slug,
+              callerName: callerProfile?.full_name || "Alguien",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
+  }, [supabase, isAuthenticated, userIdSafe]);
+
   useEffect(() => {
     if (isOpen && activeChatId) {
       markAsRead(activeChatId);
@@ -1185,6 +1218,46 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
           </span>
         )}
       </button>
+
+      {/* ── Incoming call popup ── */}
+      {incomingCall && (
+        <div
+          className="fixed z-[75] rounded-2xl border border-emerald-400/30 bg-[rgba(3,10,18,0.97)] p-4 shadow-2xl w-[280px]"
+          style={{ left: toastAnchor.x, top: toastAnchor.y }}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <Phone size={18} className="text-emerald-400 animate-pulse" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-emerald-300 font-semibold truncate">{incomingCall.callerName}</p>
+              <p className="text-[11px] text-gray-400">Llamada entrante...</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                await supabase.from("meeting_invitations").update({ status: "accepted" }).eq("id", incomingCall.invitationId);
+                const slug = incomingCall.meetingSlug;
+                setIncomingCall(null);
+                window.location.href = `/admin/reuniones/sala/${slug}`;
+              }}
+              className="flex-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 border border-emerald-500/20 transition-colors"
+            >
+              Aceptar
+            </button>
+            <button
+              onClick={async () => {
+                await supabase.from("meeting_invitations").update({ status: "declined" }).eq("id", incomingCall.invitationId);
+                setIncomingCall(null);
+              }}
+              className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold hover:bg-red-500/20 border border-red-500/20 transition-colors"
+            >
+              Rechazar
+            </button>
+          </div>
+        </div>
+      )}
 
       {toast && !isOpen && (
         <button

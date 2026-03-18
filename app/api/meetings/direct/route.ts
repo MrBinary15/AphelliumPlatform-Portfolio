@@ -42,5 +42,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message ?? "Error al crear reunión" }, { status: 500 });
   }
 
+  // Notify the peer with a meeting invitation so ChatWidget shows the incoming call popup
+  await supabase.from("meeting_invitations").insert({
+    meeting_id: meeting.id,
+    user_id: body.peerId,
+    invited_by: user.id,
+    status: "pending",
+  });
+
   return NextResponse.json({ slug: meeting.slug });
 }
