@@ -4,9 +4,11 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Video, Plus, Calendar, Clock, Users, Copy, Check, Trash2,
-  Play, XCircle, Link2, UserPlus, ChevronDown, Search, Filter
+  Play, XCircle, UserPlus, Search,
+  Lock, Unlock, Globe, Shield, Settings2, Mic, Camera,
+  ChevronRight, Phone, MonitorUp,
 } from "lucide-react";
-import { createMeeting, cancelMeeting, deleteMeeting, inviteToMeeting, respondToInvitation } from "./actions";
+import { createMeeting, cancelMeeting, deleteMeeting, inviteToMeeting, respondToInvitation, toggleMeetingPublic } from "./actions";
 
 interface Meeting {
   id: string;
@@ -19,6 +21,8 @@ interface Meeting {
   scheduled_at: string | null;
   started_at: string | null;
   ended_at: string | null;
+  is_public: boolean;
+  is_locked: boolean;
   created_at: string;
 }
 
@@ -44,12 +48,36 @@ interface Props {
   currentUserId: string;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  planned: { label: "Programada", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
-  active: { label: "En curso", color: "text-green-400 bg-green-500/10 border-green-500/20" },
-  finished: { label: "Finalizada", color: "text-gray-400 bg-gray-500/10 border-gray-500/20" },
-  cancelled: { label: "Cancelada", color: "text-red-400 bg-red-500/10 border-red-500/20" },
+const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  planned: { label: "Programada", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
+  active: { label: "En curso", color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" },
+  finished: { label: "Finalizada", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-500/20" },
+  cancelled: { label: "Cancelada", color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
 };
+
+function timeAgo(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `hace ${mins}min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `hace ${days}d`;
+}
+
+function ScheduleCountdown({ date }: { date: string }) {
+  const target = new Date(date);
+  const now = new Date();
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return <span className="text-green-400 text-[10px] font-medium">¡Ahora!</span>;
+  const hours = Math.floor(diff / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  if (hours > 24) {
+    const days = Math.floor(hours / 24);
+    return <span className="text-blue-300 text-[10px]">En {days}d {hours % 24}h</span>;
+  }
+  return <span className="text-cyan-300 text-[10px]">En {hours}h {mins}min</span>;
+}
 
 export default function ReunionesClient({ initialMeetings, invitations, participatingIn, teamMembers, currentUserId }: Props) {
   const router = useRouter();
@@ -60,6 +88,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
   const [search, setSearch] = useState("");
   const [showInviteFor, setShowInviteFor] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const allMeetings = useMemo(() => {
     const participatingMeetings = participatingIn
@@ -75,6 +104,17 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
       return true;
     });
   }, [allMeetings, filter, search]);
+
+  // Sort: active first, then planned (by scheduled date), then finished
+  const sortedMeetings = useMemo(() => {
+    return [...filteredMeetings].sort((a, b) => {
+      const order: Record<string, number> = { active: 0, planned: 1, finished: 2, cancelled: 3 };
+      const diff = (order[a.status] ?? 4) - (order[b.status] ?? 4);
+      if (diff !== 0) return diff;
+      if (a.scheduled_at && b.scheduled_at) return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [filteredMeetings]);
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -119,6 +159,11 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
     router.refresh();
   }
 
+  async function handleTogglePublic(meetingId: string, currentState: boolean) {
+    await toggleMeetingPublic(meetingId, !currentState);
+    router.refresh();
+  }
+
   const stats = useMemo(() => ({
     total: allMeetings.length,
     planned: allMeetings.filter((m) => m.status === "planned").length,
@@ -132,31 +177,35 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-            <Video className="text-[var(--accent-cyan)]" size={28} />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center border border-cyan-500/20">
+              <Video className="text-[var(--accent-cyan)]" size={22} />
+            </div>
             Reuniones
           </h1>
-          <p className="text-gray-400 mt-1 text-sm">Gestiona y participa en videollamadas con tu equipo</p>
+          <p className="text-gray-400 mt-1.5 text-sm">Gestiona videollamadas, llamadas de audio y reuniones programadas</p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent-cyan)] text-black font-semibold hover:brightness-110 transition-all text-sm"
-        >
-          <Plus size={18} /> Nueva Reunión
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:brightness-110 transition-all text-sm shadow-lg shadow-cyan-500/20"
+          >
+            <Plus size={18} /> Nueva Reunión
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Total", value: stats.total, icon: Video, color: "cyan" },
-          { label: "Programadas", value: stats.planned, icon: Calendar, color: "blue" },
-          { label: "En curso", value: stats.active, icon: Play, color: "green" },
-          { label: "Finalizadas", value: stats.finished, icon: Clock, color: "gray" },
+          { label: "Total", value: stats.total, icon: Video, gradient: "from-cyan-500/10 to-cyan-600/5", iconColor: "text-cyan-400", border: "border-cyan-500/10" },
+          { label: "Programadas", value: stats.planned, icon: Calendar, gradient: "from-blue-500/10 to-blue-600/5", iconColor: "text-blue-400", border: "border-blue-500/10" },
+          { label: "En curso", value: stats.active, icon: Play, gradient: "from-green-500/10 to-green-600/5", iconColor: "text-green-400", border: "border-green-500/10" },
+          { label: "Finalizadas", value: stats.finished, icon: Clock, gradient: "from-gray-500/10 to-gray-600/5", iconColor: "text-gray-400", border: "border-gray-500/10" },
         ].map((s) => (
-          <div key={s.label} className="bg-white/5 rounded-xl border border-white/10 p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <s.icon size={16} className={`text-${s.color}-400`} />
-              <span className="text-xs text-gray-400">{s.label}</span>
+          <div key={s.label} className={`bg-gradient-to-br ${s.gradient} rounded-xl border ${s.border} p-4 transition-all hover:scale-[1.02]`}>
+            <div className="flex items-center gap-2 mb-2">
+              <s.icon size={16} className={s.iconColor} />
+              <span className="text-xs text-gray-400 font-medium">{s.label}</span>
             </div>
             <p className="text-2xl font-bold text-white">{s.value}</p>
           </div>
@@ -165,26 +214,32 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
 
       {/* Invitaciones pendientes */}
       {invitations.length > 0 && (
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
+        <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
-            <UserPlus size={16} /> Invitaciones pendientes
+            <Phone size={16} /> Llamadas / invitaciones pendientes
           </h3>
           <div className="space-y-2">
             {invitations.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+              <div key={inv.id} className="flex items-center justify-between bg-black/20 rounded-lg p-3 border border-white/5">
                 <div>
                   <p className="text-sm font-medium text-white">{inv.meetings?.title}</p>
                   <p className="text-xs text-gray-400">
                     {inv.meetings?.scheduled_at
                       ? new Date(inv.meetings.scheduled_at).toLocaleString("es-ES")
-                      : "Sin fecha programada"}
+                      : "Llamada directa"}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleRespondInvitation(inv.id, true)} className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-xs font-medium hover:bg-green-500/30">
-                    Aceptar
+                  <button
+                    onClick={() => handleRespondInvitation(inv.id, true)}
+                    className="flex items-center gap-1 px-4 py-2 rounded-xl bg-green-500/20 text-green-400 text-xs font-semibold hover:bg-green-500/30 border border-green-500/20 transition-all"
+                  >
+                    <Phone size={12} /> Aceptar
                   </button>
-                  <button onClick={() => handleRespondInvitation(inv.id, false)} className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/30">
+                  <button
+                    onClick={() => handleRespondInvitation(inv.id, false)}
+                    className="px-3 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-all"
+                  >
                     Rechazar
                   </button>
                 </div>
@@ -203,16 +258,16 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
             placeholder="Buscar reuniones..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-[var(--accent-cyan)]/50"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/40 transition-colors"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {(["all", "planned", "active", "finished"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-xs font-medium border transition-colors ${filter === f
-                ? "bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border-[var(--accent-cyan)]/30"
+              className={`shrink-0 px-4 py-2 rounded-xl text-xs font-medium border transition-all ${filter === f
+                ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-sm shadow-cyan-500/10"
                 : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"
               }`}
             >
@@ -224,121 +279,179 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
 
       {/* Lista de reuniones */}
       <div className="space-y-3">
-        {filteredMeetings.length === 0 ? (
+        {sortedMeetings.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
-            <Video size={48} className="mx-auto mb-4 opacity-30" />
+            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
+              <Video size={28} className="opacity-30" />
+            </div>
             <p className="text-lg font-medium">No hay reuniones</p>
-            <p className="text-sm mt-1">Crea una nueva reunión para comenzar</p>
+            <p className="text-sm mt-1 text-gray-500">Crea una nueva reunión para comenzar</p>
           </div>
         ) : (
-          filteredMeetings.map((meeting) => {
+          sortedMeetings.map((meeting) => {
             const isHost = meeting.host_id === currentUserId;
             const isCoHost = meeting.co_host_id === currentUserId;
+            const canManage = isHost || isCoHost;
             const status = STATUS_LABELS[meeting.status] || STATUS_LABELS.planned;
             const canJoin = meeting.status === "planned" || meeting.status === "active";
+            const isActive = meeting.status === "active";
+            const isExpanded = expandedId === meeting.id;
 
             return (
-              <div key={meeting.id} className="bg-white/5 rounded-xl border border-white/10 p-4 sm:p-5 hover:border-white/20 transition-colors">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="text-lg font-semibold text-white truncate">{meeting.title}</h3>
-                      <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold border ${status.color}`}>
-                        {status.label}
-                      </span>
-                      {isHost && (
-                        <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20">
-                          Anfitrión
+              <div
+                key={meeting.id}
+                className={`rounded-xl border transition-all ${
+                  isActive
+                    ? "bg-gradient-to-r from-green-500/5 to-cyan-500/5 border-green-500/20 shadow-lg shadow-green-500/5"
+                    : "bg-white/[0.03] border-white/10 hover:border-white/20"
+                }`}
+              >
+                <div className="p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+                        <h3 className="text-lg font-semibold text-white truncate">{meeting.title}</h3>
+                        <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${status.bg} ${status.color}`}>
+                          {isActive && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse mr-1 align-middle" />}
+                          {status.label}
                         </span>
+                        {isHost && (
+                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20">
+                            Anfitrión
+                          </span>
+                        )}
+                        {isCoHost && (
+                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20">
+                            Co-anfitrión
+                          </span>
+                        )}
+                        {meeting.is_public && (
+                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                            <Globe size={8} className="inline mr-0.5" /> Pública
+                          </span>
+                        )}
+                        {meeting.is_locked && (
+                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20">
+                            <Lock size={8} className="inline mr-0.5" /> Privada
+                          </span>
+                        )}
+                      </div>
+                      {meeting.description && (
+                        <p className="text-sm text-gray-400 line-clamp-1 mt-1">{meeting.description}</p>
                       )}
-                      {isCoHost && (
-                        <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20">
-                          Co-anfitrión
-                        </span>
-                      )}
+                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        {meeting.scheduled_at && (
+                          <span className="flex items-center gap-1">
+                            <Calendar size={12} />
+                            {new Date(meeting.scheduled_at).toLocaleString("es-ES", {
+                              day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                            })}
+                          </span>
+                        )}
+                        {meeting.scheduled_at && meeting.status === "planned" && (
+                          <ScheduleCountdown date={meeting.scheduled_at} />
+                        )}
+                        <span className="text-gray-600">{timeAgo(meeting.created_at)}</span>
+                      </div>
                     </div>
-                    {meeting.description && (
-                      <p className="text-sm text-gray-400 line-clamp-1 mt-1">{meeting.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                      {meeting.scheduled_at && (
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          {new Date(meeting.scheduled_at).toLocaleString("es-ES", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} />
-                        {new Date(meeting.created_at).toLocaleDateString("es-ES")}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {canJoin && (
-                      <button
-                        onClick={() => router.push(`/admin/reuniones/sala/${meeting.slug}`)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent-cyan)] text-black text-sm font-semibold hover:brightness-110 transition-all"
-                      >
-                        <Video size={16} /> Unirse
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleCopyLink(meeting.slug, meeting.id)}
-                      className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                      title="Copiar enlace"
-                    >
-                      {copiedId === meeting.id ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
-                    </button>
-                    {isHost && (
-                      <>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {canJoin && (
                         <button
-                          onClick={() => setShowInviteFor(showInviteFor === meeting.id ? null : meeting.id)}
-                          className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                          title="Invitar"
+                          onClick={() => router.push(`/admin/reuniones/sala/${meeting.slug}`)}
+                          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg ${
+                            isActive
+                              ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-green-500/20 hover:brightness-110"
+                              : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-cyan-500/20 hover:brightness-110"
+                          }`}
                         >
-                          <UserPlus size={16} />
+                          {isActive ? <Phone size={16} /> : <Video size={16} />}
+                          {isActive ? "Unirse ahora" : "Iniciar"}
                         </button>
-                        {canJoin && (
-                          <button onClick={() => handleCancel(meeting.id)} className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title="Cancelar">
-                            <XCircle size={16} />
-                          </button>
-                        )}
-                        {(meeting.status === "finished" || meeting.status === "cancelled") && (
-                          <button onClick={() => handleDelete(meeting.id)} className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title="Eliminar">
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </>
-                    )}
+                      )}
+                      <button
+                        onClick={() => handleCopyLink(meeting.slug, meeting.id)}
+                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                        title="Copiar enlace"
+                      >
+                        {copiedId === meeting.id ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                      </button>
+
+                      {canManage && (
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : meeting.id)}
+                          className={`p-2.5 rounded-xl border transition-all ${
+                            isExpanded ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10"
+                          }`}
+                          title="Opciones"
+                        >
+                          <Settings2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Invite dropdown */}
-                {showInviteFor === meeting.id && (
-                  <div className="mt-3 pt-3 border-t border-white/10">
-                    <p className="text-xs text-gray-400 mb-2">Invitar miembros del equipo:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {teamMembers.map((member) => (
+                {/* Expanded management panel */}
+                {isExpanded && canManage && (
+                  <div className="px-4 sm:px-5 pb-4 border-t border-white/5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                      <button
+                        onClick={() => setShowInviteFor(showInviteFor === meeting.id ? null : meeting.id)}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 transition-all"
+                      >
+                        <UserPlus size={14} /> Invitar
+                      </button>
+                      <button
+                        onClick={() => handleTogglePublic(meeting.id, meeting.is_public)}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 transition-all"
+                      >
+                        {meeting.is_public ? <Shield size={14} className="text-red-400" /> : <Globe size={14} className="text-green-400" />}
+                        {meeting.is_public ? "Hacer privada" : "Hacer pública"}
+                      </button>
+                      {canJoin && (
                         <button
-                          key={member.id}
-                          disabled={inviting}
-                          onClick={() => handleInvite(meeting.id, member.id)}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 disabled:opacity-50 transition-colors"
+                          onClick={() => handleCancel(meeting.id)}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-500/10 text-xs text-red-400 hover:bg-red-500/10 transition-all"
                         >
-                          <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold text-white">
-                            {(member.full_name || "?")[0].toUpperCase()}
-                          </div>
-                          {member.full_name || "Sin nombre"}
+                          <XCircle size={14} /> Cancelar
                         </button>
-                      ))}
+                      )}
+                      {(meeting.status === "finished" || meeting.status === "cancelled") && (
+                        <button
+                          onClick={() => handleDelete(meeting.id)}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-500/10 text-xs text-red-400 hover:bg-red-500/10 transition-all"
+                        >
+                          <Trash2 size={14} /> Eliminar
+                        </button>
+                      )}
                     </div>
+
+                    {/* Invite dropdown */}
+                    {showInviteFor === meeting.id && (
+                      <div className="mt-3 pt-3 border-t border-white/5">
+                        <p className="text-xs text-gray-400 mb-2">Invitar miembros del equipo:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {teamMembers.map((member) => (
+                            <button
+                              key={member.id}
+                              disabled={inviting}
+                              onClick={() => handleInvite(meeting.id, member.id)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 hover:border-cyan-500/20 disabled:opacity-50 transition-all"
+                            >
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center text-[10px] font-bold text-white border border-white/10">
+                                {member.avatar_url ? (
+                                  <img src={member.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                  (member.full_name || "?")[0].toUpperCase()
+                                )}
+                              </div>
+                              {member.full_name || "Sin nombre"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -350,58 +463,76 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
       {/* Modal Crear Reunión */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-[#0a0f1a] border border-white/10 rounded-2xl p-6">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <Video className="text-[var(--accent-cyan)]" size={22} /> Nueva Reunión
-            </h2>
-            <form onSubmit={handleCreate} className="space-y-4">
+          <div className="w-full max-w-lg bg-[#0a0f1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-600/10 px-6 py-4 border-b border-white/5">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                  <Video className="text-cyan-400" size={18} />
+                </div>
+                Nueva Reunión
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">Crea una videollamada o reunión programada</p>
+            </div>
+            <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Título *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Título *</label>
                 <input
                   name="title"
                   required
                   maxLength={200}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-[var(--accent-cyan)]/50"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                   placeholder="Ej: Revisión semanal del equipo"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Descripción</label>
                 <textarea
                   name="description"
                   rows={2}
                   maxLength={500}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-[var(--accent-cyan)]/50 resize-none"
-                  placeholder="Opcional: descripción de la reunión"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 resize-none transition-colors"
+                  placeholder="Opcional: agenda o descripción"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Fecha y hora (opcional)</label>
-                <input
-                  name="scheduled_at"
-                  type="datetime-local"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-[var(--accent-cyan)]/50"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Fecha y hora</label>
+                  <input
+                    name="scheduled_at"
+                    type="datetime-local"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Co-anfitrión</label>
+                  <select
+                    name="co_host_id"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  >
+                    <option value="">Ninguno</option>
+                    {teamMembers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.full_name || "Sin nombre"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Co-anfitrión (opcional)</label>
-                <select
-                  name="co_host_id"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-[var(--accent-cyan)]/50"
-                >
-                  <option value="">Sin co-anfitrión</option>
-                  {teamMembers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.full_name || "Sin nombre"} ({m.role})
-                    </option>
-                  ))}
-                </select>
+
+              {/* Quick feature indicators */}
+              <div className="flex items-center gap-3 py-2 text-[10px] text-gray-500">
+                <span className="flex items-center gap-1"><Mic size={10} /> Audio</span>
+                <span className="flex items-center gap-1"><Camera size={10} /> Video</span>
+                <span className="flex items-center gap-1"><MonitorUp size={10} /> Pantalla</span>
+                <span className="flex items-center gap-1"><Users size={10} /> Chat</span>
+                <span className="text-gray-600">— incluido por defecto</span>
               </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 py-2.5 rounded-xl bg-[var(--accent-cyan)] text-black font-semibold hover:brightness-110 disabled:opacity-50 transition-all text-sm"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:brightness-110 disabled:opacity-50 transition-all text-sm shadow-lg shadow-cyan-500/20"
                 >
                   {creating ? "Creando..." : "Crear Reunión"}
                 </button>

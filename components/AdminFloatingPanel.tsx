@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { publishNoticia, publishProyecto } from "@/app/actions/panel";
+import { publishNoticia, publishProyecto, saveInlineEdits } from "@/app/actions/panel";
 import {
   Mail, X, Minimize2, Maximize2, Clock, CheckCircle,
   Edit3, Save, ChevronLeft, Inbox, Newspaper, FolderOpen,
@@ -59,6 +59,8 @@ export default function AdminFloatingPanel() {
 
   // Edit mode
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isSavingInlineEdits, setIsSavingInlineEdits] = useState(false);
+  const [inlineEditMsg, setInlineEditMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Publish forms state
   const [noticiaStatus, setNoticiaStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -352,20 +354,77 @@ export default function AdminFloatingPanel() {
     }
   };
 
-  const toggleEditMode = () => {
-    const newMode = !isEditMode;
-    setIsEditMode(newMode);
-    document.querySelectorAll("h1, h2, h3, h4, p").forEach((el) => {
+  const getEditableElements = () => {
+    const pathname = window.location.pathname || "/";
+    const nodes = Array.from(document.querySelectorAll("h1, h2, h3, h4, p"));
+    const filtered = nodes.filter((el) => {
       const htmlEl = el as HTMLElement;
-      if (htmlEl.closest("#admin-floating-panel")) return;
-      htmlEl.contentEditable = newMode ? "true" : "false";
-      htmlEl.classList.toggle("outline", newMode);
-      htmlEl.classList.toggle("outline-1", newMode);
-      htmlEl.classList.toggle("outline-offset-2", newMode);
-      htmlEl.classList.toggle("rounded", newMode);
-      htmlEl.classList.toggle("cursor-text", newMode);
-      if (newMode) htmlEl.style.outlineColor = "var(--accent-cyan)";
+      if (htmlEl.closest("#admin-floating-panel")) return false;
+      if (htmlEl.closest("[data-no-inline-edit='true']")) return false;
+      return true;
+    }) as HTMLElement[];
+
+    const allowAutoKeys = pathname !== "/nosotros" && pathname !== "/";
+    let autoIndex = 0;
+    filtered.forEach((el) => {
+      if (el.dataset.inlineEditKey && el.dataset.inlineEditKey.trim().length > 0) return;
+      if (!allowAutoKeys) return;
+      el.dataset.inlineEditKey = `${pathname}:${autoIndex}`;
+      autoIndex += 1;
     });
+
+    return filtered;
+  };
+
+  const setInlineModeOnDom = (enabled: boolean) => {
+    const editable = getEditableElements();
+    editable.forEach((htmlEl) => {
+      htmlEl.contentEditable = enabled ? "true" : "false";
+      htmlEl.classList.toggle("outline", enabled);
+      htmlEl.classList.toggle("outline-1", enabled);
+      htmlEl.classList.toggle("outline-offset-2", enabled);
+      htmlEl.classList.toggle("rounded", enabled);
+      htmlEl.classList.toggle("cursor-text", enabled);
+      if (enabled) htmlEl.style.outlineColor = "var(--accent-cyan)";
+      else htmlEl.style.outlineColor = "";
+    });
+    return editable;
+  };
+
+  const toggleEditMode = async () => {
+    setInlineEditMsg(null);
+    if (!isEditMode) {
+      setIsEditMode(true);
+      setInlineModeOnDom(true);
+      return;
+    }
+
+    setIsSavingInlineEdits(true);
+    try {
+      const editable = setInlineModeOnDom(false);
+      const pathname = window.location.pathname || "/";
+      const edits = editable.map((el) => ({
+        key: el.dataset.inlineEditKey || "",
+        text: (el.textContent || "").trim(),
+      })).filter((item) => item.key.length > 0);
+
+      const result = await saveInlineEdits(pathname, edits);
+      if (result?.error) {
+        setInlineEditMsg({ type: "error", text: result.error });
+        // Keep edit mode enabled so admin can continue editing.
+        setIsEditMode(true);
+        setInlineModeOnDom(true);
+      } else {
+        setIsEditMode(false);
+        setInlineEditMsg({ type: "success", text: "Cambios guardados correctamente." });
+      }
+    } catch {
+      setInlineEditMsg({ type: "error", text: "Ocurrio un error guardando los cambios inline." });
+      setIsEditMode(true);
+      setInlineModeOnDom(true);
+    } finally {
+      setIsSavingInlineEdits(false);
+    }
   };
 
   const handlePublishNoticia = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -452,7 +511,8 @@ export default function AdminFloatingPanel() {
           <button
             onClick={toggleEditMode}
             title="Editar texto de la página"
-            className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs ${isEditMode ? "bg-[var(--accent-cyan)]/20 text-[var(--accent-cyan)]" : "text-gray-400 hover:text-white hover:bg-white/10"}`}
+            disabled={isSavingInlineEdits}
+            className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs disabled:opacity-60 ${isEditMode ? "bg-[var(--accent-cyan)]/20 text-[var(--accent-cyan)]" : "text-gray-400 hover:text-white hover:bg-white/10"}`}
           >
             <Edit3 size={13} />
             <span className="hidden sm:inline">{isEditMode ? "Editando" : "Editar"}</span>
@@ -600,9 +660,15 @@ export default function AdminFloatingPanel() {
           {isEditMode && (
             <div className="px-4 py-2 border-t border-[var(--accent-cyan)]/30 bg-[var(--accent-cyan)]/5 flex items-center justify-between shrink-0">
               <span className="text-xs text-[var(--accent-cyan)]">✏️ Haz clic en cualquier texto para editarlo</span>
-              <button onClick={toggleEditMode} className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent-cyan)] text-black text-xs font-bold rounded-lg hover:bg-cyan-300 transition-colors">
-                <Save size={11} /> Finalizar
+              <button disabled={isSavingInlineEdits} onClick={toggleEditMode} className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent-cyan)] text-black text-xs font-bold rounded-lg hover:bg-cyan-300 transition-colors disabled:opacity-60">
+                {isSavingInlineEdits ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} {isSavingInlineEdits ? "Guardando..." : "Finalizar"}
               </button>
+            </div>
+          )}
+
+          {inlineEditMsg && (
+            <div className={`px-4 py-2 text-xs border-t shrink-0 ${inlineEditMsg.type === "success" ? "text-emerald-300 border-emerald-500/20 bg-emerald-500/10" : "text-red-300 border-red-500/20 bg-red-500/10"}`}>
+              {inlineEditMsg.text}
             </div>
           )}
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   MapPin,
   Calendar,
@@ -12,6 +13,7 @@ import {
   BarChart3,
   ImageIcon,
   Building2,
+  ArrowRight,
 } from "lucide-react";
 
 type LocalizedProyecto = {
@@ -40,6 +42,7 @@ type LocalizedProyecto = {
 type Labels = {
   allFilter: string;
   viewDetails: string;
+  viewProject: string;
   location: string;
   client: string;
   status: string;
@@ -293,13 +296,21 @@ function FeaturedCard({
             </div>
           )}
 
-          <button
-            onClick={onToggle}
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent-cyan)] hover:underline w-fit"
-          >
-            {labels.viewDetails}
-            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href={`/proyectos/${p.id}`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent-cyan)] text-black text-sm font-bold hover:bg-[var(--accent-cyan)]/85 transition-all"
+            >
+              {labels.viewProject} <ArrowRight size={16} />
+            </Link>
+            <button
+              onClick={onToggle}
+              className="inline-flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-[var(--accent-cyan)] transition-colors"
+            >
+              {labels.viewDetails}
+              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -390,13 +401,20 @@ function ProjectCard({
           </div>
         )}
 
-        <button
-          onClick={onToggle}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--accent-cyan)] hover:underline w-fit mt-auto"
-        >
-          {labels.viewDetails}
-          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
+        <div className="flex items-center gap-3 mt-auto">
+          <Link
+            href={`/proyectos/${p.id}`}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent-cyan)] text-black text-xs font-bold hover:bg-[var(--accent-cyan)]/85 transition-all"
+          >
+            {labels.viewProject} <ArrowRight size={14} />
+          </Link>
+          <button
+            onClick={onToggle}
+            className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-[var(--accent-cyan)] transition-colors"
+          >
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
       </div>
 
       {/* Expanded */}

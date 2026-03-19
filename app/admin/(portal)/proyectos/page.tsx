@@ -37,11 +37,11 @@ export default async function AdminProyectosPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Gestión de Proyectos</h1>
-          <p className="text-gray-400 mt-2">Administra el portafolio de proyectos de Aphellium.</p>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Proyectos</h1>
+          <p className="text-gray-500 mt-1 text-sm">Portafolio de proyectos de Aphellium.</p>
         </div>
         {canCreate && (
           <Link
@@ -61,28 +61,28 @@ export default async function AdminProyectosPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
         {Object.entries(STATUS_LABELS).map(([key, { label, color }]) => {
           const count = items.filter(p => p.status === key).length;
           return (
-            <div key={key} className={`rounded-xl border p-4 backdrop-blur-md ${color.split(" ").slice(1).join(" ")}`}>
-              <p className={`text-xs ${color.split(" ")[0]}`}>{label}</p>
-              <p className="text-2xl font-bold mt-1">{count}</p>
+            <div key={key} className={`rounded-xl border p-3.5 ${color.split(" ").slice(1).join(" ")}`}>
+              <p className={`text-[10px] font-medium ${color.split(" ")[0]}`}>{label}</p>
+              <p className="text-xl font-bold mt-0.5">{count}</p>
             </div>
           );
         })}
       </div>
 
       {/* Project Table */}
-      <div className="bg-black/40 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-md">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-white/10 bg-white/5">
-              <th className="p-4 font-medium text-gray-400">Proyecto</th>
-              <th className="p-4 font-medium text-gray-400 hidden md:table-cell">Categoría</th>
-              <th className="p-4 font-medium text-gray-400 hidden md:table-cell">Estado</th>
-              <th className="p-4 font-medium text-gray-400 hidden lg:table-cell">Ubicación</th>
-              <th className="p-4 font-medium text-gray-400 text-right">Acciones</th>
+            <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Proyecto</th>
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Categoría</th>
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Estado</th>
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Ubicación</th>
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -96,18 +96,18 @@ export default async function AdminProyectosPage() {
               items.map((proyecto) => {
                 const statusInfo = STATUS_LABELS[proyecto.status] || STATUS_LABELS.active;
                 return (
-                  <tr key={proyecto.id} className="border-t border-white/5 hover:bg-white/[0.02] transition-colors">
+                  <tr key={proyecto.id} className="border-t border-white/[0.04] hover:bg-white/[0.03] transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         {proyecto.img_url ? (
                           <img
                             src={proyecto.img_url}
                             alt=""
-                            className="w-10 h-10 rounded-lg object-cover border border-white/10"
+                            className="w-9 h-9 rounded-lg object-cover border border-white/[0.08]"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-500">
-                            <Eye size={16} />
+                          <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-gray-600">
+                            <Eye size={14} />
                           </div>
                         )}
                         <div>
@@ -151,14 +151,14 @@ export default async function AdminProyectosPage() {
                       )}
                     </td>
                     <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         {canEdit && (
                           <Link
                             href={`/admin/proyectos/editar/${proyecto.id}`}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                            className="p-2 hover:bg-white/[0.06] rounded-lg transition-colors text-gray-500 hover:text-white"
                             title="Editar"
                           >
-                            <Edit size={16} />
+                            <Edit size={15} />
                           </Link>
                         )}
                         {canDelete && (
@@ -166,10 +166,10 @@ export default async function AdminProyectosPage() {
                             <input type="hidden" name="id" value={proyecto.id} />
                             <button
                               type="submit"
-                              className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                              className="p-2 hover:bg-red-500/[0.08] rounded-lg transition-colors text-gray-500 hover:text-red-400"
                               title="Eliminar"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={15} />
                             </button>
                           </form>
                         )}

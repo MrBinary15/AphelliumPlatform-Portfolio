@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { getServerLanguage } from "@/utils/i18n";
 import TeamMembersRealtime from "@/components/TeamMembersRealtime";
 import type { Metadata } from "next";
@@ -21,17 +21,32 @@ interface Profile {
   job_title: string;
   description: string;
   role: string;
+  team_order: number | null;
+  team_section?: string | null;
 }
 
 export default async function NosotrosPage() {
   const lang = await getServerLanguage();
-  const supabase = await createClient();
-  const { data: teamMembersRaw } = await supabase
+  const admin = createAdminClient();
+  const { data: teamMembersWithOrder, error: withOrderError } = await admin
     .from("profiles")
-    .select("id, full_name, avatar_url, job_title, description, role")
+    .select("id, full_name, avatar_url, job_title, description, role, team_order, team_section")
     .not("role", "eq", "visitante")
+    .order("team_section", { ascending: true, nullsFirst: false })
+    .order("team_order", { ascending: true, nullsFirst: false })
     .order("full_name", { ascending: true })
     .returns<Profile[]>();
+
+  let teamMembersRaw: Profile[] | null = teamMembersWithOrder;
+  if (withOrderError) {
+    // Backward compatibility for environments where team_order is not migrated yet.
+    const { data: fallbackData } = await admin
+      .from("profiles")
+      .select("id, full_name, avatar_url, job_title, description, role")
+      .not("role", "eq", "visitante")
+      .order("full_name", { ascending: true });
+    teamMembersRaw = (fallbackData as Profile[] | null) || [];
+  }
 
   const teamMembers = (teamMembersRaw || []).filter((member) => {
     const hasName = !!member.full_name?.trim();
@@ -69,6 +84,9 @@ export default async function NosotrosPage() {
         employee: "Employee",
         defaultDescription: "An essential part of our team at Aphellium.",
         liveTag: "Live updates",
+        foundersTitle: "Founding Leaders",
+        leadershipTitle: "Coordinator",
+        teamTitle: "Technical Team",
       }
     : {
         title: "Quiénes Somos",
@@ -98,6 +116,9 @@ export default async function NosotrosPage() {
         employee: "Empleado",
         defaultDescription: "Parte esencial de nuestro equipo en Aphellium.",
         liveTag: "Actualización en vivo",
+        foundersTitle: "Lideres Fundadores",
+        leadershipTitle: "Coordinador",
+        teamTitle: "Equipo Técnico",
       };
 
   return (
@@ -195,6 +216,9 @@ export default async function NosotrosPage() {
               employee: t.employee,
               defaultDescription: t.defaultDescription,
               liveTag: t.liveTag,
+              foundersTitle: t.foundersTitle,
+              leadershipTitle: t.leadershipTitle,
+              teamTitle: t.teamTitle,
             }}
           />
         </div>

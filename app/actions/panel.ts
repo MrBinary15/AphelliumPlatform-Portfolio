@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { bilingualFromSource } from "@/utils/autoTranslate";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function publishNoticia(formData: FormData) {
   // --- RBAC: require create_noticia permission ---
@@ -144,5 +145,78 @@ export async function publishProyecto(formData: FormData) {
   if (error) return { error: "Error al publicar el proyecto. ¿Existe la tabla 'proyectos' en Supabase?" };
 
   revalidatePath("/proyectos");
+  return { success: true };
+}
+
+export async function saveInlineEdits(pathname: string, edits: Array<{ key: string; text: string }>) {
+  const { requireAdmin } = await import("@/utils/auth");
+  const permResult = await requireAdmin();
+  if ("error" in permResult) return { error: permResult.error };
+
+  if (!pathname || !pathname.startsWith("/")) {
+    return { error: "Ruta invalida para guardar cambios." };
+  }
+
+  if (!Array.isArray(edits) || edits.length === 0) {
+    return { error: "No hay cambios para guardar." };
+  }
+
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const normalizedPath = pathname === "/" ? "/" : pathname.replace(/\/+$/, "");
+  const profileUpdates = new Map<string, { full_name?: string | null; job_title?: string | null; description?: string | null }>();
+
+  for (const edit of edits) {
+    if (!edit?.key || typeof edit.text !== "string") continue;
+
+    if (edit.key.startsWith("profile:")) {
+      const parts = edit.key.split(":");
+      const profileId = parts[1] || "";
+      const field = parts[2] || "";
+      if (!profileId) continue;
+
+      if (field === "full_name" || field === "job_title" || field === "description") {
+        const current = profileUpdates.get(profileId) || {};
+        const value = edit.text.trim();
+        if (field === "full_name") current.full_name = value || null;
+        if (field === "job_title") current.job_title = value || null;
+        if (field === "description") current.description = value || null;
+        profileUpdates.set(profileId, current);
+      }
+      continue;
+    }
+
+    const normalizedKey = edit.key.startsWith(`${normalizedPath}:`)
+      ? edit.key.slice(normalizedPath.length + 1)
+      : edit.key;
+    const settingKey = `inline_edit:${normalizedPath}:${normalizedKey}`;
+    const { error } = await admin
+      .from("site_settings")
+      .upsert({ key: settingKey, value: edit.text, updated_at: now }, { onConflict: "key" });
+    if (error) {
+      console.error("saveInlineEdits upsert error", { settingKey, error });
+      return { error: "No se pudieron guardar los cambios de texto." };
+    }
+  }
+
+  for (const [profileId, updates] of profileUpdates.entries()) {
+    const { error } = await admin
+      .from("profiles")
+      .update(updates)
+      .eq("id", profileId);
+
+    if (error) {
+      console.error("saveInlineEdits profile update error", { profileId, updates, error });
+      return { error: "No se pudieron guardar los cambios del perfil." };
+    }
+  }
+
+  revalidatePath(normalizedPath);
+  if (profileUpdates.size > 0) {
+    revalidatePath("/");
+    revalidatePath("/nosotros");
+    revalidatePath("/admin/perfil");
+    revalidatePath("/admin/usuarios");
+  }
   return { success: true };
 }

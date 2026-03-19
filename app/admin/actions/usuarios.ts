@@ -6,6 +6,13 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/utils/auth';
 import { isValidRole, ALL_ROLES, type Role } from '@/utils/roles';
 
+const TEAM_SECTIONS = ['founders', 'coordinator', 'technical'] as const;
+type TeamSection = (typeof TEAM_SECTIONS)[number];
+
+function isValidTeamSection(value: string): value is TeamSection {
+  return TEAM_SECTIONS.includes(value as TeamSection);
+}
+
 export async function updateUserRole(formData: FormData) {
   // --- RBAC: only admins can manage users ---
   const permResult = await requireAdmin();
@@ -55,6 +62,8 @@ export async function createUser(formData: FormData) {
   const password = formData.get('password')?.toString();
   const fullName = formData.get('full_name')?.toString()?.trim() || '';
   const role = (formData.get('role')?.toString() || 'viewer') as Role;
+  const teamSectionInput = formData.get('team_section')?.toString() || 'technical';
+  const teamSection: TeamSection = isValidTeamSection(teamSectionInput) ? teamSectionInput : 'technical';
 
   if (!email || !password) {
     return { error: 'Email y contraseña son obligatorios.' };
@@ -96,6 +105,7 @@ export async function createUser(formData: FormData) {
       id: newUser.user.id,
       full_name: fullName || null,
       role,
+      team_section: teamSection,
     }, { onConflict: 'id' });
 
   if (profileError) {
@@ -105,6 +115,41 @@ export async function createUser(formData: FormData) {
 
   revalidatePath('/admin/usuarios');
   return { success: `Usuario ${email} creado exitosamente con rol ${role}.` };
+}
+
+export async function updateUserTeamSection(formData: FormData) {
+  const permResult = await requireAdmin();
+  if ('error' in permResult) return { error: permResult.error };
+
+  const targetUserId = formData.get('userId')?.toString();
+  const teamSection = formData.get('team_section')?.toString() || '';
+
+  if (!targetUserId || !teamSection) {
+    return { error: 'Faltan datos para actualizar la sección del equipo.' };
+  }
+
+  if (!isValidTeamSection(teamSection)) {
+    return { error: 'Sección de equipo inválida.' };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('profiles')
+    .update({ team_section: teamSection })
+    .eq('id', targetUserId);
+
+  if (error) {
+    console.error('Error updating user team section:', error);
+    if (error.message?.toLowerCase().includes('team_section')) {
+      return { error: 'No se pudo guardar la sección porque falta la columna team_section. Ejecuta la migración 010_profiles_team_section.sql en Supabase.' };
+    }
+    return { error: 'Error al actualizar la sección del equipo.' };
+  }
+
+  revalidatePath('/admin/usuarios');
+  revalidatePath('/nosotros');
+  revalidatePath('/');
+  return { success: 'Sección de equipo actualizada correctamente.' };
 }
 
 export async function deleteUser(formData: FormData) {
@@ -139,4 +184,41 @@ export async function deleteUser(formData: FormData) {
 
   revalidatePath('/admin/usuarios');
   return { success: 'Usuario eliminado exitosamente.' };
+}
+
+export async function saveTeamOrder(formData: FormData) {
+  const permResult = await requireAdmin();
+  if ('error' in permResult) return { error: permResult.error };
+
+  const rawIds = formData.get('orderedIds')?.toString() || '';
+  const orderedIds = rawIds
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  if (orderedIds.length === 0) {
+    return { error: 'No se recibio un orden valido.' };
+  }
+
+  const admin = createAdminClient();
+
+  for (let i = 0; i < orderedIds.length; i += 1) {
+    const id = orderedIds[i];
+    const { error } = await admin
+      .from('profiles')
+      .update({ team_order: i + 1 })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating team_order:', error);
+      if (error.message?.toLowerCase().includes('team_order')) {
+        return { error: 'No se pudo guardar el orden porque falta la columna team_order en la base de datos. Ejecuta la migracion 009_profiles_team_order.sql en Supabase.' };
+      }
+      return { error: 'No se pudo guardar el nuevo orden del equipo.' };
+    }
+  }
+
+  revalidatePath('/admin/usuarios');
+  revalidatePath('/nosotros');
+  return { success: 'Orden del equipo actualizado.' };
 }

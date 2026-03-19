@@ -107,28 +107,28 @@ export default function MensajesClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-2">
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-          Centro de Mensajes
+      <div>
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+          Mensajes
         </h1>
-        <p className="text-gray-400 mt-1 text-sm sm:text-base">
-          Bandeja de entrada de consultas, contactos y soporte.
+        <p className="text-gray-500 mt-1 text-sm">
+          Bandeja de consultas, contactos y soporte.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         <button
           onClick={() => setActiveTab("correos")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
             activeTab === "correos"
-              ? "bg-[var(--accent-cyan)]/15 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/30"
-              : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+              ? "bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/25"
+              : "bg-white/[0.03] text-gray-400 border border-white/[0.06] hover:bg-white/[0.06]"
           }`}
         >
-          <Mail size={16} />
+          <Mail size={15} />
           <span className="hidden sm:inline">Correos</span>
           {unreadCorreos > 0 && (
             <span className="ml-1 px-1.5 py-0.5 bg-[var(--accent-cyan)] text-black text-[10px] font-bold rounded-full min-w-[18px] text-center">
@@ -138,13 +138,13 @@ export default function MensajesClient({
         </button>
         <button
           onClick={() => setActiveTab("chat")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
             activeTab === "chat"
-              ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
-              : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+              ? "bg-purple-500/10 text-purple-400 border border-purple-500/25"
+              : "bg-white/[0.03] text-gray-400 border border-white/[0.06] hover:bg-white/[0.06]"
           }`}
         >
-          <Headset size={16} />
+          <Headset size={15} />
           <span className="hidden sm:inline">Soporte Chat</span>
           {openChats > 0 && (
             <span className="ml-1 px-1.5 py-0.5 bg-purple-500 text-white text-[10px] font-bold rounded-full min-w-[18px] text-center">
@@ -157,8 +157,8 @@ export default function MensajesClient({
       {/* Search */}
       <div className="relative">
         <Search
-          size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+          size={15}
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600"
         />
         <input
           type="text"
@@ -169,7 +169,7 @@ export default function MensajesClient({
           }
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-gray-500 focus:outline-none focus:border-[var(--accent-cyan)]/40"
+          className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.06] rounded-xl text-sm placeholder:text-gray-600 focus:outline-none focus:border-[var(--accent-cyan)]/30 transition-colors"
         />
       </div>
 
@@ -193,9 +193,9 @@ export default function MensajesClient({
 function CorreosList({ mensajes }: { mensajes: Mensaje[] }) {
   if (mensajes.length === 0) {
     return (
-      <div className="bg-black/40 border border-white/10 rounded-2xl p-10 text-center">
-        <AlertCircle size={32} className="mx-auto mb-3 text-gray-600" />
-        <p className="text-gray-500 font-medium">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-10 text-center">
+        <AlertCircle size={28} className="mx-auto mb-3 text-gray-700" />
+        <p className="text-gray-600 text-sm font-medium">
           No hay mensajes en la bandeja.
         </p>
       </div>
@@ -203,12 +203,12 @@ function CorreosList({ mensajes }: { mensajes: Mensaje[] }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {mensajes.map((msg) => (
         <Link
           key={msg.id}
           href={`/admin/mensajes/${msg.id}`}
-          className="block bg-black/40 border border-white/10 rounded-2xl p-4 sm:p-5 hover:bg-white/5 transition-colors group"
+          className="block rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
         >
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             {/* Status + Sender */}
@@ -283,9 +283,9 @@ function ChatList({
 }) {
   if (conversations.length === 0) {
     return (
-      <div className="bg-black/40 border border-white/10 rounded-2xl p-10 text-center">
-        <MessageCircle size={32} className="mx-auto mb-3 text-gray-600" />
-        <p className="text-gray-500 font-medium">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-10 text-center">
+        <MessageCircle size={28} className="mx-auto mb-3 text-gray-700" />
+        <p className="text-gray-600 text-sm font-medium">
           No hay conversaciones de soporte.
         </p>
       </div>
@@ -293,12 +293,12 @@ function ChatList({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {conversations.map((conv) => (
         <Link
           key={conv.id}
           href="/admin/soporte"
-          className="block bg-black/40 border border-white/10 rounded-2xl p-4 sm:p-5 hover:bg-white/5 transition-colors group"
+          className="block rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
         >
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             {/* Status indicator */}

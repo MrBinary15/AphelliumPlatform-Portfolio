@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit, Inter } from "next/font/google";
 import "./globals.css";
 import LazyAdminPanel from "@/components/LazyAdminPanel";
+import InlineTextOverrides from "@/components/InlineTextOverrides";
 import ChatWidget from "@/components/ChatWidget";
 import { LanguageProvider } from "@/components/LanguageContext";
 import { ToastProvider } from "@/components/ToastProvider";
@@ -49,6 +50,7 @@ export default async function RootLayout({
       <body className={`${inter.variable} ${outfit.variable} antialiased dark bg-[var(--bg-dark)] text-white`} suppressHydrationWarning>
         <LanguageProvider initialLanguage={lang}>
           <ToastProvider>
+            <InlineTextOverrides />
             {children}
             {showAdminPanel ? <LazyAdminPanel /> : null}
             <ChatWidget userId={auth?.user.id || null} userName={chatUserName} userRole={auth?.role || null} />

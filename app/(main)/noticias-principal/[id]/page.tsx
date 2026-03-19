@@ -6,7 +6,6 @@ import NoticiaImage from "@/components/NoticiaImage";
 import SocialEmbed from "@/components/SocialEmbed";
 import { getServerLanguage } from "@/utils/i18n";
 import { pickLocalizedField } from "@/utils/i18n";
-import DOMPurify from "isomorphic-dompurify";
 import type { Metadata } from "next";
 
 function resolveArticleLink(article: Record<string, unknown>): string {
@@ -46,6 +45,32 @@ function stripEmbedIframes(html: string): string {
 
 function hasInlineEmbedInContent(html: string): boolean {
   return /<iframe[\s\S]*?<\/iframe>/i.test(html);
+}
+
+function formatArticleDate(value: unknown, lang: "es" | "en"): string {
+  if (typeof value !== "string" || !value.trim()) {
+    return lang === "en" ? "Date unavailable" : "Fecha no disponible";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return lang === "en" ? "Date unavailable" : "Fecha no disponible";
+  }
+
+  return date.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function sanitizeArticleHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(srcdoc|formaction)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "");
 }
 
 async function fetchArticleById(id: string): Promise<{ article: Record<string, unknown> | null; errorMsg: string }> {
@@ -119,12 +144,10 @@ export default async function NoticiaDetailPage({
   const localizedContent = pickLocalizedField(article, "content", lang, { fallbackToBase: true });
   const articleLink = resolveArticleLink(article);
   const articleEmbed = resolveArticleEmbed(article);
+  const publicationDate = formatArticleDate(article.created_at, lang);
   const hasInlineEmbed = hasInlineEmbedInContent(localizedContent);
   const rawContent = hasInlineEmbed ? localizedContent : stripEmbedIframes(localizedContent);
-  const renderedContent = DOMPurify.sanitize(rawContent, {
-    ADD_TAGS: ["iframe"],
-    ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "target", "loading", "referrerpolicy"],
-  });
+  const renderedContent = sanitizeArticleHtml(rawContent);
 
   const t = lang === "en"
     ? {
@@ -164,7 +187,7 @@ export default async function NoticiaDetailPage({
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-400 font-medium">
               <span className="flex items-center gap-2">
                 <Calendar size={14} className="text-[var(--accent-cyan)]" /> 
-                {new Date(String(article.created_at)).toLocaleDateString(lang === "en" ? 'en-US' : 'es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                {publicationDate}
               </span>
               <span className="flex items-center gap-2">
                 <User size={14} className="text-[var(--accent-cyan)]" /> 

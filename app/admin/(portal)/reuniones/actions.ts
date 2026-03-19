@@ -145,3 +145,56 @@ export async function respondToInvitation(invitationId: string, accept: boolean)
   revalidatePath("/admin/reuniones");
   return { success: true };
 }
+
+export async function toggleMeetingLock(meetingId: string, locked: boolean) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autorizado" };
+
+  const { error } = await supabase
+    .from("meetings")
+    .update({ is_locked: locked })
+    .eq("id", meetingId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function toggleMeetingPublic(meetingId: string, isPublic: boolean) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autorizado" };
+
+  const { error } = await supabase
+    .from("meetings")
+    .update({ is_public: isPublic })
+    .eq("id", meetingId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/reuniones");
+  return { success: true };
+}
+
+export async function updateMeetingSettings(meetingId: string, settings: Record<string, boolean>) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autorizado" };
+
+  // Merge with existing settings
+  const { data: meeting } = await supabase
+    .from("meetings")
+    .select("settings")
+    .eq("id", meetingId)
+    .single();
+
+  const merged = { ...(meeting?.settings || {}), ...settings };
+
+  const { error } = await supabase
+    .from("meetings")
+    .update({ settings: merged })
+    .eq("id", meetingId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}

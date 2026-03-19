@@ -224,6 +224,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const stopRingRef = useRef<(() => void) | null>(null);
   const panelSizeRef = useRef(panelSize);
   const launcherPositionRef = useRef(launcherPosition);
   const launcherDragRef = useRef<{
@@ -256,6 +257,81 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     } catch {
       // silently fail
     }
+  }, []);
+
+  const startRing = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      let active = true;
+      const beep = () => {
+        if (!active) return;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc1.type = "sine";
+        osc2.type = "sine";
+        osc1.frequency.value = 440;
+        osc2.frequency.value = 480;
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime + 0.65);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.85);
+        osc1.start(ctx.currentTime);
+        osc2.start(ctx.currentTime);
+        osc1.stop(ctx.currentTime + 0.85);
+        osc2.stop(ctx.currentTime + 0.85);
+        setTimeout(beep, 1600);
+      };
+      beep();
+      stopRingRef.current = () => {
+        active = false;
+        ctx.close().catch(() => {});
+      };
+    } catch { /* AudioContext not available */ }
+  }, []);
+
+  const stopRing = useCallback(() => {
+    stopRingRef.current?.();
+    stopRingRef.current = null;
+  }, []);
+
+  const playMsgBeep = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const master = ctx.createGain();
+      master.gain.value = 0.22;
+      master.connect(ctx.destination);
+
+      // Double chirp pattern inspired by common chat notification tones.
+      const chirp = (startAt: number, fromFreq: number, toFreq: number, dur: number) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(fromFreq, startAt);
+        osc.frequency.exponentialRampToValueAtTime(toFreq, startAt + dur);
+        g.gain.setValueAtTime(0.0001, startAt);
+        g.gain.exponentialRampToValueAtTime(0.7, startAt + 0.018);
+        g.gain.exponentialRampToValueAtTime(0.0001, startAt + dur);
+        osc.connect(g);
+        g.connect(master);
+        osc.start(startAt);
+        osc.stop(startAt + dur + 0.01);
+      };
+
+      const t0 = ctx.currentTime;
+      chirp(t0, 740, 1160, 0.12);
+      chirp(t0 + 0.135, 900, 1420, 0.13);
+      setTimeout(() => {
+        ctx.close().catch(() => {});
+      }, 420);
+    } catch { /* AudioContext not available */ }
   }, []);
 
   const activeMessages = useMemo(() => (activeChatId ? messagesByUser[activeChatId] || [] : []), [messagesByUser, activeChatId]);
@@ -928,6 +1004,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
           if (isCurrentOpen) {
             await supabase.from("chat_messages").update({ read_at: new Date().toISOString() }).eq("id", msg.id);
           } else {
+            playMsgBeep();
             setUnreadMap((prev) => ({ ...prev, [msg.sender_id]: (prev[msg.sender_id] || 0) + 1 }));
             const senderName = members.find((m) => m.id === msg.sender_id)?.full_name || "Nuevo mensaje";
             showToast({ senderId: msg.sender_id, senderName, content: previewText(msg, userIdSafe) });
@@ -939,7 +1016,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     return () => {
       supabase.removeChannel(rx);
     };
-  }, [supabase, userIdSafe, isOpen, activeChatId, members, showToast, isAuthenticated]);
+  }, [supabase, userIdSafe, isOpen, activeChatId, members, showToast, isAuthenticated, playMsgBeep]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -996,6 +1073,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
           const roomName = rooms.find((r) => r.id === msg.room_id)?.name || "Grupo";
           const isRoomOpen = isOpen && activeRoomId === msg.room_id && chatMode === "group";
           if (!isRoomOpen) {
+            playMsgBeep();
             showToast({ senderId: msg.room_id, senderName: roomName, content: previewText({ ...msg, receiver_id: "", read_at: null } as ChatMsg, userIdSafe) });
           }
         }
@@ -1005,7 +1083,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     return () => {
       supabase.removeChannel(rxRooms);
     };
-  }, [supabase, isAuthenticated, rooms, members, userIdSafe, isOpen, activeRoomId, chatMode, showToast]);
+  }, [supabase, isAuthenticated, rooms, members, userIdSafe, isOpen, activeRoomId, chatMode, showToast, playMsgBeep]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1056,11 +1134,32 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
           ]);
 
           if (mtg?.slug) {
+            const callerDisplayName = callerProfile?.full_name || "Alguien";
             setIncomingCall({
               invitationId: inv.id,
               meetingSlug: mtg.slug,
-              callerName: callerProfile?.full_name || "Alguien",
+              callerName: callerDisplayName,
             });
+            // Play ringtone
+            startRing();
+            // Browser system notification (works even if tab is in background)
+            if (typeof window !== "undefined" && "Notification" in window) {
+              const showNotif = () => {
+                try {
+                  new Notification(`📞 Llamada entrante de ${callerDisplayName}`, {
+                    body: "Haz clic aquí para unirte a la videollamada",
+                    icon: "/favicon.ico",
+                    requireInteraction: true,
+                    tag: "incoming-call",
+                  });
+                } catch { /* notifications blocked */ }
+              };
+              if (Notification.permission === "granted") {
+                showNotif();
+              } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then((p) => { if (p === "granted") showNotif(); });
+              }
+            }
           }
         }
       )
@@ -1219,42 +1318,63 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         )}
       </button>
 
-      {/* ── Incoming call popup ── */}
+      {/* ── Incoming call full-screen overlay ── */}
       {incomingCall && (
-        <div
-          className="fixed z-[75] rounded-2xl border border-emerald-400/30 bg-[rgba(3,10,18,0.97)] p-4 shadow-2xl w-[280px]"
-          style={{ left: toastAnchor.x, top: toastAnchor.y }}
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <Phone size={18} className="text-emerald-400 animate-pulse" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-emerald-300 font-semibold truncate">{incomingCall.callerName}</p>
-              <p className="text-[11px] text-gray-400">Llamada entrante...</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={async () => {
-                await supabase.from("meeting_invitations").update({ status: "accepted" }).eq("id", incomingCall.invitationId);
-                const slug = incomingCall.meetingSlug;
-                setIncomingCall(null);
-                window.location.href = `/admin/reuniones/sala/${slug}`;
-              }}
-              className="flex-1 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 border border-emerald-500/20 transition-colors"
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 backdrop-blur-md">
+          {/* Outer pulse ring */}
+          <div className="absolute w-72 h-72 rounded-full border-2 border-emerald-400/30 animate-ping" style={{ animationDuration: "1.4s" }} />
+          <div className="absolute w-56 h-56 rounded-full border border-emerald-400/20 animate-ping" style={{ animationDuration: "1.4s", animationDelay: "0.3s" }} />
+
+          {/* Card */}
+          <div className="relative z-10 w-80 rounded-3xl border border-emerald-400/40 bg-[rgba(3,10,18,0.97)] p-8 shadow-2xl text-center">
+            {/* Icon */}
+            <div className="mx-auto mb-5 w-24 h-24 rounded-full bg-emerald-500/20 border-2 border-emerald-400/50 flex items-center justify-center"
+              style={{ boxShadow: "0 0 40px rgba(52,211,153,0.35)" }}
             >
-              Aceptar
-            </button>
-            <button
-              onClick={async () => {
-                await supabase.from("meeting_invitations").update({ status: "declined" }).eq("id", incomingCall.invitationId);
-                setIncomingCall(null);
-              }}
-              className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold hover:bg-red-500/20 border border-red-500/20 transition-colors"
-            >
-              Rechazar
-            </button>
+              <Phone size={42} className="text-emerald-300" style={{ animation: "wiggle 0.5s ease-in-out infinite alternate" }} />
+            </div>
+
+            <p className="text-emerald-400 text-[11px] uppercase tracking-widest font-semibold mb-1">Llamada entrante</p>
+            <p className="text-white text-2xl font-bold mb-8 truncate">{incomingCall.callerName}</p>
+
+            {/* Buttons */}
+            <div className="flex gap-8 justify-center">
+              {/* Accept */}
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={async () => {
+                    stopRing();
+                    await supabase.from("meeting_invitations").update({ status: "accepted" }).eq("id", incomingCall.invitationId);
+                    const slug = incomingCall.meetingSlug;
+                    setIncomingCall(null);
+                    window.location.href = `/admin/reuniones/sala/${slug}`;
+                  }}
+                  className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center shadow-lg transition-all active:scale-95"
+                  style={{ boxShadow: "0 0 20px rgba(52,211,153,0.5)" }}
+                  title="Aceptar"
+                >
+                  <Phone size={28} className="text-white" />
+                </button>
+                <span className="text-emerald-300 text-xs font-medium">Aceptar</span>
+              </div>
+
+              {/* Decline */}
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={async () => {
+                    stopRing();
+                    await supabase.from("meeting_invitations").update({ status: "declined" }).eq("id", incomingCall.invitationId);
+                    setIncomingCall(null);
+                  }}
+                  className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center shadow-lg transition-all active:scale-95 rotate-[135deg]"
+                  style={{ boxShadow: "0 0 20px rgba(239,68,68,0.45)" }}
+                  title="Rechazar"
+                >
+                  <Phone size={28} className="text-white" />
+                </button>
+                <span className="text-red-400 text-xs font-medium" style={{ transform: "rotate(0deg)" }}>Rechazar</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

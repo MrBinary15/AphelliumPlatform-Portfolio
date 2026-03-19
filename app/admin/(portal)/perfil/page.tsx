@@ -22,17 +22,15 @@ export default async function PerfilPage() {
     .maybeSingle();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-          <User className="h-8 w-8 text-cyan-400" />
-          Mi Perfil
-        </h1>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Mi Perfil</h1>
+        <p className="text-gray-500 mt-1 text-sm">Información personal y datos públicos del equipo.</p>
       </div>
 
-      <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl backdrop-blur-sm">
-        <p className="text-slate-400 text-sm mb-6">
-          Actualiza tu información personal. Estos datos se mostrarán en la sección &quot;Quiénes Somos&quot; de la página principal.
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 md:p-6">
+        <p className="text-gray-500 text-xs mb-5">
+          Estos datos se mostrarán en la sección &quot;Quiénes Somos&quot; de la página principal.
         </p>
 
         <ProfileEditorForm initialProfile={profile || {}} />

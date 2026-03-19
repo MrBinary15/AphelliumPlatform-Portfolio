@@ -123,11 +123,11 @@ export default async function AdminNoticiasPage(props: { searchParams?: Promise<
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Gestión de Noticias</h1>
-          <p className="text-gray-400 mt-2">Administra el contenido del blog y novedades.</p>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Noticias</h1>
+          <p className="text-gray-500 mt-1 text-sm">Administra el contenido del blog y novedades.</p>
         </div>
         {canCreate && (
           <Link 
@@ -140,51 +140,51 @@ export default async function AdminNoticiasPage(props: { searchParams?: Promise<
         )}
       </div>
 
-      <div className="bg-black/40 border border-white/10 rounded-2xl p-5 backdrop-blur-md">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Activity size={18} className="text-[var(--accent-cyan)]" />
-              Diagnostico de Publicaciones
+            <h2 className="text-sm font-semibold flex items-center gap-2 text-gray-200">
+              <Activity size={16} className="text-[var(--accent-cyan)]" />
+              Diagnóstico de Publicaciones
             </h2>
-            <p className="text-sm text-gray-400 mt-1">Verifica traducciones ES/EN y estado de enlace para embed social.</p>
+            <p className="text-[11px] text-gray-600 mt-1">Traducciones ES/EN y estado de enlaces.</p>
           </div>
 
           {diagnosticsEnabled ? (
             <Link
               href="/admin/noticias"
-              className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-medium transition-colors"
+              className="px-3 py-1.5 rounded-xl border border-white/[0.08] hover:bg-white/[0.04] text-xs font-medium text-gray-400 transition-colors"
             >
-              Ocultar Diagnostico
+              Ocultar
             </Link>
           ) : (
             <Link
               href="/admin/noticias?diagnostics=1"
-              className="px-4 py-2 rounded-xl border border-[var(--accent-cyan)]/40 text-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/10 text-sm font-medium transition-colors"
+              className="px-3 py-1.5 rounded-xl border border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/10 text-xs font-medium transition-colors"
             >
-              Ejecutar Diagnostico
+              Ejecutar Diagnóstico
             </Link>
           )}
         </div>
 
         {diagnosticsEnabled && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-gray-400">Total Noticias</p>
-                <p className="text-2xl font-bold mt-1">{total}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-4">
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                <p className="text-[10px] text-gray-500 font-medium">Total</p>
+                <p className="text-xl font-bold mt-0.5">{total}</p>
               </div>
-              <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3">
-                <p className="text-xs text-emerald-300">Bilingue Completo</p>
-                <p className="text-2xl font-bold mt-1 text-emerald-200">{bilingualOk}</p>
+              <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.06] p-3">
+                <p className="text-[10px] text-emerald-400 font-medium">Bilingüe OK</p>
+                <p className="text-xl font-bold mt-0.5 text-emerald-300">{bilingualOk}</p>
               </div>
-              <div className="rounded-xl border border-cyan-400/20 bg-cyan-500/10 p-3">
-                <p className="text-xs text-cyan-300">Link Valido</p>
-                <p className="text-2xl font-bold mt-1 text-cyan-200">{linkOk}</p>
+              <div className="rounded-xl border border-cyan-400/20 bg-cyan-500/[0.06] p-3">
+                <p className="text-[10px] text-cyan-400 font-medium">Link Válido</p>
+                <p className="text-xl font-bold mt-0.5 text-cyan-300">{linkOk}</p>
               </div>
-              <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-3">
-                <p className="text-xs text-amber-300">Requiere Revision</p>
-                <p className="text-2xl font-bold mt-1 text-amber-200">{needsAttention}</p>
+              <div className="rounded-xl border border-amber-400/20 bg-amber-500/[0.06] p-3">
+                <p className="text-[10px] text-amber-400 font-medium">Revisión</p>
+                <p className="text-xl font-bold mt-0.5 text-amber-300">{needsAttention}</p>
               </div>
             </div>
 
@@ -231,13 +231,13 @@ export default async function AdminNoticiasPage(props: { searchParams?: Promise<
               </Link>
             </div>
 
-            <div className="mt-5 overflow-x-auto rounded-xl border border-white/10">
+            <div className="mt-4 overflow-x-auto rounded-xl border border-white/[0.06]">
               <table className="w-full text-left text-sm">
-                <thead className="bg-white/5 text-gray-300">
+                <thead className="bg-white/[0.03] text-gray-500 text-xs">
                   <tr>
-                    <th className="px-4 py-3">Noticia</th>
-                    <th className="px-4 py-3">Traduccion</th>
-                    <th className="px-4 py-3">Link / Embed</th>
+                    <th className="px-4 py-2.5 font-medium">Noticia</th>
+                    <th className="px-4 py-2.5 font-medium">Traducción</th>
+                    <th className="px-4 py-2.5 font-medium">Link / Embed</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,40 +290,43 @@ export default async function AdminNoticiasPage(props: { searchParams?: Promise<
         )}
       </div>
       
-      <div className="bg-black/40 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-md">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-white/10 bg-white/5">
-              <th className="p-4 font-medium text-gray-400">Título</th>
-              <th className="p-4 font-medium text-gray-400">Categoría</th>
-              <th className="p-4 font-medium text-gray-400">Fecha</th>
-              <th className="p-4 font-medium text-gray-400 text-right">Acciones</th>
+            <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Título</th>
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Categoría</th>
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Fecha</th>
+              <th className="p-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {!noticias || noticias.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-gray-500">
+                <td colSpan={4} className="p-10 text-center text-gray-600 text-sm">
                   No hay noticias publicadas.
                 </td>
               </tr>
             ) : (
               noticias.map((item: Noticia) => (
-                <tr key={item.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="p-4 font-medium">{item.title}</td>
+                <tr key={item.id} className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
                   <td className="p-4">
-                    <span className="px-3 py-1 bg-white/10 rounded-full text-xs">
+                    <p className="font-medium text-sm text-gray-200">{item.title}</p>
+                    <p className="text-[11px] text-gray-600 mt-0.5 sm:hidden">{item.category || "General"}</p>
+                  </td>
+                  <td className="p-4 hidden sm:table-cell">
+                    <span className="px-2.5 py-1 bg-white/[0.06] rounded-lg text-[11px] text-gray-400 font-medium">
                       {item.category || "General"}
                     </span>
                   </td>
-                  <td className="p-4 text-gray-400 text-sm">
-                    {new Date(item.created_at).toLocaleDateString()}
+                  <td className="p-4 text-gray-500 text-xs hidden md:table-cell">
+                    {new Date(item.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>
                   <td className="p-4 text-right">
-                    <div className="flex justify-end gap-2 text-gray-400">
+                    <div className="flex justify-end gap-1">
                       {canEdit && (
-                        <Link href={`/admin/noticias/editar/${item.id}`} className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors" title="Editar">
-                          <Edit size={16} />
+                        <Link href={`/admin/noticias/editar/${item.id}`} className="p-2 hover:bg-white/[0.06] rounded-lg text-gray-500 hover:text-white transition-colors" title="Editar">
+                          <Edit size={15} />
                         </Link>
                       )}
                       {canDelete && (

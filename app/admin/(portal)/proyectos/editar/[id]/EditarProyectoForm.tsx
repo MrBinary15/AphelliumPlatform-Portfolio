@@ -359,8 +359,8 @@ ${metrics.length > 0 ? `<div class="metrics">${metrics.map(m => `<div class="met
         {/* Featured */}
         <section className="bg-black/40 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
           <label className="flex items-center gap-3 cursor-pointer">
-            <button type="button" onClick={() => setFeatured(!featured)} className={`w-10 h-6 rounded-full transition-colors relative ${featured ? "bg-[var(--accent-cyan)]" : "bg-white/10"}`}>
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${featured ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+            <button type="button" onClick={() => setFeatured(!featured)} className={`w-11 h-6 min-w-[2.75rem] shrink-0 rounded-full transition-colors relative ${featured ? "bg-[var(--accent-cyan)]" : "bg-white/10"}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${featured ? "translate-x-5" : "translate-x-0"}`} />
             </button>
             <div>
               <span className="text-white font-medium flex items-center gap-2">

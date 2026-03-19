@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3, Headset, Bot, Video } from "lucide-react";
+import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3, Headset, Bot, Video, ChevronRight, ExternalLink } from "lucide-react";
 import { getAuthUser } from "@/utils/auth";
 import { hasPermission, canModifyContent, ROLE_LABELS } from "@/utils/roles";
 
@@ -16,162 +16,202 @@ export default async function AdminLayout({
   const roleLabel = ROLE_LABELS[role];
 
   const RoleBadge = () => {
-    if (role === "admin") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-400/10 text-cyan-400 border border-cyan-400/20"><Shield size={10} />{roleLabel}</span>;
-    if (role === "coordinador") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-400/10 text-orange-400 border border-orange-400/20"><ClipboardList size={10} />{roleLabel}</span>;
-    if (role === "editor") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-400/10 text-emerald-400 border border-emerald-400/20"><Pencil size={10} />{roleLabel}</span>;
-    if (role === "visitante") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-400/10 text-purple-300 border border-purple-400/20"><Eye size={10} />{roleLabel}</span>;
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-400/10 text-amber-300 border border-amber-400/20"><Eye size={10} />{roleLabel}</span>;
+    if (role === "admin") return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-cyan-400/10 text-cyan-400 border border-cyan-400/20"><Shield size={10} />{roleLabel}</span>;
+    if (role === "coordinador") return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-orange-400/10 text-orange-400 border border-orange-400/20"><ClipboardList size={10} />{roleLabel}</span>;
+    if (role === "editor") return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-400/10 text-emerald-400 border border-emerald-400/20"><Pencil size={10} />{roleLabel}</span>;
+    if (role === "visitante") return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-purple-400/10 text-purple-300 border border-purple-400/20"><Eye size={10} />{roleLabel}</span>;
+    return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-400/10 text-amber-300 border border-amber-400/20"><Eye size={10} />{roleLabel}</span>;
   };
+
+  const linkCls = "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all duration-150 group";
+  const iconCls = "shrink-0 opacity-60 group-hover:opacity-100 transition-opacity";
+  const sectionLabelCls = "px-3.5 text-[10px] font-bold text-gray-600 uppercase tracking-[0.12em] mb-1.5";
 
   return (
     <div className="flex min-h-screen md:h-screen bg-[var(--bg-darker)] overflow-hidden md:overflow-hidden">
-      {/* Sidebar Navigation */}
-      <aside className="hidden md:flex w-64 bg-black/50 border-r border-white/5 flex-col">
-        <div className="p-6">
-          <h2 className="text-xl font-bold tracking-tight text-white">APHE <span className="text-[var(--accent-cyan)]">Admin</span></h2>
-          <p className="text-xs text-gray-400 mt-1">{auth.user.email}</p>
-          <div className="mt-2"><RoleBadge /></div>
+      {/* ─── Sidebar ─── */}
+      <aside className="hidden md:flex w-[260px] border-r border-white/[0.06] flex-col bg-[#060a14]">
+        {/* Brand */}
+        <div className="px-5 pt-6 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-green)] flex items-center justify-center text-black text-xs font-black">A</div>
+            <div>
+              <h2 className="text-sm font-bold tracking-tight text-white">APHE <span className="text-[var(--accent-cyan)]">Admin</span></h2>
+              <p className="text-[10px] text-gray-500 truncate max-w-[160px]" title={auth.user.email ?? undefined}>{auth.user.email}</p>
+            </div>
+          </div>
+          <div className="mt-3"><RoleBadge /></div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
-          <Link href="/admin/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-            <LayoutDashboard size={20} />
-            <span>Dashboard</span>
-          </Link>
-          <Link href="/admin/noticias" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-            <Newspaper size={20} />
-            <span>Noticias</span>
-          </Link>
-          <Link href="/admin/proyectos" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-            <FolderOpen size={20} />
-            <span>Proyectos</span>
-          </Link>
-          {hasPermission(role, "view_mensajes") && (
-            <Link href="/admin/mensajes" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-              <MailIcon size={20} />
-              <span>Mensajes</span>
-            </Link>
-          )}
-
-          {hasPermission(role, "view_tasks") && (
-            <Link href="/admin/tareas" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-              <ClipboardList size={20} />
-              <span>Tareas</span>
-            </Link>
-          )}
-
-          {hasPermission(role, "view_all_stats") && (
-            <Link href="/admin/estadisticas" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-              <BarChart3 size={20} />
-              <span>Estadísticas</span>
-            </Link>
-          )}
-
-          {hasPermission(role, "view_mensajes") && (
-            <Link href="/admin/soporte" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-              <Headset size={20} />
-              <span>Soporte</span>
-            </Link>
-          )}
-
-          {hasPermission(role, "view_tasks") && (
-            <Link href="/admin/reuniones" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-              <Video size={20} />
-              <span>Reuniones</span>
-            </Link>
-          )}
-
-          {role === "admin" && (
-            <Link href="/admin/documentos-ia" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-              <Bot size={20} />
-              <span>Documentos IA</span>
-            </Link>
-          )}
-          
-          <div className="pt-4 mt-4 border-t border-white/5">
-            <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Cuenta</p>
-            <Link href="/admin/perfil" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-              <UserIcon size={20} />
-              <span>Mi Perfil</span>
-            </Link>
+        {/* Nav Sections */}
+        <nav className="flex-1 px-3 space-y-5 overflow-y-auto pb-4 mt-1 scrollbar-none">
+          {/* Principal */}
+          <div>
+            <p className={sectionLabelCls}>Principal</p>
+            <div className="space-y-0.5">
+              <Link href="/admin/dashboard" className={linkCls}>
+                <LayoutDashboard size={18} className={iconCls} />
+                <span>Dashboard</span>
+              </Link>
+              <Link href="/admin/noticias" className={linkCls}>
+                <Newspaper size={18} className={iconCls} />
+                <span>Noticias</span>
+              </Link>
+              <Link href="/admin/proyectos" className={linkCls}>
+                <FolderOpen size={18} className={iconCls} />
+                <span>Proyectos</span>
+              </Link>
+              {hasPermission(role, "view_mensajes") && (
+                <Link href="/admin/mensajes" className={linkCls}>
+                  <MailIcon size={18} className={iconCls} />
+                  <span>Mensajes</span>
+                </Link>
+              )}
+            </div>
           </div>
 
+          {/* Equipo */}
+          <div>
+            <p className={sectionLabelCls}>Equipo</p>
+            <div className="space-y-0.5">
+              {hasPermission(role, "view_tasks") && (
+                <Link href="/admin/tareas" className={linkCls}>
+                  <ClipboardList size={18} className={iconCls} />
+                  <span>Tareas</span>
+                </Link>
+              )}
+              {hasPermission(role, "view_tasks") && (
+                <Link href="/admin/reuniones" className={linkCls}>
+                  <Video size={18} className={iconCls} />
+                  <span>Reuniones</span>
+                </Link>
+              )}
+              {hasPermission(role, "view_all_stats") && (
+                <Link href="/admin/estadisticas" className={linkCls}>
+                  <BarChart3 size={18} className={iconCls} />
+                  <span>Estadísticas</span>
+                </Link>
+              )}
+              {hasPermission(role, "view_mensajes") && (
+                <Link href="/admin/soporte" className={linkCls}>
+                  <Headset size={18} className={iconCls} />
+                  <span>Soporte</span>
+                </Link>
+              )}
+              {role === "admin" && (
+                <Link href="/admin/documentos-ia" className={linkCls}>
+                  <Bot size={18} className={iconCls} />
+                  <span>Documentos IA</span>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Cuenta */}
+          <div>
+            <p className={sectionLabelCls}>Cuenta</p>
+            <div className="space-y-0.5">
+              <Link href="/admin/perfil" className={linkCls}>
+                <UserIcon size={18} className={iconCls} />
+                <span>Mi Perfil</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Administración */}
           {hasPermission(role, "manage_users") && (
-            <div className="pt-4 mt-4 border-t border-white/5">
-              <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Administración</p>
-              <Link href="/admin/usuarios" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                <Users size={20} />
-                <span>Usuarios</span>
-              </Link>
-              <Link href="/admin/configuracion" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                <Settings size={20} />
-                <span>Configuración</span>
-              </Link>
+            <div>
+              <p className={sectionLabelCls}>Administración</p>
+              <div className="space-y-0.5">
+                <Link href="/admin/usuarios" className={linkCls}>
+                  <Users size={18} className={iconCls} />
+                  <span>Usuarios</span>
+                </Link>
+                <Link href="/admin/configuracion" className={linkCls}>
+                  <Settings size={18} className={iconCls} />
+                  <span>Configuración</span>
+                </Link>
+              </div>
             </div>
           )}
         </nav>
 
-        <div className="p-4 border-t border-white/5">
+        {/* Footer: Site link + Logout */}
+        <div className="px-3 pb-4 pt-2 border-t border-white/[0.06] space-y-2">
+          <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] text-gray-500 hover:text-gray-300 hover:bg-white/[0.04] transition-all">
+            <ExternalLink size={14} />
+            <span>Ver sitio público</span>
+          </a>
           <form action="/auth/signout" method="post">
-            <button className="flex w-full items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
-              <LogOut size={16} />
-              <span className="text-sm font-medium">Cerrar Sesión</span>
+            <button className="flex w-full items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-500/[0.07] text-red-400 hover:bg-red-500/15 transition-all text-[13px] font-medium border border-red-500/10 hover:border-red-500/20">
+              <LogOut size={15} />
+              <span>Cerrar Sesión</span>
             </button>
           </form>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 relative">
-        <div className="md:hidden mb-4 sticky top-0 z-20 bg-[var(--bg-darker)]/90 backdrop-blur border border-white/10 rounded-xl p-3">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <p className="text-sm font-semibold text-white">APHE Admin</p>
-            <div><RoleBadge /></div>
+      {/* ─── Main Content ─── */}
+      <main className="flex-1 w-full overflow-y-auto relative">
+        {/* Mobile Header */}
+        <div className="md:hidden sticky top-0 z-20 bg-[#060a14]/95 backdrop-blur-xl border-b border-white/[0.06]">
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-green)] flex items-center justify-center text-black text-[10px] font-black">A</div>
+              <p className="text-sm font-bold text-white">APHE Admin</p>
+            </div>
+            <RoleBadge />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <Link href="/admin/dashboard" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Dashboard</Link>
-            <Link href="/admin/noticias" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Noticias</Link>
-            <Link href="/admin/proyectos" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Proyectos</Link>
+          <div className="flex gap-1.5 px-3 pb-2.5 overflow-x-auto scrollbar-none">
+            <Link href="/admin/dashboard" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Dashboard</Link>
+            <Link href="/admin/noticias" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Noticias</Link>
+            <Link href="/admin/proyectos" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Proyectos</Link>
             {hasPermission(role, "view_tasks") && (
-              <Link href="/admin/tareas" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Tareas</Link>
+              <Link href="/admin/tareas" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Tareas</Link>
+            )}
+            {hasPermission(role, "view_tasks") && (
+              <Link href="/admin/reuniones" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Reuniones</Link>
             )}
             {hasPermission(role, "view_mensajes") && (
-              <Link href="/admin/soporte" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Soporte</Link>
-            )}
-            {hasPermission(role, "view_tasks") && (
-              <Link href="/admin/reuniones" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Reuniones</Link>
+              <Link href="/admin/soporte" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Soporte</Link>
             )}
             {role === "admin" && (
-              <Link href="/admin/documentos-ia" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Docs IA</Link>
+              <Link href="/admin/documentos-ia" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Docs IA</Link>
             )}
-            <Link href="/admin/perfil" className="shrink-0 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">Perfil</Link>
+            <Link href="/admin/perfil" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Perfil</Link>
           </div>
         </div>
-        {/* Background glow for the content area */}
-        <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-[var(--accent-cyan)]/5 rounded-full blur-[150px] -z-10 pointer-events-none"></div>
-        {children}
+
+        {/* Content */}
+        <div className="p-4 sm:p-6 md:p-8 pb-24 md:pb-8">
+          {children}
+        </div>
+
+        {/* Subtle background glow */}
+        <div className="absolute top-0 right-0 w-[50vw] h-[50vw] bg-[var(--accent-cyan)]/[0.03] rounded-full blur-[180px] -z-10 pointer-events-none" />
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[rgba(2,6,14,0.96)] backdrop-blur-xl supports-[padding:max(0px)]:pb-[max(env(safe-area-inset-bottom),0.4rem)]">
-        <div className="grid grid-cols-5 gap-1 px-2 py-2">
-          <Link href="/admin/dashboard" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
-            <LayoutDashboard size={15} />
+      {/* ─── Mobile Bottom Nav ─── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.08] bg-[#060a14]/95 backdrop-blur-xl supports-[padding:max(0px)]:pb-[max(env(safe-area-inset-bottom),0.25rem)]">
+        <div className="grid grid-cols-5 px-1 py-1.5">
+          <Link href="/admin/dashboard" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
+            <LayoutDashboard size={18} />
             <span>Inicio</span>
           </Link>
-          <Link href="/admin/noticias" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
-            <Newspaper size={15} />
+          <Link href="/admin/noticias" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
+            <Newspaper size={18} />
             <span>Noticias</span>
           </Link>
-          <Link href="/admin/proyectos" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
-            <FolderOpen size={15} />
+          <Link href="/admin/proyectos" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
+            <FolderOpen size={18} />
             <span>Proyectos</span>
           </Link>
-          <Link href="/admin/tareas" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
-            <ClipboardList size={15} />
+          <Link href="/admin/tareas" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
+            <ClipboardList size={18} />
             <span>Tareas</span>
           </Link>
-          <Link href="/admin/perfil" className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] text-gray-300 hover:text-white hover:bg-white/10">
-            <UserIcon size={15} />
+          <Link href="/admin/perfil" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
+            <UserIcon size={18} />
             <span>Perfil</span>
           </Link>
         </div>

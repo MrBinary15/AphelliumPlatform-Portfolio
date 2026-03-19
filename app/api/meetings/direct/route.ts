@@ -34,6 +34,8 @@ export async function POST(request: NextRequest) {
       title: `Llamada con ${peerName}`,
       host_id: user.id,
       status: "planned",
+      is_locked: true,
+      max_participants: 2,
     })
     .select("id, slug")
     .single();

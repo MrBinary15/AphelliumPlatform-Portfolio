@@ -186,3 +186,30 @@
     touch-action: manipulation;
   }
 }
+
+@keyframes wiggle {
+  from { transform: rotate(-15deg); }
+  to   { transform: rotate(15deg); }
+}
+
+/* ══════════════════════════════════════════════════════
+   Smooth scroll for the entire page
+   ══════════════════════════════════════════════════════ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Keep native select dropdown options readable on all OS/browser themes */
+select option,
+select optgroup {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+/* Responsive video embed in short mode on mobile */
+@media (max-width: 639px) {
+  .aspect-\[9\/16\] {
+    max-height: 70vh;
+  }
+}

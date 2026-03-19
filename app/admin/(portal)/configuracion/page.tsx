@@ -29,38 +29,37 @@ export default async function ConfigurationPage() {
     await updateSiteSettings(formData);
   };
 
+  const inputCls = "w-full px-3.5 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-sm text-white focus:outline-none focus:border-[var(--accent-cyan)]/30 transition-colors read-only:opacity-60";
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-          <Settings className="h-8 w-8 text-cyan-400" />
-          Configuración del Sitio
-        </h1>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Configuración</h1>
+        <p className="text-gray-500 mt-1 text-sm">Ajustes generales del sitio web.</p>
       </div>
 
       {!isAdmin && (
-        <div className="bg-amber-500/10 border border-amber-500/50 text-amber-200 p-4 rounded-lg flex items-start gap-3 backdrop-blur-sm">
-          <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
+        <div className="bg-amber-500/[0.06] border border-amber-500/20 text-amber-300 p-4 rounded-xl flex items-start gap-3">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
           <div>
-            <h3 className="font-medium">Acceso Restringido</h3>
-            <p className="text-sm opacity-90">
-              Parece que tu cuenta no tiene permisos de administrador (Rol: {ROLE_LABELS[auth.role]}). 
-              Puedes ver la configuración pero no podrás guardar los cambios. Contacta a un administrador para que te asigne el rol &apos;admin&apos;.
+            <h3 className="text-sm font-semibold">Acceso Restringido</h3>
+            <p className="text-xs opacity-80 mt-0.5">
+              Rol actual: {ROLE_LABELS[auth.role]}. Solo administradores pueden guardar cambios.
             </p>
           </div>
         </div>
       )}
 
-      <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl backdrop-blur-sm">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 md:p-6">
         <form action={handleAction} className="space-y-6">
           
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-white border-b border-slate-700 pb-2">
-              Página de Inicio (Hero Section)
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-gray-200 pb-2 border-b border-white/[0.06]">
+              Página de Inicio (Hero)
             </h2>
             
             <div>
-              <label htmlFor="hero_title" className="block text-sm font-medium text-slate-300 mb-1">
+              <label htmlFor="hero_title" className="block text-xs font-medium text-gray-400 mb-1">
                 {settingsMap['hero_title']?.description || 'Título Principal'}
               </label>
               <input
@@ -69,12 +68,12 @@ export default async function ConfigurationPage() {
                 name="hero_title"
                 defaultValue={settingsMap['hero_title']?.value || ''}
                 readOnly={!isAdmin}
-                className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50"
+                className={inputCls}
               />
             </div>
             
             <div>
-              <label htmlFor="hero_description" className="block text-sm font-medium text-slate-300 mb-1">
+              <label htmlFor="hero_description" className="block text-xs font-medium text-gray-400 mb-1">
                 {settingsMap['hero_description']?.description || 'Descripción Principal'}
               </label>
               <textarea
@@ -83,19 +82,19 @@ export default async function ConfigurationPage() {
                 rows={3}
                 defaultValue={settingsMap['hero_description']?.value || ''}
                 readOnly={!isAdmin}
-                className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50"
+                className={inputCls}
               ></textarea>
             </div>
           </div>
 
-          <div className="space-y-4 pt-4">
-            <h2 className="text-xl font-semibold text-white border-b border-slate-700 pb-2">
+          <div className="space-y-3 pt-2">
+            <h2 className="text-sm font-semibold text-gray-200 pb-2 border-b border-white/[0.06]">
               Información de Contacto
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="contact_email" className="block text-sm font-medium text-slate-300 mb-1">
+                <label htmlFor="contact_email" className="block text-xs font-medium text-gray-400 mb-1">
                   {settingsMap['contact_email']?.description || 'Correo Electrónico'}
                 </label>
                 <input
@@ -104,12 +103,12 @@ export default async function ConfigurationPage() {
                   name="contact_email"
                   defaultValue={settingsMap['contact_email']?.value || ''}
                   readOnly={!isAdmin}
-                  className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50"
+                  className={inputCls}
                 />
               </div>
               
               <div>
-                <label htmlFor="contact_phone" className="block text-sm font-medium text-slate-300 mb-1">
+                <label htmlFor="contact_phone" className="block text-xs font-medium text-gray-400 mb-1">
                   {settingsMap['contact_phone']?.description || 'Teléfono'}
                 </label>
                 <input
@@ -118,13 +117,13 @@ export default async function ConfigurationPage() {
                   name="contact_phone"
                   defaultValue={settingsMap['contact_phone']?.value || ''}
                   readOnly={!isAdmin}
-                  className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50"
+                  className={inputCls}
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="contact_location" className="block text-sm font-medium text-slate-300 mb-1">
+              <label htmlFor="contact_location" className="block text-xs font-medium text-gray-400 mb-1">
                 {settingsMap['contact_location']?.description || 'Ubicación Física'}
               </label>
               <input
@@ -133,18 +132,18 @@ export default async function ConfigurationPage() {
                 name="contact_location"
                 defaultValue={settingsMap['contact_location']?.value || ''}
                 readOnly={!isAdmin}
-                className="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all disabled:opacity-50"
+                className={inputCls}
               />
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-3 flex justify-end">
             <button
               type="submit"
               disabled={!isAdmin}
-              className="flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/90 disabled:opacity-40 disabled:cursor-not-allowed text-black font-semibold text-sm rounded-xl transition-colors"
             >
-              <Save className="h-5 w-5" />
+              <Save className="h-4 w-4" />
               Guardar Cambios
             </button>
           </div>

@@ -12,7 +12,7 @@ export default async function ReunionesPage() {
   const { data: meetings } = await supabase
     .from("meetings")
     .select("*")
-    .or(`host_id.eq.${auth.user.id},co_host_id.eq.${auth.user.id}`)
+    .or(`host_id.eq.${auth.user.id},co_host_id.eq.${auth.user.id},is_public.eq.true`)
     .order("created_at", { ascending: false });
 
   const { data: invitations } = await supabase
