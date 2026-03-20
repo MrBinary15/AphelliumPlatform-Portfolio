@@ -231,10 +231,6 @@ export default async function Home() {
         general: "General",
         latestNewsEmpty: "No news available yet.",
         comingSoon: "Coming soon",
-        placeholderTitleA: "Cold Chain Innovation: What Comes Next",
-        placeholderExcerptA: "We are preparing a technical brief on new passive cooling strategies for floral exports.",
-        placeholderTitleB: "AI Monitoring in Logistics",
-        placeholderExcerptB: "A practical update on real-time monitoring models for temperature-sensitive cargo.",
         // CTA
         ctaTitle: "Ready to Transform Your Cold Chain?",
         ctaSubtitle: "Join the sustainable cooling revolution. Reduce costs, increase exports, and achieve carbon compliance.",
@@ -313,10 +309,6 @@ export default async function Home() {
         general: "General",
         latestNewsEmpty: "Aún no hay noticias publicadas.",
         comingSoon: "Próximamente",
-        placeholderTitleA: "Innovación en cadena de frío: lo que viene",
-        placeholderExcerptA: "Estamos preparando un informe técnico sobre nuevas estrategias de enfriamiento pasivo para exportación floral.",
-        placeholderTitleB: "Monitoreo con IA en logística",
-        placeholderExcerptB: "Una actualización práctica sobre modelos de monitoreo en tiempo real para carga sensible a temperatura.",
         // CTA
         ctaTitle: "¿Listo para Transformar tu Cadena de Frío?",
         ctaSubtitle: "Únete a la revolución del enfriamiento sostenible. Reduce costos, aumenta exportaciones y cumple con las regulaciones de carbono.",
@@ -344,28 +336,7 @@ export default async function Home() {
       )
     : [];
 
-  const placeholderArticles = [
-    {
-      id: "placeholder-a",
-      title: t.placeholderTitleA,
-      excerpt: t.placeholderExcerptA,
-      category: t.comingSoon,
-      img_url: "",
-      created_at: new Date().toISOString(),
-      isPlaceholder: true,
-    },
-    {
-      id: "placeholder-b",
-      title: t.placeholderTitleB,
-      excerpt: t.placeholderExcerptB,
-      category: t.comingSoon,
-      img_url: "",
-      created_at: new Date().toISOString(),
-      isPlaceholder: true,
-    },
-  ];
-
-  const displayArticles = latestArticles.length > 0 ? latestArticles : placeholderArticles;
+  const displayArticles = latestArticles;
 
   const STATUS_MAP: Record<string, { es: string; en: string }> = {
     planning: { es: "En Planificación", en: "Planning" },
@@ -882,6 +853,7 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════
           9. NEWS SECTION
       ═══════════════════════════════════════════ */}
+      {displayArticles.length > 0 && (
       <section className="w-full py-20 md:py-28 relative">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
@@ -935,6 +907,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ═══════════════════════════════════════════
           10. CTA SECTION — Final call to action

@@ -163,7 +163,7 @@ export default async function AdminLayout({
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-green)] flex items-center justify-center text-black text-[10px] font-black">A</div>
-              <p className="text-sm font-bold text-white">APHE Admin</p>
+              <p className="text-sm font-bold text-white">{displayName}</p>
             </div>
             <RoleBadge />
           </div>
