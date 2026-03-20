@@ -1,5 +1,6 @@
 import { Activity, ShieldCheck, Mail, FolderOpen, ListTodo, BarChart3, Globe, Users, Newspaper, Phone, Briefcase, ArrowUpRight, TrendingUp, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import Link from "next/link";
 import { getAuthUser } from "@/utils/auth";
 
@@ -8,12 +9,13 @@ export const revalidate = 0;
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
   const auth = await getAuthUser();
 
   const [{ count: mensajesCount }, { count: noticiasCount }, { count: proyectosCount }, { data: profile }] = await Promise.all([
-    supabase.from("mensajes").select("*", { count: "exact", head: true }).eq("status", "unread"),
-    supabase.from("noticias").select("*", { count: "exact", head: true }),
-    supabase.from("proyectos").select("*", { count: "exact", head: true }),
+    admin.from("mensajes").select("*", { count: "exact", head: true }).eq("status", "unread"),
+    admin.from("noticias").select("*", { count: "exact", head: true }),
+    admin.from("proyectos").select("*", { count: "exact", head: true }),
     supabase.from("profiles").select("full_name").eq("id", auth?.user?.id ?? "").single(),
   ]);
 

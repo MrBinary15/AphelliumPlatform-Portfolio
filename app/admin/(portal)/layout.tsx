@@ -4,6 +4,7 @@ import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, 
 import { getAuthUser } from "@/utils/auth";
 import { hasPermission, canModifyContent, ROLE_LABELS } from "@/utils/roles";
 import { AdminContentWrapper } from "@/components/AdminContentWrapper";
+import MobileAdminNav from "@/components/MobileAdminNav";
 
 export default async function AdminLayout({
   children,
@@ -160,30 +161,15 @@ export default async function AdminLayout({
       <main className="flex-1 w-full overflow-y-auto relative">
         {/* Mobile Header */}
         <div className="md:hidden sticky top-0 z-20 bg-[#060a14]/95 backdrop-blur-xl border-b border-white/[0.06]">
-          <div className="flex items-center justify-between px-4 pt-3 pb-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-green)] flex items-center justify-center text-black text-[10px] font-black">A</div>
-              <p className="text-sm font-bold text-white">{displayName}</p>
+              <div>
+                <p className="text-sm font-bold text-white leading-tight">{displayName}</p>
+                <p className="text-[10px] text-gray-500">{roleLabel}</p>
+              </div>
             </div>
             <RoleBadge />
-          </div>
-          <div className="flex gap-1.5 px-3 pb-2.5 overflow-x-auto scrollbar-none">
-            <Link href="/admin/dashboard" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Dashboard</Link>
-            <Link href="/admin/noticias" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Noticias</Link>
-            <Link href="/admin/proyectos" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Proyectos</Link>
-            {hasPermission(role, "view_tasks") && (
-              <Link href="/admin/tareas" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Tareas</Link>
-            )}
-            {hasPermission(role, "view_tasks") && (
-              <Link href="/admin/reuniones" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Reuniones</Link>
-            )}
-            {role === "admin" && (
-              <Link href="/admin/soporte" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Soporte</Link>
-            )}
-            {role === "admin" && (
-              <Link href="/admin/documentos-ia" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Docs IA</Link>
-            )}
-            <Link href="/admin/perfil" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Perfil</Link>
           </div>
         </div>
 
@@ -197,30 +183,15 @@ export default async function AdminLayout({
       </main>
 
       {/* ─── Mobile Bottom Nav ─── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.08] bg-[#060a14]/95 backdrop-blur-xl supports-[padding:max(0px)]:pb-[max(env(safe-area-inset-bottom),0.25rem)]">
-        <div className="grid grid-cols-5 px-1 py-1.5">
-          <Link href="/admin/dashboard" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
-            <LayoutDashboard size={18} />
-            <span>Inicio</span>
-          </Link>
-          <Link href="/admin/noticias" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
-            <Newspaper size={18} />
-            <span>Noticias</span>
-          </Link>
-          <Link href="/admin/proyectos" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
-            <FolderOpen size={18} />
-            <span>Proyectos</span>
-          </Link>
-          <Link href="/admin/tareas" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
-            <ClipboardList size={18} />
-            <span>Tareas</span>
-          </Link>
-          <Link href="/admin/perfil" className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10px] font-medium text-gray-400 hover:text-[var(--accent-cyan)] active:scale-95 transition-all">
-            <UserIcon size={18} />
-            <span>Perfil</span>
-          </Link>
-        </div>
-      </nav>
+      <MobileAdminNav
+        role={role}
+        permissions={{
+          viewMensajes: hasPermission(role, "view_mensajes"),
+          viewTasks: hasPermission(role, "view_tasks"),
+          viewAllStats: hasPermission(role, "view_all_stats"),
+          manageUsers: hasPermission(role, "manage_users"),
+        }}
+      />
     </div>
   );
 }
