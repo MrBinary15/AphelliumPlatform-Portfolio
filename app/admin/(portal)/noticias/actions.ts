@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bilingualFromSource } from "@/utils/autoTranslate";
@@ -94,14 +95,17 @@ function dropKeyFromPayload<T extends Record<string, unknown>>(payload: T, key: 
   return next as T;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseAnyClient = any;
+
 async function insertNoticiaWithSchemaFallback(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  client: SupabaseAnyClient,
   payload: Record<string, unknown>,
 ) {
   let currentPayload = { ...payload };
 
   for (let attempt = 0; attempt < 12; attempt++) {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("noticias")
       .insert(currentPayload)
       .select("id")
@@ -140,7 +144,6 @@ async function backfillLocalizedFieldsInBackground(
   fields: { title: string; excerpt: string; content: string; category: string },
 ) {
   try {
-    const supabase = await createClient();
     const [bilingualTitle, bilingualExcerpt, bilingualContent, bilingualCategory] = await Promise.all([
       bilingualFromSource(fields.title),
       bilingualFromSource(fields.excerpt),
@@ -159,7 +162,7 @@ async function backfillLocalizedFieldsInBackground(
       category_en: bilingualCategory.en,
     };
 
-    await updateNoticiaWithSchemaFallback(supabase, id, localizedFields);
+    await updateNoticiaWithSchemaFallback(createAdminClient(), id, localizedFields);
     revalidatePath("/noticias");
     revalidatePath(`/noticias-principal/${id}`);
   } catch (error) {
@@ -168,14 +171,14 @@ async function backfillLocalizedFieldsInBackground(
 }
 
 async function updateNoticiaWithSchemaFallback(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  client: SupabaseAnyClient,
   id: string,
   payload: Record<string, unknown>,
 ) {
   let currentPayload = { ...payload };
 
   for (let attempt = 0; attempt < 12; attempt++) {
-    const { error } = await supabase
+    const { error } = await client
       .from("noticias")
       .update(currentPayload)
       .eq("id", id);
@@ -197,6 +200,7 @@ async function updateNoticiaWithSchemaFallback(
 
 export async function createNoticia(formData: FormData) {
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   // --- RBAC: require create_noticia permission ---
   const { requirePermission } = await import("@/utils/auth");
@@ -274,7 +278,7 @@ export async function createNoticia(formData: FormData) {
   let insertedId: string | null = null;
   let error: { message?: string } | null = null;
 
-  const { error: primaryInsertError, data: primaryInsertData } = await insertNoticiaWithSchemaFallback(supabase, fullPayload);
+  const { error: primaryInsertError, data: primaryInsertData } = await insertNoticiaWithSchemaFallback(admin, fullPayload);
   if (!primaryInsertError) {
     inserted = true;
     insertedId = primaryInsertData?.id || null;
@@ -286,7 +290,7 @@ export async function createNoticia(formData: FormData) {
       ...buildEmbedAliasPayload(normalizedEmbed),
     };
 
-    const { error: fallbackInsertError, data: fallbackInsertData } = await insertNoticiaWithSchemaFallback(supabase, fallbackPayload);
+    const { error: fallbackInsertError, data: fallbackInsertData } = await insertNoticiaWithSchemaFallback(admin, fallbackPayload);
     if (!fallbackInsertError) {
       inserted = true;
       error = null;
@@ -321,9 +325,9 @@ export async function deleteNoticia(id: string) {
   const permResult = await requirePermission("delete_noticia");
   if ("error" in permResult) return { error: permResult.error };
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { error } = await supabase.from("noticias").delete().match({ id });
+  const { error } = await admin.from("noticias").delete().eq("id", id);
 
   if (error) {
     console.error("Error deleting noticia:", error);
@@ -337,6 +341,7 @@ export async function deleteNoticia(id: string) {
 
 export async function updateNoticia(id: string, formData: FormData) {
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   // --- RBAC: require edit_noticia permission ---
   const { requirePermission } = await import("@/utils/auth");
@@ -421,7 +426,7 @@ export async function updateNoticia(id: string, formData: FormData) {
   let updated = false;
   let error: { message?: string } | null = null;
 
-  const { error: primaryUpdateError } = await updateNoticiaWithSchemaFallback(supabase, id, fullUpdateData);
+  const { error: primaryUpdateError } = await updateNoticiaWithSchemaFallback(admin, id, fullUpdateData);
   if (!primaryUpdateError) {
     updated = true;
   } else {
@@ -432,7 +437,7 @@ export async function updateNoticia(id: string, formData: FormData) {
       ...buildEmbedAliasPayload(normalizedEmbed),
     };
 
-    const { error: fallbackUpdateError } = await updateNoticiaWithSchemaFallback(supabase, id, fallbackUpdateData);
+    const { error: fallbackUpdateError } = await updateNoticiaWithSchemaFallback(admin, id, fallbackUpdateData);
     if (!fallbackUpdateError) {
       updated = true;
       error = null;

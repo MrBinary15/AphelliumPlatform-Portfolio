@@ -19,7 +19,6 @@ export default async function AdminLayout({
 
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", auth.user.id).single();
   const displayName = profile?.full_name || auth.user.email?.split("@")[0] || "Admin";
-  const displayEmail = auth.user.email ?? "";
 
   const RoleBadge = () => {
     if (role === "admin") return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-cyan-400/10 text-cyan-400 border border-cyan-400/20"><Shield size={10} />{roleLabel}</span>;
@@ -43,7 +42,7 @@ export default async function AdminLayout({
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-green)] flex items-center justify-center text-black text-xs font-black">A</div>
             <div>
               <h2 className="text-sm font-bold tracking-tight text-white">{displayName}</h2>
-              <p className="text-[10px] text-gray-500 truncate max-w-[160px]" title={displayEmail}>{displayEmail}</p>
+              <p className="text-[10px] text-gray-500 truncate max-w-[160px]">{roleLabel}</p>
             </div>
           </div>
           <div className="mt-3"><RoleBadge /></div>
