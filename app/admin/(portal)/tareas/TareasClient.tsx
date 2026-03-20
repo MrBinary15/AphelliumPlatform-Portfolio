@@ -10,6 +10,18 @@ import Image from "next/image";
 import { createTask } from "./actions";
 import type { Role } from "@/utils/roles";
 
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<link[\s\S]*?>/gi, "")
+    .replace(/<meta[\s\S]*?>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(srcdoc|formaction)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "")
+    .replace(/data:\s*text\/html/gi, "");
+}
+
 type Profile = { id: string; full_name: string | null; avatar_url: string | null; role: string | null };
 type Assignment = { id: string; user_id: string; confirmed: boolean; user: Profile };
 type Task = {
@@ -206,7 +218,7 @@ export default function TareasClient({
                       </div>
 
                       {task.description && (
-                        <p className="text-sm text-gray-400 mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: task.description }} />
+                        <p className="text-sm text-gray-400 mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: sanitizeHtml(task.description) }} />
                       )}
 
                       {/* Meta */}

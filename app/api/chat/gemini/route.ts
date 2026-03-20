@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { rateLimit, getClientIp } from "@/utils/rateLimit";
 
 type GeminiMessage = {
   role: "user" | "model";
@@ -57,6 +58,16 @@ async function fetchKnowledgeBase(): Promise<string> {
 export async function POST(request: NextRequest) {
   if (!GEMINI_API_KEY) {
     return NextResponse.json({ error: "API de IA no configurada" }, { status: 500 });
+  }
+
+  // Rate limit: 15 requests per minute per IP
+  const ip = getClientIp(request.headers);
+  const rl = rateLimit(`gemini:${ip}`, { limit: 15, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
   }
 
   let body: { messages?: { role: string; content: string }[]; message?: string };

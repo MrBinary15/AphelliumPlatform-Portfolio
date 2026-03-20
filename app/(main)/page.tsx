@@ -10,6 +10,8 @@ import NoticiaImage from "@/components/NoticiaImage";
 import HeroVideoBackground from "@/components/HeroVideoBackground";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Aphellium | Refrigeración Sostenible",
   description: "Refrigeración sostenible para la floricultura del Ecuador. Tecnología APHE con nanotecnología, IA y blockchain. Reducción de costos energéticos 30%.",

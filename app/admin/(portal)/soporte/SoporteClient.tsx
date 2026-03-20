@@ -13,6 +13,7 @@ import {
   Bot,
   User,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 
 type Conversation = {
@@ -182,6 +183,24 @@ export default function SoporteClient({
       .order("updated_at", { ascending: false })
       .limit(50);
     if (data) setConversations(data);
+  };
+
+  const deleteConversation = async (convId: string) => {
+    if (!window.confirm("¿Eliminar esta conversación permanentemente?")) return;
+    try {
+      const res = await fetch(`/api/soporte/${convId}`, { method: "DELETE" });
+      if (res.ok) {
+        setConversations((prev) => prev.filter((c) => c.id !== convId));
+        if (activeConv?.id === convId) {
+          setActiveConv(null);
+          setMessages([]);
+        }
+      } else {
+        alert("No se pudo eliminar la conversación");
+      }
+    } catch {
+      alert("Error de conexión");
+    }
   };
 
   const filteredConvs = conversations.filter((c) => {
@@ -394,6 +413,16 @@ export default function SoporteClient({
                   ID: {conv.visitor_id.slice(0, 20)}... · {fmtTime(conv.updated_at)}
                 </p>
               </div>
+              {(currentUserRole === "admin" || currentUserRole === "coordinador") && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
+                  className="shrink-0 p-2 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  title="Eliminar conversación"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
             </button>
           ))}
         </div>

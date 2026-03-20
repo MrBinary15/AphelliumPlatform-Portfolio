@@ -1,11 +1,11 @@
-# Aphellium Platform v2.0
+# Aphellium Platform v2.1
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![React](https://img.shields.io/badge/React-19-61dafb)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
 ![Supabase](https://img.shields.io/badge/Supabase-Backend-3ecf8e)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06b6d4)
-![Version](https://img.shields.io/badge/Version-2.0.0-cyan)
+![Version](https://img.shields.io/badge/Version-2.1.0-cyan)
 ![License](https://img.shields.io/badge/License-Private-informational)
 
 ---
@@ -25,6 +25,7 @@ Operamos en múltiples verticales — desde plataformas web corporativas hasta s
 - [Sobre Aphellium](#sobre-aphellium)
 - [ES - Plataforma Aphellium](#es---plataforma-aphellium)
   - [Descripción Ejecutiva](#descripción-ejecutiva)
+  - [Novedades v2.1](#novedades-v21)
   - [Novedades v2.0](#novedades-v20)
   - [Capacidades de Negocio](#capacidades-de-negocio)
   - [Arquitectura Técnica](#arquitectura-técnica)
@@ -35,6 +36,7 @@ Operamos en múltiples verticales — desde plataformas web corporativas hasta s
   - [Migraciones](#migraciones)
 - [EN - Aphellium Platform](#en---aphellium-platform)
   - [Executive Summary](#executive-summary)
+  - [What's New in v2.1](#whats-new-in-v21)
   - [What's New in v2.0](#whats-new-in-v20)
   - [Business Capabilities](#business-capabilities)
   - [Technical Architecture](#technical-architecture)
@@ -57,6 +59,45 @@ Aphellium Platform es una solución web integral orientada a dos frentes:
 - **Canal interno operativo** para gestión de usuarios, tareas, reuniones y comunicación colaborativa.
 
 La plataforma prioriza seguridad, trazabilidad y gobernanza de acceso mediante RBAC y políticas RLS en base de datos.
+
+### Novedades v2.1
+
+**Seguridad — Hardening Integral de Producción**
+
+- **Security Headers**: Content-Security-Policy completo, Strict-Transport-Security (HSTS 2 años + preload), X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
+- **Rate Limiting**: Sistema de limitación por IP en endpoints críticos — Gemini (15/min), soporte (30/min), upload (10/min), link-preview (20/min), fetch-remote-image (30/min), profile (20/min).
+- **Middleware Hardening**: Bloqueo de endpoints de debug en producción.
+- **Cookie Security**: Cookies httpOnly, secure en producción, sameSite lax.
+- **Ocultación de Stack**: Header `X-Powered-By` deshabilitado, source maps deshabilitados en producción.
+- **Body Size Limit**: Reducido de 50MB a 10MB.
+- **robots.txt**: Bloqueo de crawlers en `/admin/`, `/api/`, `/auth/`.
+- **Database RLS**: Row Level Security habilitado y forzado en 20+ tablas, políticas granulares para contenido público, perfiles, mensajes y chat.
+- **Revocación de permisos**: `REVOKE EXECUTE` en funciones públicas para rol anon.
+
+**Auditoría de Código y Correcciones de Seguridad**
+
+- **Open Redirect** corregido en callback de autenticación — validación de parámetro `next`.
+- **XSS Prevention**: Sanitización con `sanitizeHtml()` en 8+ ubicaciones con `dangerouslySetInnerHTML` (tareas, noticias, proyectos).
+- **Validación de URLs**: Solo protocolos `http/https` permitidos en `resolveArticleLink`.
+- **Permisos de mensajes**: Check `requirePermission("view_mensajes")` en página de detalle.
+
+**Correcciones del Portal Administrativo**
+
+- **Dashboard**: Nombre del usuario obtenido de `profiles.full_name` en vez de solo email de auth.
+- **Layout**: Wrapper con `key={pathname}` para evitar distorsión de layout al navegar entre secciones.
+- **Sidebar**: Muestra nombre real y email del usuario autenticado.
+- **Soporte**: Restringido exclusivamente a rol admin (antes era `view_mensajes`).
+- **Mensajes**: Botón de eliminación funcional para admin y coordinador.
+- **Soporte**: Botón de eliminación de conversaciones para admin y coordinador.
+- **Last Seen**: Feature `última vez` en ChatWidget para mostrar estado de conexión de usuarios.
+- **Caché eliminado**: `force-dynamic` y `revalidate = 0` en dashboard para datos siempre frescos.
+
+**Migraciones de Base de Datos**
+
+- `012_profiles_last_seen.sql` — Columna `last_seen_at` en profiles.
+- `013_security_hardening.sql` — RLS en 20+ tablas, políticas granulares, revocación de permisos anon.
+
+---
 
 ### Novedades v2.0
 
@@ -159,6 +200,10 @@ flowchart LR
 - Uso de service role únicamente en contexto server-side controlado.
 - Variables sensibles excluidas del control de versiones.
 - Sanitización HTML con DOMPurify para contenido renderizado.
+- **Security Headers** completos (CSP, HSTS, X-Frame-Options, Permissions-Policy).
+- **Rate Limiting** por IP en endpoints críticos.
+- **Cookie hardening**: httpOnly, secure, sameSite.
+- **robots.txt** para bloqueo de crawlers en rutas sensibles.
 
 ### Operación y Despliegue
 
@@ -219,6 +264,8 @@ Ejecutar en orden:
 10. `migrations/009_profiles_team_order.sql`
 11. `migrations/010_profiles_team_section.sql`
 12. `migrations/011_meeting_enhancements.sql`
+13. `migrations/012_profiles_last_seen.sql`
+14. `migrations/013_security_hardening.sql`
 
 ---
 
@@ -232,6 +279,45 @@ Aphellium Platform is a full-stack web solution designed for two strategic chann
 - **Internal operations** workspace for administration, task orchestration, meetings, and communication.
 
 The platform is designed around secure-by-default principles using RBAC and database-level RLS enforcement.
+
+### What's New in v2.1
+
+**Security — Full Production Hardening**
+
+- **Security Headers**: Complete Content-Security-Policy, Strict-Transport-Security (HSTS 2yr + preload), X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
+- **Rate Limiting**: Per-IP rate limiting on critical endpoints — Gemini (15/min), support (30/min), upload (10/min), link-preview (20/min), fetch-remote-image (30/min), profile (20/min).
+- **Middleware Hardening**: Debug endpoints blocked in production.
+- **Cookie Security**: httpOnly cookies, secure in production, sameSite lax.
+- **Stack Hiding**: `X-Powered-By` header disabled, production source maps disabled.
+- **Body Size Limit**: Reduced from 50MB to 10MB.
+- **robots.txt**: Crawler blocking for `/admin/`, `/api/`, `/auth/`.
+- **Database RLS**: Row Level Security enabled and forced on 20+ tables, granular policies for public content, profiles, messages, and chat.
+- **Permission Revocation**: `REVOKE EXECUTE` on public functions for anon role.
+
+**Code Audit & Security Fixes**
+
+- **Open Redirect** fixed in auth callback — `next` parameter validation.
+- **XSS Prevention**: `sanitizeHtml()` applied to 8+ `dangerouslySetInnerHTML` locations (tasks, news, projects).
+- **URL Validation**: Only `http/https` protocols allowed in `resolveArticleLink`.
+- **Message Permissions**: `requirePermission("view_mensajes")` check on detail page.
+
+**Admin Portal Fixes**
+
+- **Dashboard**: User name fetched from `profiles.full_name` instead of auth email only.
+- **Layout**: Wrapper with `key={pathname}` to prevent layout distortion when navigating between sections.
+- **Sidebar**: Shows real name and email of authenticated user.
+- **Support**: Restricted to admin role only (was `view_mensajes`).
+- **Messages**: Working delete button for admin and coordinator.
+- **Support**: Conversation delete button for admin and coordinator.
+- **Last Seen**: `last seen` feature in ChatWidget showing user connection status.
+- **Cache eliminated**: `force-dynamic` and `revalidate = 0` on dashboard for always-fresh data.
+
+**Database Migrations**
+
+- `012_profiles_last_seen.sql` — `last_seen_at` column on profiles.
+- `013_security_hardening.sql` — RLS on 20+ tables, granular policies, anon permission revocation.
+
+---
 
 ### What's New in v2.0
 
@@ -334,6 +420,10 @@ flowchart LR
 - Service-role credentials only in trusted server contexts.
 - Sensitive configuration excluded from version control.
 - HTML sanitization with DOMPurify for rendered content.
+- **Full Security Headers** (CSP, HSTS, X-Frame-Options, Permissions-Policy).
+- **Per-IP Rate Limiting** on critical endpoints.
+- **Cookie hardening**: httpOnly, secure, sameSite.
+- **robots.txt** blocking crawlers on sensitive routes.
 
 ### Operations and Deployment
 
@@ -394,6 +484,8 @@ Run in order:
 10. `migrations/009_profiles_team_order.sql`
 11. `migrations/010_profiles_team_section.sql`
 12. `migrations/011_meeting_enhancements.sql`
+13. `migrations/012_profiles_last_seen.sql`
+14. `migrations/013_security_hardening.sql`
 
 ---
 

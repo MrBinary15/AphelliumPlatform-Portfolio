@@ -51,6 +51,18 @@ function Avatar({ src, name, size = 32 }: { src: string | null; name: string | n
   );
 }
 
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<link[\s\S]*?>/gi, "")
+    .replace(/<meta[\s\S]*?>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(srcdoc|formaction)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "")
+    .replace(/data:\s*text\/html/gi, "");
+}
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
@@ -268,7 +280,7 @@ export default function TaskDetailClient({
                   [&_a]:text-[var(--accent-cyan)] [&_a]:no-underline [&_a:hover]:underline
                   [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--accent-cyan)]/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-400
                   [&_code]:bg-white/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs"
-                  dangerouslySetInnerHTML={{ __html: task.description }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(task.description) }}
                 />
               </div>
             )}
@@ -778,7 +790,7 @@ function SocialPost({
           [&_a]:text-[var(--accent-cyan)] [&_a]:no-underline [&_a:hover]:underline
           [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--accent-cyan)]/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-400
           [&_code]:bg-white/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs"
-          dangerouslySetInnerHTML={{ __html: comment.content }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(comment.content) }}
         />
       </div>
 
@@ -853,7 +865,7 @@ function SocialPost({
                         </div>
                         <div className="prose prose-invert prose-sm max-w-none text-gray-400 text-xs leading-relaxed break-words
                           [&_img]:rounded-lg [&_img]:max-w-[200px] [&_a]:text-[var(--accent-cyan)]"
-                          dangerouslySetInnerHTML={{ __html: reply.content }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(reply.content) }}
                         />
                       </div>
                       <div className="flex items-center gap-1 mt-1 ml-1">

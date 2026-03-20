@@ -6,6 +6,18 @@ import { ArrowLeft, Eye, Save, Loader2, X, Calendar, User } from "lucide-react";
 import Link from "next/link";
 import RichTextEditor from "@/components/RichTextEditor";
 
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<link[\s\S]*?>/gi, "")
+    .replace(/<meta[\s\S]*?>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(srcdoc|formaction)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "")
+    .replace(/data:\s*text\/html/gi, "");
+}
+
 type DownloadFormat = "html" | "word" | "pdf";
 
 const DRAFT_STORAGE_KEY = "aphellium:noticias:nueva:draft";
@@ -497,7 +509,7 @@ export default function NuevaNoticiaPage() {
 
                   <div
                     className="prose prose-invert prose-p:text-gray-300 prose-headings:text-white prose-a:text-[var(--accent-cyan)] prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-img:border prose-img:border-white/10 prose-video:rounded-xl prose-video:w-full prose-video:aspect-video max-w-none break-words"
-                    dangerouslySetInnerHTML={{ __html: content || "<p class='text-gray-500'>Aun no hay contenido para previsualizar.</p>" }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(content || "<p class='text-gray-500'>Aun no hay contenido para previsualizar.</p>") }}
                   />
                 </section>
               </article>

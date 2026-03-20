@@ -32,6 +32,7 @@ type Member = {
   full_name: string | null;
   avatar_url: string | null;
   role: string | null;
+  last_seen_at: string | null;
 };
 
 type ChatMsg = {
@@ -108,6 +109,17 @@ const fmtTime = (ts: string) => {
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
   if (diff < 86_400_000) return d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
   return d.toLocaleDateString("es", { day: "2-digit", month: "short" });
+};
+
+const fmtLastSeen = (ts: string | null | undefined): string => {
+  if (!ts) return "Desconectado";
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  if (diff < 60_000) return "Últ. vez: ahora";
+  if (diff < 3_600_000) return `Últ. vez: hace ${Math.floor(diff / 60_000)}min`;
+  if (diff < 86_400_000) return `Últ. vez: ${d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}`;
+  return `Últ. vez: ${d.toLocaleDateString("es", { day: "2-digit", month: "short" })}`;
 };
 
 const formatBytes = (bytes: number) => {
@@ -917,11 +929,23 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
     supabase
       .from("profiles")
-      .select("id, full_name, avatar_url, role")
+      .select("id, full_name, avatar_url, role, last_seen_at")
       .neq("id", userIdSafe)
       .order("full_name")
-      .then(({ data }) => {
-        if (data) setMembers(data);
+      .then(({ data, error }) => {
+        if (error && error.code === "42703") {
+          // last_seen_at column doesn't exist yet, fallback
+          supabase
+            .from("profiles")
+            .select("id, full_name, avatar_url, role")
+            .neq("id", userIdSafe)
+            .order("full_name")
+            .then(({ data: d2 }) => {
+              if (d2) setMembers(d2.map((m) => ({ ...m, last_seen_at: null })));
+            });
+        } else if (data) {
+          setMembers(data);
+        }
       });
 
     supabase
@@ -974,13 +998,22 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         if (presence.user_id) ids.add(presence.user_id);
       });
       setOnlineIds(ids);
-    }).subscribe(async (status) => {
+    })
+    .on("presence", { event: "leave" }, ({ leftPresences }) => {
+      const now = new Date().toISOString();
+      const leftIds = (leftPresences || []).map((p: unknown) => (p as { user_id?: string }).user_id).filter(Boolean) as string[];
+      if (leftIds.length > 0) {
+        setMembers((prev) => prev.map((m) => leftIds.includes(m.id) ? { ...m, last_seen_at: now } : m));
+      }
+    })
+    .subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         await ch.track({ user_id: userIdSafe, user_name: userName });
       }
     });
 
     return () => {
+      supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", userIdSafe).then(() => {});
       supabase.removeChannel(ch);
     };
   }, [supabase, userIdSafe, userName, isAuthenticated]);
@@ -1459,7 +1492,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                     : hasActiveRoom
                     ? (activeRoom?.room_type === "task" ? "Grupo de tarea" : "Grupo manual")
                     : activeMember
-                    ? (onlineIds.has(activeMember.id) ? "En linea" : "Desconectado")
+                    ? (onlineIds.has(activeMember.id) ? "En línea" : fmtLastSeen(activeMember.last_seen_at))
                     : `${onlineCount} conectados`}
                 </p>
               </div>
@@ -1968,7 +2001,13 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                             {lastMsg && <span className="text-[10px] text-gray-600 shrink-0">{fmtTime(lastMsg.created_at)}</span>}
                           </div>
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-[11px] text-gray-500 truncate">{previewText(lastMsg, userIdSafe)}</p>
+                            <p className="text-[11px] text-gray-500 truncate">
+                              {lastMsg
+                                ? previewText(lastMsg, userIdSafe)
+                                : isOnline
+                                ? "En línea"
+                                : fmtLastSeen(m.last_seen_at)}
+                            </p>
                             {unread > 0 && (
                               <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
                                 {unread > 9 ? "9+" : unread}

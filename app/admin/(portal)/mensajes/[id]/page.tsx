@@ -1,13 +1,18 @@
 import { createClient } from "@/utils/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Clock, User, Building, Mail, Tag } from "lucide-react";
+import DeleteMensajeButton from "./DeleteMensajeButton";
+import { requirePermission } from "@/utils/auth";
 
 export default async function MensajeDetailsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const permResult = await requirePermission("view_mensajes");
+  if ("error" in permResult) redirect("/admin/dashboard");
+
   const { id } = await params;
   const supabase = await createClient();
 
@@ -43,7 +48,7 @@ export default async function MensajeDetailsPage({
         >
           <ArrowLeft size={20} />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">Detalle del Mensaje</h1>
           <p className="text-gray-400 text-sm flex items-center gap-2 mt-1">
             <Clock size={14} /> Recibido el {new Date(mensaje.created_at).toLocaleString('es-ES', {
@@ -51,6 +56,7 @@ export default async function MensajeDetailsPage({
             })}
           </p>
         </div>
+        <DeleteMensajeButton id={mensaje.id} />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

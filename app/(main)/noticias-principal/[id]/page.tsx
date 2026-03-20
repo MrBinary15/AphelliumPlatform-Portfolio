@@ -13,7 +13,11 @@ function resolveArticleLink(article: Record<string, unknown>): string {
   for (const key of candidates) {
     const value = article[key];
     if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
+      const trimmed = value.trim();
+      // Only allow http/https links
+      if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        return trimmed;
+      }
     }
   }
   return "";
@@ -68,9 +72,12 @@ function sanitizeArticleHtml(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<link[\s\S]*?>/gi, "")
+    .replace(/<meta[\s\S]*?>/gi, "")
     .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/\s(srcdoc|formaction)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/javascript:/gi, "");
+    .replace(/javascript:/gi, "")
+    .replace(/data:\s*text\/html/gi, "");
 }
 
 async function fetchArticleById(id: string): Promise<{ article: Record<string, unknown> | null; errorMsg: string }> {

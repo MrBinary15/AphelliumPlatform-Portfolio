@@ -9,6 +9,18 @@ import {
 import Link from "next/link";
 import RichTextEditor from "@/components/RichTextEditor";
 
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<link[\s\S]*?>/gi, "")
+    .replace(/<meta[\s\S]*?>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(srcdoc|formaction)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "")
+    .replace(/data:\s*text\/html/gi, "");
+}
+
 type DownloadFormat = "html" | "word" | "pdf";
 
 const DRAFT_KEY = "aphellium:proyectos:nuevo:draft";
@@ -513,7 +525,7 @@ ${metrics.length > 0 ? `<div class="metrics">${metrics.map(m => `<div class="met
 
                   {/* Content */}
                   <div className="prose prose-invert prose-p:text-gray-300 prose-headings:text-white prose-a:text-[var(--accent-cyan)] prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-img:border prose-img:border-white/10 max-w-none break-words"
-                    dangerouslySetInnerHTML={{ __html: description || "<p class='text-gray-500'>Aún no hay contenido.</p>" }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(description || "<p class='text-gray-500'>Aún no hay contenido.</p>") }}
                   />
 
                   {/* Tags */}
@@ -558,7 +570,7 @@ ${metrics.length > 0 ? `<div class="metrics">${metrics.map(m => `<div class="met
                   </div>
                   {detailsExpanded && (
                     <div className="border-t border-white/10 bg-black/20 p-5 space-y-4">
-                      {description && <div className="prose prose-invert prose-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: description }} />}
+                      {description && <div className="prose prose-invert prose-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }} />}
                       {parsedTags.length > 0 && <div className="flex flex-wrap gap-1.5">{parsedTags.map(tag => <span key={tag} className="px-2 py-0.5 rounded-md bg-white/5 text-[10px] text-gray-400 border border-white/5">{tag}</span>)}</div>}
                     </div>
                   )}

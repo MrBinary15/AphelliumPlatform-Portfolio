@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimit, getClientIp } from "@/utils/rateLimit";
 
 const BLOCKED_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
 
@@ -17,6 +18,16 @@ const isPrivateIpv4 = (host: string) => {
 
 export async function GET(request: Request) {
   try {
+    // Rate limit: 30 requests per minute per IP
+    const ip = getClientIp(request.headers);
+    const rl = rateLimit(`fetch-img:${ip}`, { limit: 30, windowMs: 60_000 });
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const rawUrl = searchParams.get("url");
 

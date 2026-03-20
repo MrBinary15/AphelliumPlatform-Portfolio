@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { rateLimit, getClientIp } from "@/utils/rateLimit";
 
 const BUCKET = "chat-files";
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -14,6 +15,16 @@ function sanitizeFileName(name: string) {
 }
 
 export async function POST(request: Request) {
+  // Rate limit: 10 uploads per minute per IP
+  const ip = getClientIp(request.headers);
+  const rl = rateLimit(`upload:${ip}`, { limit: 10, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Demasiadas subidas. Intenta de nuevo." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
+
   const supabase = await createClient();
   const admin = createAdminClient();
 

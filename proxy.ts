@@ -32,6 +32,14 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Block access to debug endpoints in production
+  if (
+    process.env.NODE_ENV === "production" &&
+    (pathname.startsWith("/api/debug-all") || pathname.startsWith("/api/debug-news"))
+  ) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   // Redirect logged-in users away from login page
   if (pathname === "/admin/login") {
     if (user) {
@@ -55,7 +63,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/debug-all", "/api/debug-news"],
 };
 
 export { middleware as proxy };

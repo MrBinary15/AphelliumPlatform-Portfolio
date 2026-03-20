@@ -3,17 +3,23 @@ import Link from "next/link";
 import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3, Headset, Bot, Video, ChevronRight, ExternalLink } from "lucide-react";
 import { getAuthUser } from "@/utils/auth";
 import { hasPermission, canModifyContent, ROLE_LABELS } from "@/utils/roles";
+import { AdminContentWrapper } from "@/components/AdminContentWrapper";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
   const auth = await getAuthUser();
   if (!auth) return null;
 
   const role = auth.role;
   const roleLabel = ROLE_LABELS[role];
+
+  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", auth.user.id).single();
+  const displayName = profile?.full_name || auth.user.email?.split("@")[0] || "Admin";
+  const displayEmail = auth.user.email ?? "";
 
   const RoleBadge = () => {
     if (role === "admin") return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-cyan-400/10 text-cyan-400 border border-cyan-400/20"><Shield size={10} />{roleLabel}</span>;
@@ -36,8 +42,8 @@ export default async function AdminLayout({
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-green)] flex items-center justify-center text-black text-xs font-black">A</div>
             <div>
-              <h2 className="text-sm font-bold tracking-tight text-white">APHE <span className="text-[var(--accent-cyan)]">Admin</span></h2>
-              <p className="text-[10px] text-gray-500 truncate max-w-[160px]" title={auth.user.email ?? undefined}>{auth.user.email}</p>
+              <h2 className="text-sm font-bold tracking-tight text-white">{displayName}</h2>
+              <p className="text-[10px] text-gray-500 truncate max-w-[160px]" title={displayEmail}>{displayEmail}</p>
             </div>
           </div>
           <div className="mt-3"><RoleBadge /></div>
@@ -92,7 +98,7 @@ export default async function AdminLayout({
                   <span>Estadísticas</span>
                 </Link>
               )}
-              {hasPermission(role, "view_mensajes") && (
+              {role === "admin" && (
                 <Link href="/admin/soporte" className={linkCls}>
                   <Headset size={18} className={iconCls} />
                   <span>Soporte</span>
@@ -172,7 +178,7 @@ export default async function AdminLayout({
             {hasPermission(role, "view_tasks") && (
               <Link href="/admin/reuniones" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Reuniones</Link>
             )}
-            {hasPermission(role, "view_mensajes") && (
+            {role === "admin" && (
               <Link href="/admin/soporte" className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] font-medium text-gray-300 hover:bg-white/[0.08] transition-colors">Soporte</Link>
             )}
             {role === "admin" && (
@@ -184,7 +190,7 @@ export default async function AdminLayout({
 
         {/* Content */}
         <div className="p-4 sm:p-6 md:p-8 pb-24 md:pb-8">
-          {children}
+          <AdminContentWrapper>{children}</AdminContentWrapper>
         </div>
 
         {/* Subtle background glow */}

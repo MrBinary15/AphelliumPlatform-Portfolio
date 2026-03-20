@@ -70,7 +70,26 @@ async function isHostAllowed(hostname) {
   }
 }
 
+// Simple in-memory rate limiter for pages/api
+const rateLimitMap = new Map();
+function checkRateLimit(ip, limit = 20, windowMs = 60000) {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now - entry.start > windowMs) {
+    rateLimitMap.set(ip, { start: now, count: 1 });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= limit;
+}
+
 export default async function handler(req, res) {
+  // Rate limit: 20 requests per minute per IP
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.headers["x-real-ip"] || "unknown";
+  if (!checkRateLimit(ip)) {
+    return res.status(429).json({ error: "Too many requests. Try again later." });
+  }
+
   const { url } = req.query;
 
   if (!url || typeof url !== "string") {

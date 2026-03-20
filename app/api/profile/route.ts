@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { rateLimit, getClientIp } from "@/utils/rateLimit";
 
 type ProfilePayload = {
   full_name?: string;
@@ -40,6 +41,13 @@ async function updateProfileInDb(payload: ProfilePayload, userId: string) {
 }
 
 export async function PUT(request: Request) {
+  // Rate limit: 20 profile updates per minute
+  const ip = getClientIp(request.headers);
+  const rl = rateLimit(`profile:${ip}`, { limit: 20, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json({ error: "Demasiadas solicitudes." }, { status: 429 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

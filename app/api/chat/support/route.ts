@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { rateLimit, getClientIp } from "@/utils/rateLimit";
 
 // POST: Create a new support conversation (visitor) or send a message
 // GET: Get messages for a conversation (visitor polling)
 export async function POST(request: NextRequest) {
+  // Rate limit: 30 requests per minute per IP
+  const ip = getClientIp(request.headers);
+  const rl = rateLimit(`support:${ip}`, { limit: 30, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Intenta de nuevo." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
+
   let body: { action?: string; visitorId?: string; visitorName?: string; conversationId?: string; content?: string; escalatedFromAi?: boolean };
   try {
     body = await request.json();
