@@ -29,7 +29,6 @@ export default async function AdminDashboardPage() {
           Bienvenido, <span className="bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-green)] bg-clip-text text-transparent">{firstName}</span>
         </h1>
         <p className="text-gray-500 mt-1 text-sm">Resumen de la actividad en la plataforma.</p>
-        <p className="text-[9px] text-gray-700 mt-0.5">v2.2.1</p>
       </header>
 
       {/* Stats Grid */}

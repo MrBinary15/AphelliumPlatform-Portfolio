@@ -222,7 +222,7 @@ export default function AdminLoginPage() {
         
         <div className="mt-8 text-center text-xs text-gray-500">
           <p>Plataforma de gestión interna comercial y operativa.</p>
-          <p className="mt-1">Monitoreo de Telemetría APHE v1.0</p>
+          <p className="mt-1">Monitoreo de Telemetría APHE v2.2</p>
         </div>
 
         <div className="mt-4 flex justify-center">

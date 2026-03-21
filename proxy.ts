@@ -47,6 +47,10 @@ export async function middleware(request: NextRequest) {
       url.pathname = "/admin/dashboard";
       return NextResponse.redirect(url);
     }
+    // Prevent CDN/edge caching of admin login page
+    supabaseResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    supabaseResponse.headers.set("CDN-Cache-Control", "no-store");
+    supabaseResponse.headers.set("Vercel-CDN-Cache-Control", "no-store");
     return supabaseResponse;
   }
 
@@ -57,6 +61,10 @@ export async function middleware(request: NextRequest) {
       url.pathname = "/admin/login";
       return NextResponse.redirect(url);
     }
+    // Prevent CDN/edge caching of all admin routes
+    supabaseResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    supabaseResponse.headers.set("CDN-Cache-Control", "no-store");
+    supabaseResponse.headers.set("Vercel-CDN-Cache-Control", "no-store");
   }
 
   return supabaseResponse;
