@@ -6,6 +6,9 @@ import { hasPermission, canModifyContent, ROLE_LABELS } from "@/utils/roles";
 import { AdminContentWrapper } from "@/components/AdminContentWrapper";
 import MobileAdminNav from "@/components/MobileAdminNav";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminLayout({
   children,
 }: {

@@ -1,0 +1,1560 @@
+{
+  "version": 3,
+  "routes": [
+    {
+      "src": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$",
+      "headers": {
+        "Location": "/$1"
+      },
+      "status": 308,
+      "continue": true
+    },
+    {
+      "src": "/_next/__private/trace",
+      "dest": "/404",
+      "status": 404,
+      "continue": true
+    },
+    {
+      "src": "/_next/data/(.*)",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-nextjs-data"
+          },
+          "args": "1"
+        }
+      ],
+      "continue": true
+    },
+    {
+      "src": "^(?:/(.*))(?:/)?$",
+      "headers": {
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "X-XSS-Protection": "1; mode=block",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+        "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()",
+        "X-DNS-Prefetch-Control": "on",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://player.vimeo.com https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://images.unsplash.com https://*.linkedin.com https://*.licdn.com https://*.twitter.com https://*.twimg.com https://*.githubusercontent.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.instagram.com https://www.tiktok.com https://platform.twitter.com; media-src 'self' blob: https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+      },
+      "continue": true
+    },
+    {
+      "src": "^/admin(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      },
+      "continue": true
+    },
+    {
+      "src": "/404/?",
+      "status": 404,
+      "continue": true,
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate"
+        }
+      ]
+    },
+    {
+      "src": "/500",
+      "status": 500,
+      "continue": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/(.*).json",
+      "dest": "/$1",
+      "override": true,
+      "continue": true,
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ]
+    },
+    {
+      "src": "^/index(?:/)?",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/",
+      "override": true,
+      "continue": true
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40076f1f76861fe819c7c7757b83a4254b163071d6"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/actions/panel.ts#publishNoticia"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40347c9d554218bdf9d21e2e03ec8302c55dcebb05"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/actions/panel.ts#publishProyecto"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "607558e0e5697e0d4eb94d953c32656d822a8cc4a4"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/actions/panel.ts#saveInlineEdits"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "4068fd6f8299c3ed8b37dbc29b9e47e753364b7492"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/(main)/contacto/actions.ts#submitContactMessage"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "408d5b9796b1ca01122b63391bcfdb4c7fb5551d3d"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/noticias/actions.ts#deleteNoticia"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "407d10ca9621faa9b22fb2b32292ad051b422a03f7"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/configuracion/page.tsx#anonymous_fn"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "405b4d02a873a75b30c638c51693bb6b414e4496cd"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/actions/configuracion.ts#updateSiteSettings"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "6092ca03fb3bd999703ca0bc932277cda2463b91ac"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/noticias/actions.ts#updateNoticia"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "400f01d16f093d418426a9e2f47a7940cb26a417a4"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/noticias/actions.ts#createNoticia"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "4009419862f6516318480ae18e28ed6a7e4d414f6b"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/proyectos/page.tsx#anonymous_fn"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40c3ef5ba776eef5f4f78215510311beaa07b3d86d"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/proyectos/actions.ts#deleteProyecto"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40eed2a4589eea6f06f40b8cfb43692ac592e5b725"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/proyectos/actions.ts#createProyecto"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "603f2ee67141a95046186294fec347114e41c323a4"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/proyectos/actions.ts#addGalleryImage"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "6068b12fc6892112720a9671161085cb053ec6c0c7"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/proyectos/actions.ts#updateProyecto"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "60a06638b572f1263687a11dd20b7f010df8eb7831"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/proyectos/actions.ts#removeGalleryImage"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40f3542360ddf2c6e01c91a7642925f4866ea0267e"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/reuniones/actions.ts#createMeeting"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "409ff42e63c9367590569df0c5d96873b2f92d2153"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/reuniones/actions.ts#cancelMeeting"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40b539f95d80f1fc199890aa0dde21f21cb0423e1c"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/reuniones/actions.ts#deleteMeeting"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "6080242bad193b4f835cfe779628e5c8f91a36b3e9"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/reuniones/actions.ts#inviteToMeeting"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "6015955ae397e6c442b520167a292cc046a25b27dc"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/reuniones/actions.ts#respondToInvitation"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "60fed1500c45fdd39a3c8b11a7926315e9b7c98681"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/reuniones/actions.ts#toggleMeetingPublic"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "4075a9f1a51986e551dbb8b82d3f44ea48abb7fae9"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/reuniones/actions.ts#endMeeting"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "60923b8fa7b97ea99acb24caaf3fe2b6418efd27ba"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/reuniones/actions.ts#toggleMeetingLock"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "409856f0673958baafb51527595c83bc5a978acf2f"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#createTask"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "6012e2b58d5cefbc2a090c50e4264f7c04fea95d48"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#updateTask"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40ae121fa0a44e15aa9a6ddbd4a9d16fecaf93fe8e"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#deleteTask"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40803c848ca7b459b5e20f6ecc74715121ab851c8c"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#confirmAttendance"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "706c848dd82ed9423c4024bbc340a32ce820fc06cb"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#addComment"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "609f037a81deb08c8ced4658f3de185a7eb288d4cb"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#addCommentWithFiles"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "60329e5adb81d95b154d2f47001f8b084c4f2bb2b7"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#deleteComment"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "7098da3fa01e9041cc058912de9fb2052d2d5275e6"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#toggleReaction"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "60a6066ccb8c285ee94392045b89e027543dbd6f2e"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#deleteAttachment"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "60da81883df38410e660cfdd05427560b1353414ae"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/(portal)/tareas/actions.ts#updateTaskAssignees"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "4053285d8d456f78823d3683625511de7019fbf859"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/actions/usuarios.ts#updateUserRole"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "4016b0ed36e83d505726ab38c15e6f81b11e18677c"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/actions/usuarios.ts#createUser"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40960d291e671edf7dacfd4eed3fb6478958f2fb37"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/actions/usuarios.ts#deleteUser"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40c41036a5013a8ed7748177210c2b67acd920f2e2"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/actions/usuarios.ts#saveTeamOrder"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "404187795e3493f402d43f4bb6a2d784797edc4a4e"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/actions/usuarios.ts#updateUserTeamSection"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "404513131ccc4d2491defb6b40c8db0ebf8f4d4288"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/login/actions.ts#login"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "40b7741496c70688ef18358f1d117391be0f7577f0"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/login/actions.ts#requestPasswordReset"
+        }
+      ]
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "next-action",
+          "value": "403c724ec4faab8027adf58914fba71acfcd5833cd"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-server-action-name"
+          },
+          "args": "app/admin/reset-password/actions.ts#updatePassword"
+        }
+      ]
+    },
+    {
+      "continue": true,
+      "src": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate",
+          "value": "f3c079b98468b12e6a458baed49d22c0"
+        }
+      ],
+      "middlewarePath": "/_middleware",
+      "middlewareRawSrc": [
+        "/admin/:path*"
+      ],
+      "override": true
+    },
+    {
+      "continue": true,
+      "src": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/api\\/debug-all(\\.json)?[\\/#\\?]?$",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate",
+          "value": "f3c079b98468b12e6a458baed49d22c0"
+        }
+      ],
+      "middlewarePath": "/_middleware",
+      "middlewareRawSrc": [
+        "/api/debug-all"
+      ],
+      "override": true
+    },
+    {
+      "continue": true,
+      "src": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/api\\/debug-news(\\.json)?[\\/#\\?]?$",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate",
+          "value": "f3c079b98468b12e6a458baed49d22c0"
+        }
+      ],
+      "middlewarePath": "/_middleware",
+      "middlewareRawSrc": [
+        "/api/debug-news"
+      ],
+      "override": true
+    },
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/U1n5oY8UcYG7YVpPtl6M2/index.json",
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/((?!_next/)(?:.*[^/]|.*))/?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/U1n5oY8UcYG7YVpPtl6M2/$1.json",
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "/(?<path>.+?)(?:/)?$",
+      "dest": "/$path.segments/$segmentPath.segment.rsc",
+      "has": [
+        {
+          "type": "header",
+          "key": "rsc",
+          "value": "1"
+        },
+        {
+          "type": "header",
+          "key": "next-router-prefetch",
+          "value": "1"
+        },
+        {
+          "type": "header",
+          "key": "next-router-segment-prefetch",
+          "value": "/(?<segmentPath>.+)"
+        }
+      ],
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/?$",
+      "dest": "/index.segments/$segmentPath.segment.rsc",
+      "has": [
+        {
+          "type": "header",
+          "key": "rsc",
+          "value": "1"
+        },
+        {
+          "type": "header",
+          "key": "next-router-prefetch",
+          "value": "1"
+        },
+        {
+          "type": "header",
+          "key": "next-router-segment-prefetch",
+          "value": "/(?<segmentPath>.+)"
+        }
+      ],
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/?",
+      "has": [
+        {
+          "type": "header",
+          "key": "rsc",
+          "value": "1"
+        }
+      ],
+      "dest": "/index.rsc",
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/((?!.+\\.rsc).+?)(?:/)?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "rsc",
+          "value": "1"
+        }
+      ],
+      "dest": "/$1.rsc",
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/(.*).json",
+      "dest": "/$1",
+      "continue": true,
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ]
+    },
+    {
+      "src": "^/index(?:/)?",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/",
+      "continue": true
+    },
+    {
+      "src": "/index(\\.action|\\.rsc)",
+      "dest": "/",
+      "continue": true
+    },
+    {
+      "src": "/\\.prefetch\\.rsc$",
+      "dest": "/__index.prefetch.rsc",
+      "check": true
+    },
+    {
+      "src": "/(.+)/\\.prefetch\\.rsc$",
+      "dest": "/$1.prefetch.rsc",
+      "check": true
+    },
+    {
+      "src": "/\\.rsc$",
+      "dest": "/index.rsc",
+      "check": true
+    },
+    {
+      "src": "/(.+)/\\.rsc$",
+      "dest": "/$1.rsc",
+      "check": true
+    },
+    {
+      "handle": "resource"
+    },
+    {
+      "src": "/.*",
+      "status": 404
+    },
+    {
+      "handle": "miss"
+    },
+    {
+      "src": "/_next/static/.+",
+      "status": 404,
+      "check": true,
+      "dest": "/_next/static/not-found.txt",
+      "headers": {
+        "content-type": "text/plain; charset=utf-8"
+      }
+    },
+    {
+      "src": "^/(?<path>.+)(?<rscSuffix>\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/$path.rsc",
+      "check": true
+    },
+    {
+      "handle": "rewrite"
+    },
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/U1n5oY8UcYG7YVpPtl6M2/index.json",
+      "continue": true
+    },
+    {
+      "src": "^/((?!_next/)(?:.*[^/]|.*))/?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/U1n5oY8UcYG7YVpPtl6M2/$1.json",
+      "continue": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/admin/mensajes/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/admin/mensajes/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/admin/noticias/editar/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/admin/noticias/editar/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/admin/proyectos/editar/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/admin/proyectos/editar/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/admin/reuniones/sala/(?<nxtPslug>[^/]+?)(?:/)?.json$",
+      "dest": "/admin/reuniones/sala/[slug]?nxtPslug=$nxtPslug",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/admin/tareas/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/admin/tareas/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/api/chat/messages/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/api/chat/messages/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/api/mensajes/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/api/mensajes/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/api/soporte/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/api/soporte/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/noticias/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/noticias/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/noticias\\-principal/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/noticias-principal/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/proyectos/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/proyectos/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/(?<path>.+)(?<rscSuffix>\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/$path.rsc",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/mensajes/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/admin/mensajes/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/mensajes/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/admin/mensajes/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/noticias/editar/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/admin/noticias/editar/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/noticias/editar/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/admin/noticias/editar/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/proyectos/editar/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/admin/proyectos/editar/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/proyectos/editar/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/admin/proyectos/editar/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/reuniones/sala/(?<nxtPslug>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/admin/reuniones/sala/[slug]$rscSuffix?nxtPslug=$nxtPslug",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/reuniones/sala/(?<nxtPslug>[^/]+?)(?:/)?$",
+      "dest": "/admin/reuniones/sala/[slug]?nxtPslug=$nxtPslug",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/tareas/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/admin/tareas/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/admin/tareas/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/admin/tareas/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/api/chat/messages/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/api/chat/messages/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/api/chat/messages/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/api/chat/messages/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/api/mensajes/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/api/mensajes/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/api/mensajes/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/api/mensajes/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/api/soporte/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/api/soporte/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/api/soporte/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/api/soporte/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/noticias/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/noticias/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/noticias/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/noticias/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/noticias\\-principal/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/noticias-principal/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/noticias\\-principal/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/noticias-principal/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/proyectos/(?<nxtPid>[^/]+?)(?<rscSuffix>\\.rsc|\\.prefetch\\.rsc|\\.segments/.+\\.segment\\.rsc)(?:/)?$",
+      "dest": "/proyectos/[id]$rscSuffix?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/proyectos/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/proyectos/[id]?nxtPid=$nxtPid",
+      "check": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/(.*).json",
+      "headers": {
+        "x-nextjs-matched-path": "/$1"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/U1n5oY8UcYG7YVpPtl6M2/(.*).json",
+      "dest": "__next_data_catchall"
+    },
+    {
+      "handle": "hit"
+    },
+    {
+      "src": "/_next/static/(?:[^/]+/pages|pages|chunks|runtime|css|image|media|U1n5oY8UcYG7YVpPtl6M2)/.+",
+      "headers": {
+        "cache-control": "public,max-age=31536000,immutable"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "src": "/index(?:/)?",
+      "headers": {
+        "x-matched-path": "/"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "src": "/((?!index$).*?)(?:/)?",
+      "headers": {
+        "x-matched-path": "/$1"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "handle": "error"
+    },
+    {
+      "src": "/.*",
+      "dest": "/_not-found",
+      "status": 404,
+      "headers": {
+        "x-next-error-status": "404"
+      }
+    },
+    {
+      "src": "/.*",
+      "dest": "/500",
+      "status": 500,
+      "headers": {
+        "x-next-error-status": "500"
+      }
+    }
+  ],
+  "images": {
+    "domains": [],
+    "sizes": [
+      640,
+      750,
+      828,
+      1080,
+      1200,
+      1920,
+      2048,
+      3840,
+      32,
+      48,
+      64,
+      96,
+      128,
+      256,
+      384
+    ],
+    "qualities": [
+      75
+    ],
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "^(?:(?!\\.)(?=.)[^/]*?\\.supabase\\.co\\/?)$",
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
+      },
+      {
+        "protocol": "https",
+        "hostname": "^(?:(?!\\.)(?=.)[^/]*?\\.supabase\\.in\\/?)$",
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
+      },
+      {
+        "protocol": "https",
+        "hostname": "^(?:(?!\\.)(?=.)[^/]*?\\.linkedin\\.com\\/?)$",
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
+      },
+      {
+        "protocol": "https",
+        "hostname": "^(?:(?!\\.)(?=.)[^/]*?\\.licdn\\.com\\/?)$",
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
+      },
+      {
+        "protocol": "https",
+        "hostname": "^(?:(?!\\.)(?=.)[^/]*?\\.twitter\\.com\\/?)$",
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
+      },
+      {
+        "protocol": "https",
+        "hostname": "^(?:(?!\\.)(?=.)[^/]*?\\.twimg\\.com\\/?)$",
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
+      },
+      {
+        "protocol": "https",
+        "hostname": "^(?:(?!\\.)(?=.)[^/]*?\\.githubusercontent\\.com\\/?)$",
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
+      },
+      {
+        "protocol": "https",
+        "hostname": "^(?:^(?:images\\.unsplash\\.com)$)$",
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
+      }
+    ],
+    "localPatterns": [
+      {
+        "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$",
+        "search": ""
+      }
+    ],
+    "minimumCacheTTL": 14400,
+    "formats": [
+      "image/webp"
+    ],
+    "dangerouslyAllowSVG": false,
+    "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
+    "contentDispositionType": "attachment"
+  },
+  "overrides": {
+    "500.html": {
+      "path": "500",
+      "contentType": "text/html; charset=utf-8"
+    },
+    "_app.rsc.json": {
+      "path": "_app.rsc",
+      "contentType": "application/json"
+    },
+    "_app.segments/_tree.segment.rsc.json": {
+      "path": "_app.segments/_tree.segment.rsc",
+      "contentType": "application/json"
+    },
+    "_document.rsc.json": {
+      "path": "_document.rsc",
+      "contentType": "application/json"
+    },
+    "_document.segments/_tree.segment.rsc.json": {
+      "path": "_document.segments/_tree.segment.rsc",
+      "contentType": "application/json"
+    },
+    "_error.rsc.json": {
+      "path": "_error.rsc",
+      "contentType": "application/json"
+    },
+    "_error.segments/_tree.segment.rsc.json": {
+      "path": "_error.segments/_tree.segment.rsc",
+      "contentType": "application/json"
+    },
+    "api/link-preview.rsc.json": {
+      "path": "api/link-preview.rsc",
+      "contentType": "application/json"
+    },
+    "api/link-preview.segments/_tree.segment.rsc.json": {
+      "path": "api/link-preview.segments/_tree.segment.rsc",
+      "contentType": "application/json"
+    },
+    "__next_data_catchall.json": {
+      "path": "__next_data_catchall",
+      "contentType": "application/json"
+    },
+    "_next/static/not-found.txt": {
+      "contentType": "text/plain"
+    }
+  },
+  "framework": {
+    "version": "16.1.6"
+  },
+  "crons": []
+}

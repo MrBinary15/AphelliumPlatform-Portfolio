@@ -1,0 +1,14 @@
+[
+  {
+    "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$",
+    "originalSource": "/admin/:path*"
+  },
+  {
+    "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/api\\/debug-all(\\.json)?[\\/#\\?]?$",
+    "originalSource": "/api/debug-all"
+  },
+  {
+    "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/api\\/debug-news(\\.json)?[\\/#\\?]?$",
+    "originalSource": "/api/debug-news"
+  }
+]
