@@ -137,6 +137,11 @@ const parseFileMessage = (content: string): ChatFilePayload | null => {
   try {
     const parsed = JSON.parse(content.slice(FILE_MSG_PREFIX.length)) as ChatFilePayload;
     if (!parsed?.name || !parsed?.url) return null;
+    // Sanitize URL: only allow http/https protocols
+    try {
+      const u = new URL(parsed.url);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    } catch { return null; }
     return parsed;
   } catch {
     return null;

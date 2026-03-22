@@ -145,8 +145,9 @@ export default async function AdminLayout({
           )}
         </nav>
 
-        {/* Footer: Site link + Logout */}
+        {/* Footer: Version + Site link + Logout */}
         <div className="px-3 pb-4 pt-2 border-t border-white/[0.06] space-y-2">
+          <p className="px-3.5 text-[10px] text-gray-600 text-center select-none">Aphellium v2.1.0</p>
           <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] text-gray-500 hover:text-gray-300 hover:bg-white/[0.04] transition-all">
             <ExternalLink size={14} />
             <span>Ver sitio público</span>
@@ -172,7 +173,10 @@ export default async function AdminLayout({
                 <p className="text-[10px] text-gray-500">{roleLabel}</p>
               </div>
             </div>
-            <RoleBadge />
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-gray-600 select-none">v2.1.0</span>
+              <RoleBadge />
+            </div>
           </div>
         </div>
 

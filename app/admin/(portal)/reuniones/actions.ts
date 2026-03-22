@@ -58,6 +58,10 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
 
   if (!title) return { error: "El título es requerido" };
 
+  // Only host or co-host can update
+  const { data: mtg } = await supabase.from("meetings").select("host_id, co_host_id").eq("id", meetingId).single();
+  if (!mtg || (mtg.host_id !== user.id && mtg.co_host_id !== user.id)) return { error: "No tienes permiso para editar esta reunión" };
+
   const { error } = await supabase
     .from("meetings")
     .update({
@@ -117,6 +121,10 @@ export async function cancelMeeting(meetingId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autorizado" };
 
+  // Only host can cancel
+  const { data: mtg } = await supabase.from("meetings").select("host_id, co_host_id").eq("id", meetingId).single();
+  if (!mtg || (mtg.host_id !== user.id && mtg.co_host_id !== user.id)) return { error: "No tienes permiso para cancelar esta reunión" };
+
   const admin = createAdminClient();
 
   // Clean up signals and dismiss pending invitations
@@ -140,6 +148,10 @@ export async function deleteMeeting(meetingId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autorizado" };
+
+  // Only host can delete
+  const { data: mtg } = await supabase.from("meetings").select("host_id").eq("id", meetingId).single();
+  if (!mtg || mtg.host_id !== user.id) return { error: "Solo el anfitrión puede eliminar la reunión" };
 
   // Use service client to bypass RLS for cleanup + deletion
   const admin = createAdminClient();
@@ -205,7 +217,8 @@ export async function toggleMeetingLock(meetingId: string, locked: boolean) {
   const { error } = await supabase
     .from("meetings")
     .update({ is_locked: locked })
-    .eq("id", meetingId);
+    .eq("id", meetingId)
+    .or(`host_id.eq.${user.id},co_host_id.eq.${user.id}`);
 
   if (error) return { error: error.message };
   return { success: true };
@@ -219,7 +232,8 @@ export async function toggleMeetingPublic(meetingId: string, isPublic: boolean) 
   const { error } = await supabase
     .from("meetings")
     .update({ is_public: isPublic })
-    .eq("id", meetingId);
+    .eq("id", meetingId)
+    .or(`host_id.eq.${user.id},co_host_id.eq.${user.id}`);
 
   if (error) return { error: error.message };
 
@@ -232,12 +246,14 @@ export async function updateMeetingSettings(meetingId: string, settings: Record<
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autorizado" };
 
-  // Merge with existing settings
+  // Merge with existing settings — only host/co-host
   const { data: meeting } = await supabase
     .from("meetings")
-    .select("settings")
+    .select("settings, host_id, co_host_id")
     .eq("id", meetingId)
     .single();
+
+  if (!meeting || (meeting.host_id !== user.id && meeting.co_host_id !== user.id)) return { error: "No tienes permiso" };
 
   const merged = { ...(meeting?.settings || {}), ...settings };
 

@@ -297,6 +297,8 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
       playJoinSound();
       setCallStartTime(Date.now());
       setPeerLeft(false);
+      // Clear auto-end timer if peer reconnected
+      if (autoEndTimerRef.current) { clearTimeout(autoEndTimerRef.current); autoEndTimerRef.current = null; }
     }
     if (status === "ended") {
       playCallEndSound();
@@ -416,7 +418,7 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
     connecting: "Conectando con el otro participante...",
     connected: "",
     ended: "Llamada finalizada",
-    error: "",
+    error: "No se pudo establecer la conexión",
   };
 
   const hasRemoteVideo = remoteStream && remoteStream.getVideoTracks().some((t) => t.enabled && t.readyState === "live");

@@ -59,29 +59,21 @@ export async function PATCH(
     return NextResponse.json({ error: "Mensaje vacio" }, { status: 400 });
   }
 
-  const { data: msg, error: fetchError } = await admin
-    .from("chat_messages")
-    .select("id, sender_id")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (fetchError || !msg) {
-    return NextResponse.json({ error: "Mensaje no encontrado" }, { status: 404 });
-  }
-
-  if (msg.sender_id !== user.id) {
-    return NextResponse.json({ error: "No puedes editar este mensaje" }, { status: 403 });
-  }
-
+  // Atomic: update only if sender_id matches — avoids TOCTOU race
   const { data: updated, error: updateError } = await admin
     .from("chat_messages")
     .update({ content })
     .eq("id", id)
+    .eq("sender_id", user.id)
     .select("id, sender_id, receiver_id, content, created_at, read_at")
-    .single();
+    .maybeSingle();
 
   if (updateError) {
     return NextResponse.json({ error: "No se pudo editar el mensaje" }, { status: 500 });
+  }
+
+  if (!updated) {
+    return NextResponse.json({ error: "Mensaje no encontrado o no tienes permiso" }, { status: 404 });
   }
 
   return NextResponse.json({ message: updated });
@@ -103,34 +95,35 @@ export async function DELETE(
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  // Fetch only own message atomically
   const { data: msg, error: fetchError } = await admin
     .from("chat_messages")
     .select("id, sender_id, content")
     .eq("id", id)
+    .eq("sender_id", user.id)
     .maybeSingle();
 
   if (fetchError || !msg) {
-    return NextResponse.json({ error: "Mensaje no encontrado" }, { status: 404 });
-  }
-
-  if (msg.sender_id !== user.id) {
-    return NextResponse.json({ error: "No puedes eliminar este mensaje" }, { status: 403 });
+    return NextResponse.json({ error: "Mensaje no encontrado o no tienes permiso" }, { status: 404 });
   }
 
   const filePayload = parseFilePayload(msg.content);
   const storagePath = filePayload?.storagePath || extractPathFromSignedUrl(filePayload?.url);
 
-  if (storagePath) {
-    await admin.storage.from(BUCKET).remove([storagePath]);
-  }
-
+  // Delete message first, then clean storage
   const { error: deleteError } = await admin
     .from("chat_messages")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("sender_id", user.id);
 
   if (deleteError) {
     return NextResponse.json({ error: "No se pudo eliminar el mensaje" }, { status: 500 });
+  }
+
+  // Best-effort storage cleanup  
+  if (storagePath) {
+    await admin.storage.from(BUCKET).remove([storagePath]).catch(() => {});
   }
 
   return NextResponse.json({ success: true });

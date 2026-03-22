@@ -21,6 +21,12 @@ export async function POST(request: NextRequest) {
 
   const peerId = body.peerId;
 
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (typeof peerId !== "string" || !uuidRegex.test(peerId)) {
+    return NextResponse.json({ error: "peerId inválido" }, { status: 400 });
+  }
+
   // Prevent calling yourself
   if (peerId === user.id) {
     return NextResponse.json({ error: "No puedes llamarte a ti mismo" }, { status: 400 });
@@ -76,9 +82,13 @@ export async function POST(request: NextRequest) {
     .from("profiles")
     .select("full_name")
     .eq("id", peerId)
-    .single();
+    .maybeSingle();
 
-  const peerName = profile?.full_name || "Usuario";
+  if (!profile) {
+    return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+  }
+
+  const peerName = profile.full_name || "Usuario";
 
   const { data: meeting, error } = await supabase
     .from("meetings")
@@ -96,12 +106,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message ?? "Error al crear reunión" }, { status: 500 });
   }
 
-  await supabase.from("meeting_invitations").insert({
+  const { error: invError } = await supabase.from("meeting_invitations").insert({
     meeting_id: meeting.id,
     user_id: peerId,
     invited_by: user.id,
     status: "pending",
   });
+
+  if (invError) {
+    // Cleanup orphaned meeting
+    await supabase.from("meetings").delete().eq("id", meeting.id);
+    return NextResponse.json({ error: "Error al invitar al usuario" }, { status: 500 });
+  }
 
   return NextResponse.json({ slug: meeting.slug });
 }

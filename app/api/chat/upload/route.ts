@@ -6,6 +6,27 @@ import { rateLimit, getClientIp } from "@/utils/rateLimit";
 const BUCKET = "chat-files";
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
+// Allowed MIME type prefixes and specific types
+const ALLOWED_MIME_PREFIXES = ["image/", "video/", "audio/", "text/", "application/pdf"];
+const ALLOWED_MIME_EXACT = new Set([
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/json",
+  "application/xml",
+]);
+
+function isAllowedMime(type: string): boolean {
+  const lower = type.toLowerCase();
+  if (ALLOWED_MIME_EXACT.has(lower)) return true;
+  return ALLOWED_MIME_PREFIXES.some((p) => lower.startsWith(p));
+}
+
 function sanitizeFileName(name: string) {
   return name
     .toLowerCase()
@@ -45,6 +66,11 @@ export async function POST(request: Request) {
 
   if (file.size > MAX_FILE_BYTES) {
     return NextResponse.json({ error: "El archivo excede 15MB" }, { status: 400 });
+  }
+
+  const mimeType = file.type || "application/octet-stream";
+  if (!isAllowedMime(mimeType)) {
+    return NextResponse.json({ error: "Tipo de archivo no permitido" }, { status: 400 });
   }
 
   const { error: bucketError } = await admin.storage.createBucket(BUCKET, {
