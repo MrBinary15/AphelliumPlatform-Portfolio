@@ -46,6 +46,7 @@ interface Props {
   participatingIn: { meeting_id: string; meetings: Meeting }[];
   teamMembers: TeamMember[];
   currentUserId: string;
+  userRole: string;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
@@ -79,8 +80,9 @@ function ScheduleCountdown({ date }: { date: string }) {
   return <span className="text-cyan-300 text-[10px]">En {hours}h {mins}min</span>;
 }
 
-export default function ReunionesClient({ initialMeetings, invitations, participatingIn, teamMembers, currentUserId }: Props) {
+export default function ReunionesClient({ initialMeetings, invitations, participatingIn, teamMembers, currentUserId, userRole }: Props) {
   const router = useRouter();
+  const isAdmin = userRole === "admin";
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -165,7 +167,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
 
   async function handleCleanupFinished() {
     const finishedOrCancelled = allMeetings.filter(
-      (m) => (m.status === "finished" || m.status === "cancelled") && m.host_id === currentUserId,
+      (m) => (m.status === "finished" || m.status === "cancelled") && (isAdmin || m.host_id === currentUserId),
     );
     if (finishedOrCancelled.length === 0) return;
     if (!confirm(`¿Eliminar ${finishedOrCancelled.length} reuniones finalizadas/canceladas?`)) return;
@@ -328,11 +330,14 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
           sortedMeetings.map((meeting) => {
             const isHost = meeting.host_id === currentUserId;
             const isCoHost = meeting.co_host_id === currentUserId;
-            const canManage = isHost || isCoHost;
+            const canManage = isHost || isCoHost || isAdmin;
             const status = STATUS_LABELS[meeting.status] || STATUS_LABELS.planned;
             const canJoin = meeting.status === "planned" || meeting.status === "active";
             const isActive = meeting.status === "active";
             const isExpanded = expandedId === meeting.id;
+            const hostMember = teamMembers.find((m) => m.id === meeting.host_id);
+            const hostName = isHost ? "Tú" : (hostMember?.full_name || "Usuario");
+            const shortId = meeting.slug.slice(0, 8);
 
             return (
               <div
@@ -376,7 +381,13 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       {meeting.description && (
                         <p className="text-sm text-gray-400 line-clamp-1 mt-1">{meeting.description}</p>
                       )}
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 flex-wrap">
+                        <span className="flex items-center gap-1 font-mono text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded" title={`ID: ${meeting.slug}`}>
+                          #{shortId}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users size={11} /> {hostName}
+                        </span>
                         {meeting.scheduled_at && (
                           <span className="flex items-center gap-1">
                             <Calendar size={12} />
@@ -425,8 +436,8 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                         </button>
                       )}
 
-                      {/* Quick delete for finished/cancelled */}
-                      {canManage && (meeting.status === "finished" || meeting.status === "cancelled") && (
+                      {/* Quick delete for finished/cancelled — or any status for admin */}
+                      {canManage && (isAdmin || meeting.status === "finished" || meeting.status === "cancelled") && (
                         <button
                           onClick={() => handleDelete(meeting.id)}
                           className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
@@ -476,7 +487,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                           <XCircle size={14} /> Cancelar
                         </button>
                       )}
-                      {(meeting.status === "finished" || meeting.status === "cancelled") && (
+                      {(isAdmin || meeting.status === "finished" || meeting.status === "cancelled") && (
                         <button
                           onClick={() => handleDelete(meeting.id)}
                           className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-500/10 text-xs text-red-400 hover:bg-red-500/10 transition-all"

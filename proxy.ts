@@ -71,7 +71,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/debug-all", "/api/debug-news"],
+  matcher: ["/admin/:path*", "/api/:path*"],
 };
 
 export { middleware as proxy };

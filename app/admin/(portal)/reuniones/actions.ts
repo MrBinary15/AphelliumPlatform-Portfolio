@@ -2,7 +2,16 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { normalizeRole } from "@/utils/roles";
 import { revalidatePath } from "next/cache";
+
+async function getUserWithRole() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  return { user, role: normalizeRole(profile?.role), supabase };
+}
 
 export async function createMeeting(formData: FormData) {
   const supabase = await createClient();
@@ -47,9 +56,9 @@ export async function createMeeting(formData: FormData) {
 }
 
 export async function updateMeeting(meetingId: string, formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autorizado" };
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role, supabase } = auth;
 
   const title = (formData.get("title") as string)?.trim();
   const description = (formData.get("description") as string)?.trim() || "";
@@ -58,9 +67,9 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
 
   if (!title) return { error: "El título es requerido" };
 
-  // Only host or co-host can update
+  // Host, co-host, or admin can update
   const { data: mtg } = await supabase.from("meetings").select("host_id, co_host_id").eq("id", meetingId).single();
-  if (!mtg || (mtg.host_id !== user.id && mtg.co_host_id !== user.id)) return { error: "No tienes permiso para editar esta reunión" };
+  if (!mtg || (role !== "admin" && mtg.host_id !== user.id && mtg.co_host_id !== user.id)) return { error: "No tienes permiso para editar esta reunión" };
 
   const { error } = await supabase
     .from("meetings")
@@ -79,11 +88,11 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
 }
 
 export async function endMeeting(meetingId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autorizado" };
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role, supabase } = auth;
 
-  // Verify user is host or co-host
+  // Verify user is host, co-host, or admin
   const { data: meeting } = await supabase
     .from("meetings")
     .select("host_id, co_host_id")
@@ -91,8 +100,8 @@ export async function endMeeting(meetingId: string) {
     .single();
 
   if (!meeting) return { error: "Reunión no encontrada" };
-  if (meeting.host_id !== user.id && meeting.co_host_id !== user.id) {
-    return { error: "Solo el anfitrión puede finalizar la reunión" };
+  if (role !== "admin" && meeting.host_id !== user.id && meeting.co_host_id !== user.id) {
+    return { error: "Solo el anfitrión o un admin puede finalizar la reunión" };
   }
 
   const now = new Date().toISOString();
@@ -117,13 +126,13 @@ export async function endMeeting(meetingId: string) {
 }
 
 export async function cancelMeeting(meetingId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autorizado" };
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role, supabase } = auth;
 
-  // Only host can cancel
+  // Host, co-host, or admin can cancel
   const { data: mtg } = await supabase.from("meetings").select("host_id, co_host_id").eq("id", meetingId).single();
-  if (!mtg || (mtg.host_id !== user.id && mtg.co_host_id !== user.id)) return { error: "No tienes permiso para cancelar esta reunión" };
+  if (!mtg || (role !== "admin" && mtg.host_id !== user.id && mtg.co_host_id !== user.id)) return { error: "No tienes permiso para cancelar esta reunión" };
 
   const admin = createAdminClient();
 
@@ -145,13 +154,13 @@ export async function cancelMeeting(meetingId: string) {
 }
 
 export async function deleteMeeting(meetingId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autorizado" };
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role, supabase } = auth;
 
-  // Only host can delete
+  // Host or admin can delete
   const { data: mtg } = await supabase.from("meetings").select("host_id").eq("id", meetingId).single();
-  if (!mtg || mtg.host_id !== user.id) return { error: "Solo el anfitrión puede eliminar la reunión" };
+  if (!mtg || (role !== "admin" && mtg.host_id !== user.id)) return { error: "Solo el anfitrión o un admin puede eliminar la reunión" };
 
   // Use service client to bypass RLS for cleanup + deletion
   const admin = createAdminClient();
@@ -210,54 +219,65 @@ export async function respondToInvitation(invitationId: string, accept: boolean)
 }
 
 export async function toggleMeetingLock(meetingId: string, locked: boolean) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autorizado" };
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role, supabase } = auth;
 
-  const { error } = await supabase
-    .from("meetings")
-    .update({ is_locked: locked })
-    .eq("id", meetingId)
-    .or(`host_id.eq.${user.id},co_host_id.eq.${user.id}`);
-
-  if (error) return { error: error.message };
+  if (role === "admin") {
+    const admin = createAdminClient();
+    const { error } = await admin.from("meetings").update({ is_locked: locked }).eq("id", meetingId);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase
+      .from("meetings")
+      .update({ is_locked: locked })
+      .eq("id", meetingId)
+      .or(`host_id.eq.${user.id},co_host_id.eq.${user.id}`);
+    if (error) return { error: error.message };
+  }
   return { success: true };
 }
 
 export async function toggleMeetingPublic(meetingId: string, isPublic: boolean) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autorizado" };
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role, supabase } = auth;
 
-  const { error } = await supabase
-    .from("meetings")
-    .update({ is_public: isPublic })
-    .eq("id", meetingId)
-    .or(`host_id.eq.${user.id},co_host_id.eq.${user.id}`);
-
-  if (error) return { error: error.message };
+  if (role === "admin") {
+    const admin = createAdminClient();
+    const { error } = await admin.from("meetings").update({ is_public: isPublic }).eq("id", meetingId);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase
+      .from("meetings")
+      .update({ is_public: isPublic })
+      .eq("id", meetingId)
+      .or(`host_id.eq.${user.id},co_host_id.eq.${user.id}`);
+    if (error) return { error: error.message };
+  }
 
   revalidatePath("/admin/reuniones");
   return { success: true };
 }
 
 export async function updateMeetingSettings(meetingId: string, settings: Record<string, boolean>) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autorizado" };
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role, supabase } = auth;
 
-  // Merge with existing settings — only host/co-host
+  // Merge with existing settings — host, co-host, or admin
   const { data: meeting } = await supabase
     .from("meetings")
     .select("settings, host_id, co_host_id")
     .eq("id", meetingId)
     .single();
 
-  if (!meeting || (meeting.host_id !== user.id && meeting.co_host_id !== user.id)) return { error: "No tienes permiso" };
+  if (!meeting || (role !== "admin" && meeting.host_id !== user.id && meeting.co_host_id !== user.id)) return { error: "No tienes permiso" };
 
   const merged = { ...(meeting?.settings || {}), ...settings };
 
-  const { error } = await supabase
+  const client = role === "admin" ? createAdminClient() : supabase;
+  const { error } = await client
     .from("meetings")
     .update({ settings: merged })
     .eq("id", meetingId);

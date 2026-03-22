@@ -9,11 +9,12 @@ export default async function ReunionesPage() {
 
   const supabase = await createClient();
 
-  const { data: meetings } = await supabase
-    .from("meetings")
-    .select("*")
-    .or(`host_id.eq.${auth.user.id},co_host_id.eq.${auth.user.id},is_public.eq.true`)
-    .order("created_at", { ascending: false });
+  const isAdmin = auth.role === "admin";
+
+  // Admins see all meetings; others see only their own + public + participated
+  const { data: meetings } = isAdmin
+    ? await supabase.from("meetings").select("*").order("created_at", { ascending: false })
+    : await supabase.from("meetings").select("*").or(`host_id.eq.${auth.user.id},co_host_id.eq.${auth.user.id},is_public.eq.true`).order("created_at", { ascending: false });
 
   const { data: invitations } = await supabase
     .from("meeting_invitations")
@@ -44,6 +45,7 @@ export default async function ReunionesPage() {
       participatingIn={participatingIn || []}
       teamMembers={teamMembers || []}
       currentUserId={auth.user.id}
+      userRole={auth.role}
     />
   );
 }
