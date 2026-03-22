@@ -19,26 +19,30 @@ interface UseWebRTCOptions {
   roomId: string;
   userId: string;
   isInitiator: boolean;
+  extraIceServers?: RTCIceServer[];
+}
+
+interface StartOptions {
+  withVideo?: boolean;
+  muteOnStart?: boolean;
 }
 
 /* ---------- Config ---------- */
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun3.l.google.com:19302" },
-  ],
-  iceCandidatePoolSize: 4,
-};
+const BASE_ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun2.l.google.com:19302" },
+];
 
 const QUALITY_INTERVAL = 5_000;
 const ICE_RESTART_DELAY = 3_000;
+const CONNECTION_TIMEOUT = 30_000;
+const INITIATOR_FALLBACK_DELAY = 5_000;
 
 /* ---------- Hook ---------- */
 
-export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
+export function useWebRTC({ roomId, userId, isInitiator, extraIceServers }: UseWebRTCOptions) {
   const supabase = createClient();
 
   /* --- State --- */
@@ -64,6 +68,8 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
   const channelReadyRef = useRef(false);
   const connectedOnceRef = useRef(false);
   const iceRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initiatorFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* --- Helpers: signaling --- */
 
@@ -189,7 +195,8 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
   /* ---------- START ---------- */
 
   const start = useCallback(
-    async (withVideo = true) => {
+    async (opts: StartOptions = {}) => {
+      const { withVideo = true, muteOnStart = false } = opts;
       if (startedRef.current) return;
       startedRef.current = true;
 
@@ -205,12 +212,24 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
         });
         setLocalStream(stream);
         if (!withVideo) setCamEnabled(false);
+        if (muteOnStart) {
+          stream.getAudioTracks().forEach((t) => { t.enabled = false; });
+          setMicEnabled(false);
+        }
         setStatus("connecting");
 
         // Clean up old signals for this room from this user
         await supabase.from("webrtc_signals").delete().eq("room_id", roomId).eq("sender_id", userId);
+        // Also clean up stale signals older than 2 minutes from any sender
+        const staleCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+        await supabase.from("webrtc_signals").delete().eq("room_id", roomId).lt("created_at", staleCutoff);
 
-        const conn = new RTCPeerConnection(ICE_SERVERS);
+        const iceConfig: RTCConfiguration = {
+          iceServers: [...BASE_ICE_SERVERS, ...(extraIceServers ?? [])],
+          iceCandidatePoolSize: 4,
+        };
+
+        const conn = new RTCPeerConnection(iceConfig);
         manuallyClosingRef.current = false;
         channelReadyRef.current = false;
         connectedOnceRef.current = false;
@@ -261,6 +280,14 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
             if (iceRestartTimerRef.current) {
               clearTimeout(iceRestartTimerRef.current);
               iceRestartTimerRef.current = null;
+            }
+            if (connectionTimeoutRef.current) {
+              clearTimeout(connectionTimeoutRef.current);
+              connectionTimeoutRef.current = null;
+            }
+            if (initiatorFallbackRef.current) {
+              clearTimeout(initiatorFallbackRef.current);
+              initiatorFallbackRef.current = null;
             }
           }
           if (state === "failed") {
@@ -382,6 +409,37 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
             makingOfferRef.current = false;
           }
         }
+
+        // Non-initiator fallback: if no offer received within delay, create one
+        if (!isInitiator) {
+          initiatorFallbackRef.current = setTimeout(async () => {
+            const c = pcRef.current;
+            if (!c || c.connectionState === "connected" || c.signalingState !== "stable") return;
+            console.log("[WebRTC] Fallback: non-initiator creating offer");
+            makingOfferRef.current = true;
+            try {
+              const offer = await c.createOffer();
+              if (c.signalingState === "stable") {
+                await c.setLocalDescription(offer);
+                await pushSignal("offer", offer);
+              }
+            } catch (e) {
+              console.warn("[WebRTC] Fallback offer error:", e);
+            } finally {
+              makingOfferRef.current = false;
+            }
+          }, INITIATOR_FALLBACK_DELAY);
+        }
+
+        // Connection timeout — abort if no peer connects
+        connectionTimeoutRef.current = setTimeout(() => {
+          const c = pcRef.current;
+          if (c && c.connectionState !== "connected" && !manuallyClosingRef.current) {
+            setError("No se pudo conectar. Verifica tu conexión o pide al otro participante que recargue.");
+            setStatus("error");
+            startedRef.current = false;
+          }
+        }, CONNECTION_TIMEOUT);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
@@ -460,6 +518,8 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
     manuallyClosingRef.current = true;
     if (statsTimerRef.current) { clearInterval(statsTimerRef.current); statsTimerRef.current = null; }
     if (iceRestartTimerRef.current) { clearTimeout(iceRestartTimerRef.current); iceRestartTimerRef.current = null; }
+    if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); connectionTimeoutRef.current = null; }
+    if (initiatorFallbackRef.current) { clearTimeout(initiatorFallbackRef.current); initiatorFallbackRef.current = null; }
     channelRef.current?.unsubscribe();
     channelRef.current = null;
     pcRef.current?.close();
@@ -485,16 +545,23 @@ export function useWebRTC({ roomId, userId, isInitiator }: UseWebRTCOptions) {
     return () => {
       if (statsTimerRef.current) clearInterval(statsTimerRef.current);
       if (iceRestartTimerRef.current) clearTimeout(iceRestartTimerRef.current);
+      if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+      if (initiatorFallbackRef.current) clearTimeout(initiatorFallbackRef.current);
       channelRef.current?.unsubscribe();
       pcRef.current?.close();
     };
   }, []);
 
+  const retry = useCallback(() => {
+    destroy();
+    setTimeout(() => start(), 500);
+  }, [destroy, start]);
+
   return {
     status, error, localStream, remoteStream,
     micEnabled, camEnabled,
     isScreenSharing, screenStream, connectionQuality,
-    start, toggleMic, toggleCam,
+    start, retry, toggleMic, toggleCam,
     shareScreen, stopScreenShare, destroy,
   };
 }

@@ -12,8 +12,18 @@ export async function createMeeting(formData: FormData) {
   const description = (formData.get("description") as string)?.trim() || "";
   const scheduledAt = formData.get("scheduled_at") as string;
   const coHostId = (formData.get("co_host_id") as string) || null;
+  const useMetered = formData.get("use_metered") === "1";
 
   if (!title) return { error: "El título es requerido" };
+
+  const settings = {
+    allow_chat: true,
+    allow_screen_share: true,
+    allow_hand_raise: true,
+    mute_on_join: false,
+    camera_off_on_join: false,
+    use_metered: useMetered,
+  };
 
   const { data, error } = await supabase
     .from("meetings")
@@ -23,6 +33,7 @@ export async function createMeeting(formData: FormData) {
       host_id: user.id,
       co_host_id: coHostId || null,
       scheduled_at: scheduledAt || null,
+      settings,
     })
     .select("id, slug")
     .single();
@@ -66,12 +77,18 @@ export async function endMeeting(meetingId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autorizado" };
 
-  // Clean up WebRTC signals so the next session starts fresh
-  await supabase.from("webrtc_signals").delete().eq("room_id", meetingId);
+  const now = new Date().toISOString();
+
+  // Clean up WebRTC signals, mark participants as left, dismiss pending invitations — all in parallel
+  await Promise.all([
+    supabase.from("webrtc_signals").delete().eq("room_id", meetingId),
+    supabase.from("meeting_participants").update({ left_at: now }).eq("meeting_id", meetingId).is("left_at", null),
+    supabase.from("meeting_invitations").update({ status: "declined" }).eq("meeting_id", meetingId).eq("status", "pending"),
+  ]);
 
   const { error } = await supabase
     .from("meetings")
-    .update({ status: "finished", ended_at: new Date().toISOString() })
+    .update({ status: "finished", ended_at: now })
     .eq("id", meetingId);
 
   if (error) return { error: error.message };
@@ -84,6 +101,12 @@ export async function cancelMeeting(meetingId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autorizado" };
+
+  // Clean up signals and dismiss pending invitations
+  await Promise.all([
+    supabase.from("webrtc_signals").delete().eq("room_id", meetingId),
+    supabase.from("meeting_invitations").update({ status: "declined" }).eq("meeting_id", meetingId).eq("status", "pending"),
+  ]);
 
   const { error } = await supabase
     .from("meetings")
@@ -100,6 +123,13 @@ export async function deleteMeeting(meetingId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autorizado" };
+
+  // Clean up related records before deleting the meeting
+  await Promise.all([
+    supabase.from("webrtc_signals").delete().eq("room_id", meetingId),
+    supabase.from("meeting_participants").delete().eq("meeting_id", meetingId),
+    supabase.from("meeting_invitations").delete().eq("meeting_id", meetingId),
+  ]);
 
   const { error } = await supabase
     .from("meetings")

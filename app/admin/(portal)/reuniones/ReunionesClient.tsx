@@ -6,9 +6,9 @@ import {
   Video, Plus, Calendar, Clock, Users, Copy, Check, Trash2,
   Play, XCircle, UserPlus, Search,
   Lock, Unlock, Globe, Shield, Settings2, Mic, Camera,
-  ChevronRight, Phone, MonitorUp,
+  ChevronRight, Phone, MonitorUp, StopCircle,
 } from "lucide-react";
-import { createMeeting, cancelMeeting, deleteMeeting, inviteToMeeting, respondToInvitation, toggleMeetingPublic } from "./actions";
+import { createMeeting, cancelMeeting, deleteMeeting, endMeeting, inviteToMeeting, respondToInvitation, toggleMeetingPublic } from "./actions";
 
 interface Meeting {
   id: string;
@@ -147,6 +147,22 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
     router.refresh();
   }
 
+  async function handleEnd(meetingId: string) {
+    if (!confirm("¿Finalizar esta reunión?")) return;
+    await endMeeting(meetingId);
+    router.refresh();
+  }
+
+  async function handleCleanupFinished() {
+    const finishedOrCancelled = allMeetings.filter(
+      (m) => (m.status === "finished" || m.status === "cancelled") && m.host_id === currentUserId,
+    );
+    if (finishedOrCancelled.length === 0) return;
+    if (!confirm(`¿Eliminar ${finishedOrCancelled.length} reuniones finalizadas/canceladas?`)) return;
+    await Promise.all(finishedOrCancelled.map((m) => deleteMeeting(m.id)));
+    router.refresh();
+  }
+
   async function handleInvite(meetingId: string, userId: string) {
     setInviting(true);
     await inviteToMeeting(meetingId, userId);
@@ -185,6 +201,15 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
           <p className="text-gray-400 mt-1.5 text-sm">Gestiona videollamadas, llamadas de audio y reuniones programadas</p>
         </div>
         <div className="flex gap-2">
+          {(stats.finished > 0 || allMeetings.some((m) => m.status === "cancelled")) && (
+            <button
+              onClick={handleCleanupFinished}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm"
+              title="Eliminar reuniones finalizadas y canceladas"
+            >
+              <Trash2 size={16} /> Limpiar
+            </button>
+          )}
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:brightness-110 transition-all text-sm shadow-lg shadow-cyan-500/20"
@@ -377,6 +402,28 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                         {copiedId === meeting.id ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
                       </button>
 
+                      {/* Quick end button for active meetings */}
+                      {canManage && isActive && (
+                        <button
+                          onClick={() => handleEnd(meeting.id)}
+                          className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all"
+                          title="Finalizar reunión"
+                        >
+                          <StopCircle size={16} />
+                        </button>
+                      )}
+
+                      {/* Quick delete for finished/cancelled */}
+                      {canManage && (meeting.status === "finished" || meeting.status === "cancelled") && (
+                        <button
+                          onClick={() => handleDelete(meeting.id)}
+                          className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+                          title="Eliminar reunión"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+
                       {canManage && (
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : meeting.id)}
@@ -526,6 +573,29 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                 <span className="flex items-center gap-1"><MonitorUp size={10} /> Pantalla</span>
                 <span className="flex items-center gap-1"><Users size={10} /> Chat</span>
                 <span className="text-gray-600">— incluido por defecto</span>
+              </div>
+
+              {/* Connection type */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2.5">Tipo de conexión</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.02] cursor-pointer hover:border-white/20 transition-all has-[:checked]:border-cyan-500/40 has-[:checked]:bg-cyan-500/5">
+                    <input type="radio" name="use_metered" value="" defaultChecked className="mt-1 accent-cyan-500" />
+                    <div>
+                      <p className="text-sm font-medium text-white">Normal (P2P)</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Conexión directa. Funciona bien en redes abiertas.</p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.02] cursor-pointer hover:border-blue-500/20 transition-all has-[:checked]:border-blue-500/40 has-[:checked]:bg-blue-500/5">
+                    <input type="radio" name="use_metered" value="1" className="mt-1 accent-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium text-white flex items-center gap-1.5">
+                        <Globe size={12} className="text-blue-400" /> Metered
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Usa servidor TURN. Mejor conexión en redes restrictivas.</p>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">

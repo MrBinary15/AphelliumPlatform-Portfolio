@@ -13,7 +13,7 @@ export default async function SalaPage({ params }: { params: Promise<{ slug: str
 
   const { data: meeting } = await supabase
     .from("meetings")
-    .select("id, slug, title, host_id, co_host_id, status, is_locked, settings")
+    .select("id, slug, title, host_id, co_host_id, status, is_locked, max_participants, settings")
     .eq("slug", slug)
     .single();
 
@@ -59,7 +59,7 @@ export default async function SalaPage({ params }: { params: Promise<{ slug: str
           .select("id")
           .eq("meeting_id", meeting.id)
           .eq("user_id", auth.user.id)
-          .eq("status", "accepted")
+          .in("status", ["accepted", "pending"])
           .maybeSingle();
 
         if (!invitation) {
@@ -95,6 +95,7 @@ export default async function SalaPage({ params }: { params: Promise<{ slug: str
         co_host_id: meeting.co_host_id,
         status: meeting.status,
         is_locked: meeting.is_locked ?? false,
+        max_participants: meeting.max_participants ?? null,
         settings: meeting.settings ?? {
           allow_chat: true,
           allow_screen_share: true,

@@ -6,7 +6,7 @@ import {
   Mic, MicOff, Camera, CameraOff, PhoneOff, Crown,
   MonitorUp, MonitorOff, Hand, Smile, MessageCircle,
   MoreHorizontal, Lock, Unlock, Maximize, Minimize,
-  Pencil, WifiOff, Volume2, Signal, ChevronDown, X,
+  Pencil, WifiOff, Volume2, Signal, ChevronDown, X, Globe,
 } from "lucide-react";
 import { useWebRTC, type ConnectionQuality } from "@/hooks/useWebRTC";
 import { playOutgoingRing, playJoinSound, playLeaveSound, playCallEndSound, playScreenShareSound } from "@/hooks/useMeetingSounds";
@@ -25,6 +25,7 @@ interface MeetingSettings {
   allow_annotations?: boolean;
   mute_on_join?: boolean;
   camera_off_on_join?: boolean;
+  use_metered?: boolean;
 }
 
 interface Meeting {
@@ -35,6 +36,7 @@ interface Meeting {
   co_host_id: string | null;
   status: string;
   is_locked: boolean;
+  max_participants: number | null;
   settings: MeetingSettings;
 }
 
@@ -123,15 +125,34 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
   const allowScreenShare = settings.allow_screen_share !== false;
   const allowHandRaise = settings.allow_hand_raise !== false;
   const allowAnnotations = settings.allow_annotations !== false;
+  const useMetered = settings.use_metered === true;
+
+  /* ---- Metered TURN credentials ---- */
+  const [turnServers, setTurnServers] = useState<RTCIceServer[]>([]);
+
+  useEffect(() => {
+    if (!useMetered) return;
+    fetch("/api/meetings/turn-credentials")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.iceServers) setTurnServers(data.iceServers);
+      })
+      .catch(() => { /* fallback to STUN-only */ });
+  }, [useMetered]);
 
   /* ---- WebRTC ---- */
   const {
     status, error, localStream, remoteStream,
     micEnabled, camEnabled,
     isScreenSharing, connectionQuality,
-    start, toggleMic, toggleCam,
+    start, retry, toggleMic, toggleCam,
     shareScreen, stopScreenShare, destroy,
-  } = useWebRTC({ roomId: meeting.id, userId: currentUserId, isInitiator: isHost });
+  } = useWebRTC({
+    roomId: meeting.id,
+    userId: currentUserId,
+    isInitiator: isHost,
+    extraIceServers: turnServers.length > 0 ? turnServers : undefined,
+  });
 
   /* ---- Reactions / Hand Raise ---- */
   const {
@@ -153,6 +174,8 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
   const [peerLeft, setPeerLeft] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDirectCall = meeting.is_locked && meeting.settings?.mute_on_join === undefined;
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -226,6 +249,16 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
             addToast(`${name} salió de la sesión`, "warning");
             playLeaveSound();
             setPeerLeft(true);
+
+            // For direct calls (2-person locked meetings), auto-end after 15s
+            if (meeting.is_locked && meeting.max_participants === 2 && isHost) {
+              if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
+              autoEndTimerRef.current = setTimeout(async () => {
+                destroy();
+                await endMeeting(meeting.id);
+                router.push("/admin/reuniones");
+              }, 15_000);
+            }
           }
         },
       )
@@ -238,8 +271,12 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
   /* ---- Start call ---- */
   useEffect(() => {
     const withVideo = settings.camera_off_on_join !== true;
-    start(withVideo);
-    return () => { destroy(); };
+    const muteOnJoin = settings.mute_on_join === true;
+    start({ withVideo, muteOnStart: muteOnJoin });
+    return () => {
+      if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
+      destroy();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -305,11 +342,16 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
   }, [meeting.id, currentUserId, showChat, allowChat]);
 
   /* ---- Handlers ---- */
-  const handleLeave = useCallback(() => {
+  const handleLeave = useCallback(async () => {
+    if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
     playLeaveSound();
     destroy();
+    // For direct calls, auto-end the meeting when leaving
+    if (meeting.is_locked && meeting.max_participants === 2 && isHost) {
+      await endMeeting(meeting.id);
+    }
     router.push("/admin/reuniones");
-  }, [destroy, router]);
+  }, [destroy, router, meeting.id, meeting.is_locked, meeting.max_participants, isHost]);
 
   const handleClose = useCallback(async () => {
     if (!confirm("¿Cerrar la sala para todos?")) return;
@@ -346,6 +388,26 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
     setUnreadMessages(0);
     setShowMore(false);
   }, []);
+
+  /* ---- Keyboard shortcuts ---- */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      switch (e.key.toLowerCase()) {
+        case "m": toggleMic(); break;
+        case "v": toggleCam(); break;
+        case "f": handleToggleFullscreen(); break;
+        case "escape":
+          setShowChat(false);
+          setShowMore(false);
+          setShowReactions(false);
+          setShowScreenShareMenu(false);
+          break;
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggleMic, toggleCam, handleToggleFullscreen]);
 
   /* ---- Status labels ---- */
   const statusLabel: Record<string, string> = {
@@ -389,7 +451,24 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
                 <span className="text-3xl sm:text-4xl text-gray-600">👤</span>
               </div>
               <p className="text-gray-400 text-sm">El participante salió de la sesión</p>
-              <p className="text-gray-600 text-xs mt-1">Esperando reconexión...</p>
+              {meeting.is_locked && meeting.max_participants === 2 ? (
+                <>
+                  <p className="text-gray-600 text-xs mt-1">La sala se cerrará automáticamente en unos segundos</p>
+                  <button
+                    onClick={async () => {
+                      if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
+                      destroy();
+                      if (isHost) await endMeeting(meeting.id);
+                      router.push("/admin/reuniones");
+                    }}
+                    className="mt-4 px-6 py-2.5 rounded-xl bg-red-500/20 text-red-400 text-sm font-semibold hover:bg-red-500/30 border border-red-500/30 transition-colors"
+                  >
+                    Terminar llamada ahora
+                  </button>
+                </>
+              ) : (
+                <p className="text-gray-600 text-xs mt-1">Esperando reconexión...</p>
+              )}
             </div>
           ) : null}
 
@@ -423,12 +502,22 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
                     {status === "ended" ? "Llamada terminada" : "Error de conexión"}
                   </p>
                   <p className="text-gray-300 text-sm text-center max-w-xs">{error || statusLabel[status]}</p>
-                  <button
-                    onClick={() => router.push("/admin/reuniones")}
-                    className="mt-2 px-6 py-2.5 rounded-xl bg-white/10 text-white text-sm hover:bg-white/20 transition-colors"
-                  >
-                    Volver a reuniones
-                  </button>
+                  <div className="flex gap-3 mt-4">
+                    {status === "error" && (
+                      <button
+                        onClick={retry}
+                        className="px-6 py-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 text-sm hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors"
+                      >
+                        Reintentar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => router.push("/admin/reuniones")}
+                      className="px-6 py-2.5 rounded-xl bg-white/10 text-white text-sm hover:bg-white/20 transition-colors"
+                    >
+                      Volver a reuniones
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -470,6 +559,12 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
                 <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 shrink-0">
                   <Lock size={8} />
                   <span className="hidden sm:inline">Privada</span>
+                </span>
+              )}
+              {useMetered && turnServers.length > 0 && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 shrink-0">
+                  <Globe size={8} />
+                  <span className="hidden sm:inline">Metered</span>
                 </span>
               )}
             </div>
