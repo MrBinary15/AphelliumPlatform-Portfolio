@@ -31,6 +31,8 @@ export default function InlineTextOverrides() {
 
     const applyOverrides = async () => {
       const pagePath = pathname || "/";
+      // Never override text on admin pages
+      if (pagePath.startsWith("/admin")) return;
       const elements = collectEditableElements(pagePath);
       if (!elements.length) return;
 
