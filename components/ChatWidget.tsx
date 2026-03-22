@@ -1160,7 +1160,43 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     return () => window.removeEventListener("aphellium-open-chat-room", onOpenRoom as EventListener);
   }, [isAuthenticated, rooms, openRoomConversation, supabase]);
 
-  // ── Incoming call subscription ──
+  // ── Incoming call: show overlay, play ringtone, fire browser notification ──
+  const handleIncomingInvitation = useCallback(
+    async (inv: { id: string; meeting_id: string; invited_by: string; status: string }) => {
+      if (inv.status !== "pending") return;
+
+      const [{ data: mtg }, { data: callerProfile }] = await Promise.all([
+        supabase.from("meetings").select("slug, title").eq("id", inv.meeting_id).single(),
+        supabase.from("profiles").select("full_name").eq("id", inv.invited_by).single(),
+      ]);
+
+      if (mtg?.slug) {
+        const callerDisplayName = callerProfile?.full_name || "Alguien";
+        setIncomingCall((prev) => {
+          if (prev?.invitationId === inv.id) return prev; // already showing
+          return { invitationId: inv.id, meetingSlug: mtg.slug, callerName: callerDisplayName };
+        });
+        startRing();
+        if (typeof window !== "undefined" && "Notification" in window) {
+          const showNotif = () => {
+            try {
+              new Notification(`📞 Llamada entrante de ${callerDisplayName}`, {
+                body: "Haz clic aquí para unirte a la videollamada",
+                icon: "/favicon.ico",
+                requireInteraction: true,
+                tag: "incoming-call",
+              });
+            } catch { /* notifications blocked */ }
+          };
+          if (Notification.permission === "granted") showNotif();
+          else if (Notification.permission !== "denied") Notification.requestPermission().then((p) => { if (p === "granted") showNotif(); });
+        }
+      }
+    },
+    [supabase, startRing],
+  );
+
+  // ── Realtime subscription (INSERT + UPDATE) ──
   useEffect(() => {
     if (!isAuthenticated || !userIdSafe) return;
 
@@ -1169,49 +1205,45 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "meeting_invitations", filter: `user_id=eq.${userIdSafe}` },
-        async (payload) => {
-          const inv = payload.new as { id: string; meeting_id: string; invited_by: string; status: string };
-          if (inv.status !== "pending") return;
-
-          const [{ data: mtg }, { data: callerProfile }] = await Promise.all([
-            supabase.from("meetings").select("slug, title").eq("id", inv.meeting_id).single(),
-            supabase.from("profiles").select("full_name").eq("id", inv.invited_by).single(),
-          ]);
-
-          if (mtg?.slug) {
-            const callerDisplayName = callerProfile?.full_name || "Alguien";
-            setIncomingCall({
-              invitationId: inv.id,
-              meetingSlug: mtg.slug,
-              callerName: callerDisplayName,
-            });
-            // Play ringtone
-            startRing();
-            // Browser system notification (works even if tab is in background)
-            if (typeof window !== "undefined" && "Notification" in window) {
-              const showNotif = () => {
-                try {
-                  new Notification(`📞 Llamada entrante de ${callerDisplayName}`, {
-                    body: "Haz clic aquí para unirte a la videollamada",
-                    icon: "/favicon.ico",
-                    requireInteraction: true,
-                    tag: "incoming-call",
-                  });
-                } catch { /* notifications blocked */ }
-              };
-              if (Notification.permission === "granted") {
-                showNotif();
-              } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then((p) => { if (p === "granted") showNotif(); });
-              }
-            }
-          }
-        }
+        (payload) => { handleIncomingInvitation(payload.new as { id: string; meeting_id: string; invited_by: string; status: string }); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "meeting_invitations", filter: `user_id=eq.${userIdSafe}` },
+        (payload) => { handleIncomingInvitation(payload.new as { id: string; meeting_id: string; invited_by: string; status: string }); },
       )
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
-  }, [supabase, isAuthenticated, userIdSafe]);
+  }, [supabase, isAuthenticated, userIdSafe, handleIncomingInvitation]);
+
+  // ── Polling fallback: check for pending invitations every 5 s ──
+  const lastSeenInvRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isAuthenticated || !userIdSafe) return;
+    let active = true;
+
+    const poll = async () => {
+      const { data } = await supabase
+        .from("meeting_invitations")
+        .select("id, meeting_id, invited_by, status")
+        .eq("user_id", userIdSafe)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!active) return;
+      if (data && data.id !== lastSeenInvRef.current) {
+        lastSeenInvRef.current = data.id;
+        handleIncomingInvitation(data);
+      }
+    };
+
+    poll();
+    const timer = setInterval(poll, 5000);
+    return () => { active = false; clearInterval(timer); };
+  }, [supabase, isAuthenticated, userIdSafe, handleIncomingInvitation]);
 
   useEffect(() => {
     if (isOpen && activeChatId) {
