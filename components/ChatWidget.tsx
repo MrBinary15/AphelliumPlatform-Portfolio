@@ -229,6 +229,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
   const [incomingCall, setIncomingCall] = useState<{ invitationId: string; meetingSlug: string; callerName: string } | null>(null);
+  const [callingPeer, setCallingPeer] = useState(false);
   const [panelSize, setPanelSize] = useState({ width: PANEL_W, height: PANEL_H });
   const [launcherPosition, setLauncherPosition] = useState({ x: 24, y: 24 });
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -256,20 +257,26 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const activeMember = useMemo(() => members.find((m) => m.id === activeChatId) || null, [members, activeChatId]);
 
   const handleDirectCall = useCallback(async (peerId: string) => {
+    if (callingPeer) return;
+    setCallingPeer(true);
     try {
       const res = await fetch("/api/meetings/direct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ peerId }),
       });
-      if (res.ok) {
-        const { slug } = await res.json();
-        window.location.href = `/admin/reuniones/sala/${slug}`;
+      const data = await res.json();
+      if (res.ok && data.slug) {
+        window.location.href = `/admin/reuniones/sala/${data.slug}`;
+      } else {
+        alert(data.error || "No se pudo iniciar la videollamada");
+        setCallingPeer(false);
       }
     } catch {
-      // silently fail
+      alert("Error de conexión al iniciar videollamada");
+      setCallingPeer(false);
     }
-  }, []);
+  }, [callingPeer]);
 
   const startRing = useCallback(() => {
     try {
@@ -1500,24 +1507,19 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
             <div className="flex items-center gap-1">
               {isAuthenticated && activeMember && (
-                <>
-                  <button
-                    type="button"
-                    title="Llamar"
-                    onClick={() => handleDirectCall(activeMember.id)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
-                  >
-                    <Phone size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    title="Videollamada"
-                    onClick={() => handleDirectCall(activeMember.id)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
-                  >
-                    <Video size={14} />
-                  </button>
-                </>
+                <button
+                  type="button"
+                  title="Videollamada"
+                  disabled={callingPeer}
+                  onClick={() => handleDirectCall(activeMember.id)}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    callingPeer
+                      ? "text-cyan-400 animate-pulse cursor-wait"
+                      : "text-gray-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+                  }`}
+                >
+                  <Video size={14} />
+                </button>
               )}
               <button
                 type="button"

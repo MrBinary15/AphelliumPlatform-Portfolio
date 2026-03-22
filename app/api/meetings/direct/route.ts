@@ -28,34 +28,47 @@ export async function POST(request: NextRequest) {
 
   const recentCutoff = new Date(Date.now() - 60 * 1000).toISOString();
 
-  // --- Single query: find existing direct call between these two users ---
-  // Uses meeting_invitations JOIN to avoid N+1 loops
-  const { data: existingInv } = await supabase
+  // --- Check for existing recent direct call between these two users ---
+  // Query 1: Current user is host, peer was invited
+  const { data: myHostedInv } = await supabase
     .from("meeting_invitations")
-    .select("id, status, meeting_id, user_id, meetings!inner(id, slug, host_id, status, is_locked, max_participants, created_at)")
-    .or(`and(user_id.eq.${peerId},meetings.host_id.eq.${user.id}),and(user_id.eq.${user.id},meetings.host_id.eq.${peerId})`)
+    .select("id, status, user_id, meetings!inner(id, slug, host_id, status, is_locked, max_participants, created_at)")
+    .eq("user_id", peerId)
+    .eq("meetings.host_id", user.id)
     .in("meetings.status", ["planned", "active"])
     .eq("meetings.is_locked", true)
     .eq("meetings.max_participants", 2)
     .gte("meetings.created_at", recentCutoff)
-    .order("created_at", { ascending: false, referencedTable: "meetings" })
     .limit(1)
     .maybeSingle();
 
-  if (existingInv) {
-    const inv = existingInv;
-    const meetingData = inv.meetings as unknown as { slug: string; host_id: string };
-
-    // Re-activate declined invitations
-    if (inv.status === "declined") {
-      await supabase.from("meeting_invitations").update({ status: "pending" }).eq("id", inv.id);
+  if (myHostedInv) {
+    if (myHostedInv.status === "declined") {
+      await supabase.from("meeting_invitations").update({ status: "pending" }).eq("id", myHostedInv.id);
     }
-    // Auto-accept if peer hosted and current user was invited
-    if (meetingData.host_id === peerId && inv.user_id === user.id && inv.status !== "accepted") {
-      await supabase.from("meeting_invitations").update({ status: "accepted" }).eq("id", inv.id);
-    }
+    const m = myHostedInv.meetings as unknown as { slug: string };
+    return NextResponse.json({ slug: m.slug });
+  }
 
-    return NextResponse.json({ slug: meetingData.slug });
+  // Query 2: Peer is host, current user was invited
+  const { data: peerHostedInv } = await supabase
+    .from("meeting_invitations")
+    .select("id, status, user_id, meetings!inner(id, slug, host_id, status, is_locked, max_participants, created_at)")
+    .eq("user_id", user.id)
+    .eq("meetings.host_id", peerId)
+    .in("meetings.status", ["planned", "active"])
+    .eq("meetings.is_locked", true)
+    .eq("meetings.max_participants", 2)
+    .gte("meetings.created_at", recentCutoff)
+    .limit(1)
+    .maybeSingle();
+
+  if (peerHostedInv) {
+    if (peerHostedInv.status !== "accepted") {
+      await supabase.from("meeting_invitations").update({ status: "accepted" }).eq("id", peerHostedInv.id);
+    }
+    const m = peerHostedInv.meetings as unknown as { slug: string };
+    return NextResponse.json({ slug: m.slug });
   }
 
   // --- No existing meeting — create a new one ---

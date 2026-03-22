@@ -83,6 +83,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "planned" | "active" | "finished">("all");
   const [search, setSearch] = useState("");
@@ -119,11 +120,17 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setCreating(true);
+    setCreateError(null);
     const formData = new FormData(e.currentTarget);
     const result = await createMeeting(formData);
     setCreating(false);
+    if (result.error) {
+      setCreateError(result.error);
+      return;
+    }
     if (result.success) {
       setShowCreate(false);
+      setCreateError(null);
       router.refresh();
     }
   }
@@ -137,19 +144,22 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
 
   async function handleCancel(meetingId: string) {
     if (!confirm("¿Cancelar esta reunión?")) return;
-    await cancelMeeting(meetingId);
+    const result = await cancelMeeting(meetingId);
+    if (result.error) { alert(result.error); return; }
     router.refresh();
   }
 
   async function handleDelete(meetingId: string) {
     if (!confirm("¿Eliminar esta reunión permanentemente?")) return;
-    await deleteMeeting(meetingId);
+    const result = await deleteMeeting(meetingId);
+    if (result.error) { alert(result.error); return; }
     router.refresh();
   }
 
   async function handleEnd(meetingId: string) {
     if (!confirm("¿Finalizar esta reunión?")) return;
-    await endMeeting(meetingId);
+    const result = await endMeeting(meetingId);
+    if (result.error) { alert(result.error); return; }
     router.refresh();
   }
 
@@ -159,7 +169,9 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
     );
     if (finishedOrCancelled.length === 0) return;
     if (!confirm(`¿Eliminar ${finishedOrCancelled.length} reuniones finalizadas/canceladas?`)) return;
-    await Promise.all(finishedOrCancelled.map((m) => deleteMeeting(m.id)));
+    const results = await Promise.all(finishedOrCancelled.map((m) => deleteMeeting(m.id)));
+    const failed = results.filter((r) => r.error);
+    if (failed.length > 0) alert(`${failed.length} no se pudieron eliminar`);
     router.refresh();
   }
 
@@ -597,6 +609,12 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                   </label>
                 </div>
               </div>
+
+              {createError && (
+                <div className="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                  {createError}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button
