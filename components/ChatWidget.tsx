@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { getInvitationDetails } from "@/app/admin/(portal)/reuniones/actions";
 import {
   MessageCircle,
   X,
@@ -1165,16 +1166,20 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     async (inv: { id: string; meeting_id: string; invited_by: string; status: string }) => {
       if (inv.status !== "pending") return;
 
-      const [{ data: mtg }, { data: callerProfile }] = await Promise.all([
-        supabase.from("meetings").select("slug, title").eq("id", inv.meeting_id).single(),
-        supabase.from("profiles").select("full_name").eq("id", inv.invited_by).single(),
-      ]);
+      try {
+        // Use server action (admin client) to resolve meeting slug + caller name.
+        // This bypasses RLS so it never fails silently.
+        const details = await getInvitationDetails(inv.id);
 
-      if (mtg?.slug) {
-        const callerDisplayName = callerProfile?.full_name || "Alguien";
+        if (!details?.slug) {
+          console.error("[ChatWidget] getInvitationDetails returned null for invitation", inv.id);
+          return;
+        }
+
+        const callerDisplayName = details.callerName;
         setIncomingCall((prev) => {
           if (prev?.invitationId === inv.id) return prev; // already showing
-          return { invitationId: inv.id, meetingSlug: mtg.slug, callerName: callerDisplayName };
+          return { invitationId: inv.id, meetingSlug: details.slug, callerName: callerDisplayName };
         });
         startRing();
         if (typeof window !== "undefined" && "Notification" in window) {
@@ -1191,9 +1196,11 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
           if (Notification.permission === "granted") showNotif();
           else if (Notification.permission !== "denied") Notification.requestPermission().then((p) => { if (p === "granted") showNotif(); });
         }
+      } catch (err) {
+        console.error("[ChatWidget] handleIncomingInvitation error:", err);
       }
     },
-    [supabase, startRing],
+    [startRing],
   );
 
   // ── Realtime subscription (INSERT + UPDATE) ──
@@ -1224,19 +1231,28 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     let active = true;
 
     const poll = async () => {
-      const { data } = await supabase
-        .from("meeting_invitations")
-        .select("id, meeting_id, invited_by, status")
-        .eq("user_id", userIdSafe)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from("meeting_invitations")
+          .select("id, meeting_id, invited_by, status")
+          .eq("user_id", userIdSafe)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (!active) return;
-      if (data && data.id !== lastSeenInvRef.current) {
-        lastSeenInvRef.current = data.id;
-        handleIncomingInvitation(data);
+        if (error) {
+          console.error("[ChatWidget] poll invitations error:", error.message);
+          return;
+        }
+
+        if (!active) return;
+        if (data && data.id !== lastSeenInvRef.current) {
+          lastSeenInvRef.current = data.id;
+          handleIncomingInvitation(data);
+        }
+      } catch (err) {
+        console.error("[ChatWidget] poll invitations exception:", err);
       }
     };
 

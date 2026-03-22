@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -7,6 +8,9 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
+  // Use admin client for DB operations to avoid RLS edge cases
+  const admin = createAdminClient();
 
   let body: { peerId?: string };
   try {
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   // --- Check for existing recent direct call between these two users ---
   // Query 1: Current user is host, peer was invited
-  const { data: myHostedInv } = await supabase
+  const { data: myHostedInv } = await admin
     .from("meeting_invitations")
     .select("id, status, user_id, meetings!inner(id, slug, host_id, status, is_locked, max_participants, created_at)")
     .eq("user_id", peerId)
@@ -50,14 +54,14 @@ export async function POST(request: NextRequest) {
 
   if (myHostedInv) {
     if (myHostedInv.status === "declined") {
-      await supabase.from("meeting_invitations").update({ status: "pending" }).eq("id", myHostedInv.id);
+      await admin.from("meeting_invitations").update({ status: "pending" }).eq("id", myHostedInv.id);
     }
     const m = myHostedInv.meetings as unknown as { slug: string };
     return NextResponse.json({ slug: m.slug });
   }
 
   // Query 2: Peer is host, current user was invited
-  const { data: peerHostedInv } = await supabase
+  const { data: peerHostedInv } = await admin
     .from("meeting_invitations")
     .select("id, status, user_id, meetings!inner(id, slug, host_id, status, is_locked, max_participants, created_at)")
     .eq("user_id", user.id)
@@ -71,14 +75,14 @@ export async function POST(request: NextRequest) {
 
   if (peerHostedInv) {
     if (peerHostedInv.status !== "accepted") {
-      await supabase.from("meeting_invitations").update({ status: "accepted" }).eq("id", peerHostedInv.id);
+      await admin.from("meeting_invitations").update({ status: "accepted" }).eq("id", peerHostedInv.id);
     }
     const m = peerHostedInv.meetings as unknown as { slug: string };
     return NextResponse.json({ slug: m.slug });
   }
 
   // --- No existing meeting — create a new one ---
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from("profiles")
     .select("full_name")
     .eq("id", peerId)
@@ -90,7 +94,7 @@ export async function POST(request: NextRequest) {
 
   const peerName = profile.full_name || "Usuario";
 
-  const { data: meeting, error } = await supabase
+  const { data: meeting, error } = await admin
     .from("meetings")
     .insert({
       title: `Llamada con ${peerName}`,
@@ -106,7 +110,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message ?? "Error al crear reunión" }, { status: 500 });
   }
 
-  const { error: invError } = await supabase.from("meeting_invitations").insert({
+  const { error: invError } = await admin.from("meeting_invitations").insert({
     meeting_id: meeting.id,
     user_id: peerId,
     invited_by: user.id,
@@ -115,7 +119,7 @@ export async function POST(request: NextRequest) {
 
   if (invError) {
     // Cleanup orphaned meeting
-    await supabase.from("meetings").delete().eq("id", meeting.id);
+    await admin.from("meetings").delete().eq("id", meeting.id);
     return NextResponse.json({ error: "Error al invitar al usuario" }, { status: 500 });
   }
 

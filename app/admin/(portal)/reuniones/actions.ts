@@ -305,6 +305,42 @@ export async function updateMeetingSettings(meetingId: string, settings: Record<
   return { success: true };
 }
 
+/**
+ * Server action used by ChatWidget to resolve invitation → meeting slug + caller name.
+ * Uses adminClient so it is never blocked by RLS on the meetings table.
+ */
+export async function getInvitationDetails(invitationId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRe.test(invitationId)) return null;
+
+  const admin = createAdminClient();
+
+  const { data: inv } = await admin
+    .from("meeting_invitations")
+    .select("id, meeting_id, invited_by, user_id")
+    .eq("id", invitationId)
+    .single();
+
+  if (!inv || inv.user_id !== user.id) return null; // only the target user can resolve
+
+  const [{ data: mtg }, { data: profile }] = await Promise.all([
+    admin.from("meetings").select("slug, title").eq("id", inv.meeting_id).single(),
+    admin.from("profiles").select("full_name").eq("id", inv.invited_by).single(),
+  ]);
+
+  if (!mtg?.slug) return null;
+
+  return {
+    slug: mtg.slug,
+    title: mtg.title ?? "",
+    callerName: profile?.full_name || "Alguien",
+  };
+}
+
 export async function verifyMeetingCode(meetingId: string, code: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
