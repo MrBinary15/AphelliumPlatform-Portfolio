@@ -496,11 +496,17 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
   const startSupportConversation = useCallback(async (escalatedFromAi = false) => {
     const actor = getSupportIdentity();
+    const aiTranscript = escalatedFromAi
+      ? visitorAiMessages
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .slice(-14)
+          .map((m) => ({ role: m.role, content: m.content, timestamp: m.timestamp }))
+      : [];
     try {
       const res = await fetch("/api/chat/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", visitorId: actor.id, visitorName: actor.name, escalatedFromAi }),
+        body: JSON.stringify({ action: "create", visitorId: actor.id, visitorName: actor.name, escalatedFromAi, aiTranscript }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -521,7 +527,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     } catch {
       alert("No se pudo iniciar la conversación de soporte.");
     }
-  }, [getSupportIdentity, isAuthenticated]);
+  }, [getSupportIdentity, isAuthenticated, visitorAiMessages]);
 
   const sendVisitorSupportMessage = useCallback(async (text: string) => {
     const content = text.trim();

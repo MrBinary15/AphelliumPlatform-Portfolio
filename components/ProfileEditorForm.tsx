@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Save, Upload, User, Loader2, CheckCircle2, AlertTriangle, Pencil, X, Lock } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Save, Upload, User, Loader2, CheckCircle2, AlertTriangle, Pencil, X, Lock, Move, ZoomIn, ZoomOut, Crop } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ToastProvider";
 
@@ -30,6 +30,12 @@ export default function ProfileEditorForm({
   const [saveMessage, setSaveMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorImageUrl, setEditorImageUrl] = useState<string | null>(null);
+  const [imgNatural, setImgNatural] = useState({ width: 1, height: 1 });
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
 
   const isAdmin = initialProfile.role === "admin";
 
@@ -41,6 +47,13 @@ export default function ProfileEditorForm({
   const firstRenderRef = useRef(true);
   const previewUrlRef = useRef<string | null>(null);
   const lastSuccessToastRef = useRef(0);
+  const editorDragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  const CROP_SIZE = 280;
+
+  const baseScale = useMemo(() => {
+    return Math.max(CROP_SIZE / imgNatural.width, CROP_SIZE / imgNatural.height);
+  }, [imgNatural.width, imgNatural.height]);
 
   const hasTextChanges =
     fullName !== lastSavedRef.current.full_name ||
@@ -123,7 +136,59 @@ export default function ProfileEditorForm({
 
     const previewUrl = URL.createObjectURL(file);
     previewUrlRef.current = previewUrl;
-    setAvatarPreview(previewUrl);
+    setEditorImageUrl(previewUrl);
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    setEditorOpen(true);
+  };
+
+  useEffect(() => {
+    if (!editorImageUrl) return;
+    const img = new Image();
+    img.onload = () => setImgNatural({ width: img.naturalWidth || 1, height: img.naturalHeight || 1 });
+    img.src = editorImageUrl;
+  }, [editorImageUrl]);
+
+  const applyAvatarEdit = async () => {
+    if (!editorImageUrl) return;
+
+    const img = new Image();
+    img.src = editorImageUrl;
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("No se pudo cargar la imagen"));
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const drawScale = baseScale * zoom;
+    const drawW = img.naturalWidth * drawScale;
+    const drawH = img.naturalHeight * drawScale;
+    const dx = (CROP_SIZE - drawW) / 2 + offset.x;
+    const dy = (CROP_SIZE - drawH) / 2 + offset.y;
+
+    const mult = canvas.width / CROP_SIZE;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, dx * mult, dy * mult, drawW * mult, drawH * mult);
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92));
+    if (!blob) return;
+
+    const edited = new File([blob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" });
+    setAvatarFile(edited);
+
+    if (previewUrlRef.current?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrlRef.current);
+    }
+    const newPreview = URL.createObjectURL(edited);
+    previewUrlRef.current = newPreview;
+    setAvatarPreview(newPreview);
+    setEditorOpen(false);
   };
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -134,6 +199,10 @@ export default function ProfileEditorForm({
 
     const formElement = event.currentTarget;
     const formData = new FormData(formElement);
+    if (avatarFile) {
+      formData.delete("avatar_file");
+      formData.append("avatar_file", avatarFile);
+    }
 
     try {
       const response = await fetch("/api/profile", {
@@ -294,6 +363,7 @@ export default function ProfileEditorForm({
                   setFullName(lastSavedRef.current.full_name);
                   setJobTitle(lastSavedRef.current.job_title);
                   setDescription(lastSavedRef.current.description);
+                  setAvatarFile(null);
                   setIsEditing(false);
                   setSaveState("idle");
                   setSaveMessage("");
@@ -328,6 +398,84 @@ export default function ProfileEditorForm({
           )}
         </div>
       </div>
+
+      {editorOpen && editorImageUrl && (
+        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-white/15 bg-[#071021] p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2"><Crop size={15} /> Editor de imagen</h3>
+              <button
+                type="button"
+                onClick={() => setEditorOpen(false)}
+                className="h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 text-gray-200 inline-flex items-center justify-center"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/40 p-3">
+              <div className="mx-auto w-[280px] h-[280px] rounded-xl overflow-hidden relative border border-cyan-400/25 bg-slate-900">
+                <img
+                  src={editorImageUrl}
+                  alt="Editor"
+                  className="absolute left-1/2 top-1/2 max-w-none select-none cursor-grab active:cursor-grabbing"
+                  style={{
+                    width: imgNatural.width * baseScale,
+                    height: imgNatural.height * baseScale,
+                    transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${zoom})`,
+                    transformOrigin: "center center",
+                  }}
+                  draggable={false}
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    editorDragRef.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+                  }}
+                  onPointerMove={(e) => {
+                    if (!editorDragRef.current) return;
+                    const dx = e.clientX - editorDragRef.current.x;
+                    const dy = e.clientY - editorDragRef.current.y;
+                    setOffset({ x: editorDragRef.current.ox + dx, y: editorDragRef.current.oy + dy });
+                  }}
+                  onPointerUp={() => { editorDragRef.current = null; }}
+                  onPointerCancel={() => { editorDragRef.current = null; }}
+                />
+              </div>
+
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-gray-300">
+                  <Move size={12} /> Mueve la imagen arrastrando con el mouse
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setZoom((z) => Math.max(1, Number((z - 0.1).toFixed(2))))} className="h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 inline-flex items-center justify-center text-gray-200">
+                    <ZoomOut size={14} />
+                  </button>
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.05}
+                    value={zoom}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="flex-1 accent-cyan-400"
+                  />
+                  <button type="button" onClick={() => setZoom((z) => Math.min(3, Number((z + 0.1).toFixed(2))))} className="h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 inline-flex items-center justify-center text-gray-200">
+                    <ZoomIn size={14} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-gray-400">
+                  <span>Zoom: {zoom.toFixed(2)}x</span>
+                  <button type="button" onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }} className="text-cyan-300 hover:text-cyan-200">Reiniciar encuadre</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setEditorOpen(false)} className="px-4 py-2 rounded-lg border border-white/15 text-gray-300 hover:bg-white/5 text-sm">Cancelar</button>
+              <button type="button" onClick={applyAvatarEdit} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium">Aplicar edición</button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

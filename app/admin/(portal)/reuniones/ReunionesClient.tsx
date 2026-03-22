@@ -550,8 +550,8 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
 
       {/* Modal Crear Reunión */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg max-h-[92vh] bg-[#0a0f1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-lg my-4 sm:my-6 bg-[#0a0f1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-2rem)]">
             <div className="bg-gradient-to-r from-cyan-500/10 to-blue-600/10 px-6 py-4 border-b border-white/5">
               <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
@@ -561,7 +561,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
               </h2>
               <p className="text-xs text-gray-400 mt-1">Crea una videollamada o reunión programada</p>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4 max-h-[calc(92vh-84px)] overflow-y-auto pr-2">
+            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-scroll pr-2 flex-1 min-h-0" style={{ scrollbarGutter: "stable" }}>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Título *</label>
                 <input

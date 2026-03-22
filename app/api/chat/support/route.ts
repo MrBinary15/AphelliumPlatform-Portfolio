@@ -15,7 +15,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { action?: string; visitorId?: string; visitorName?: string; conversationId?: string; content?: string; escalatedFromAi?: boolean };
+  let body: {
+    action?: string;
+    visitorId?: string;
+    visitorName?: string;
+    conversationId?: string;
+    content?: string;
+    escalatedFromAi?: boolean;
+    aiTranscript?: { role?: string; content?: string; timestamp?: string }[];
+  };
   try {
     body = await request.json();
   } catch {
@@ -65,6 +73,26 @@ export async function POST(request: NextRequest) {
         ? "El asistente de IA ha transferido esta conversación a soporte humano."
         : "Nueva conversación de soporte iniciada.",
     });
+
+    if (body.escalatedFromAi && Array.isArray(body.aiTranscript) && body.aiTranscript.length > 0) {
+      const compact = body.aiTranscript
+        .slice(-14)
+        .map((m) => {
+          const who = m.role === "assistant" ? "IA" : "Cliente";
+          const text = (m.content || "").toString().trim();
+          return text ? `${who}: ${text}` : "";
+        })
+        .filter(Boolean)
+        .join("\n");
+
+      if (compact) {
+        await supabase.from("support_messages").insert({
+          conversation_id: data.id,
+          sender_type: "system",
+          content: `Contexto previo de IA:\n${compact}`,
+        });
+      }
+    }
 
     return NextResponse.json({ conversationId: data.id });
   }
