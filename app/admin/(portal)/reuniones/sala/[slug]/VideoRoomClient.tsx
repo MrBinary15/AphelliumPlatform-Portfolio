@@ -13,7 +13,7 @@ import { playOutgoingRing, playJoinSound, playLeaveSound, playCallEndSound, play
 import { useReactions, FloatingReactions, HandRaiseBanner, ReactionPicker } from "@/components/meeting/MeetingReactions";
 import MeetingChat from "@/components/meeting/MeetingChat";
 import ScreenAnnotation from "@/components/meeting/ScreenAnnotation";
-import { endMeeting, toggleMeetingLock } from "../../actions";
+import { endMeeting, listPendingJoinApprovals, resetMeetingSignals, respondJoinApproval, toggleMeetingLock } from "../../actions";
 import { createClient } from "@/utils/supabase/client";
 
 /* ---- Types ---- */
@@ -37,6 +37,7 @@ interface Meeting {
   status: string;
   is_locked: boolean;
   max_participants: number | null;
+  access_code?: string | null;
   settings: MeetingSettings;
 }
 
@@ -51,6 +52,13 @@ interface Toast {
   id: string;
   message: string;
   type: "info" | "warning";
+}
+
+interface PendingJoinRequest {
+  id: string;
+  user_id: string;
+  created_at: string;
+  profiles?: { full_name?: string | null; avatar_url?: string | null } | null;
 }
 
 /* ---- Helpers ---- */
@@ -129,15 +137,22 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
 
   /* ---- Metered TURN credentials ---- */
   const [turnServers, setTurnServers] = useState<RTCIceServer[]>([]);
+  const [turnFetched, setTurnFetched] = useState(false);
 
   useEffect(() => {
-    if (!useMetered) return;
+    if (!useMetered) {
+      setTurnFetched(true);
+      return;
+    }
     fetch("/api/meetings/turn-credentials")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.iceServers) setTurnServers(data.iceServers);
+        setTurnFetched(true);
       })
-      .catch(() => { /* fallback to STUN-only */ });
+      .catch(() => {
+        setTurnFetched(true);
+      });
   }, [useMetered]);
 
   /* ---- WebRTC ---- */
@@ -171,6 +186,8 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
   const [callStartTime, setCallStartTime] = useState<number | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>([]);
+  const [managingRequestId, setManagingRequestId] = useState<string | null>(null);
   const [peerLeft, setPeerLeft] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -269,16 +286,55 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
   }, [meeting.id, currentUserId, addToast]);
 
   /* ---- Start call ---- */
+  const turnReady = !useMetered || turnFetched;
+
   useEffect(() => {
+    if (!turnReady) return;
     const withVideo = settings.camera_off_on_join !== true;
     const muteOnJoin = settings.mute_on_join === true;
-    start({ withVideo, muteOnStart: muteOnJoin });
+    const run = async () => {
+      if (canManage) {
+        await resetMeetingSignals(meeting.id);
+      }
+      await start({ withVideo, muteOnStart: muteOnJoin });
+    };
+    void run();
     return () => {
       if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
       destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [turnReady]);
+
+  useEffect(() => {
+    if (!canManage) return;
+    let active = true;
+
+    const loadPending = async () => {
+      const res = await listPendingJoinApprovals(meeting.id);
+      if (!active) return;
+      if (!res.error) setPendingRequests((res.requests as PendingJoinRequest[] | undefined) ?? []);
+    };
+
+    void loadPending();
+    const timer = setInterval(loadPending, 4000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [canManage, meeting.id]);
+
+  const handleRequestDecision = useCallback(async (userId: string, accept: boolean) => {
+    setManagingRequestId(userId);
+    const res = await respondJoinApproval(meeting.id, userId, accept);
+    setManagingRequestId(null);
+    if (res.error) {
+      addToast(res.error, "warning");
+      return;
+    }
+    setPendingRequests((prev) => prev.filter((r) => r.user_id !== userId));
+    addToast(accept ? "Participante aceptado" : "Solicitud rechazada", "info");
+  }, [meeting.id, addToast]);
 
   /* ---- Outbound ring ---- */
   useEffect(() => {
@@ -569,6 +625,11 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
                   <span className="hidden sm:inline">Metered</span>
                 </span>
               )}
+              {status === "connected" && meeting.access_code && (
+                <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 shrink-0">
+                  Código: {meeting.access_code}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <CallTimer startTime={callStartTime} />
@@ -581,6 +642,38 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
               )}
             </div>
           </div>
+
+          {canManage && pendingRequests.length > 0 && (
+            <div className="absolute left-3 right-3 sm:left-4 sm:right-auto sm:w-[360px] top-14 z-20 rounded-xl border border-amber-500/20 bg-[#0a0f1a]/90 backdrop-blur p-2.5">
+              <p className="text-[11px] text-amber-300 font-semibold mb-2">Solicitudes para entrar</p>
+              <div className="space-y-2 max-h-40 overflow-auto pr-1">
+                {pendingRequests.map((req) => (
+                  <div key={req.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-white truncate">{req.profiles?.full_name || "Participante"}</p>
+                      <p className="text-[10px] text-gray-500">{new Date(req.created_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleRequestDecision(req.user_id, true)}
+                        disabled={managingRequestId === req.user_id}
+                        className="px-2 py-1 rounded-md text-[10px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 hover:bg-emerald-500/25 disabled:opacity-50"
+                      >
+                        Aceptar
+                      </button>
+                      <button
+                        onClick={() => handleRequestDecision(req.user_id, false)}
+                        disabled={managingRequestId === req.user_id}
+                        className="px-2 py-1 rounded-md text-[10px] font-semibold text-red-300 bg-red-500/15 border border-red-500/25 hover:bg-red-500/25 disabled:opacity-50"
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ===== Local PiP ===== */}
           <div className={`absolute z-20 rounded-xl overflow-hidden border border-white/20 shadow-2xl bg-gray-900 transition-all duration-300 ${

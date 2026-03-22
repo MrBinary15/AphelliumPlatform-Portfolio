@@ -455,8 +455,19 @@ export function useWebRTC({ roomId, userId, isInitiator, extraIceServers }: UseW
         startedRef.current = false;
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [roomId, userId, isInitiator, handleOffer],
+    [
+      roomId,
+      userId,
+      isInitiator,
+      extraIceServers,
+      handleOffer,
+      pushSignal,
+      drainCandidates,
+      applyCandidate,
+      startQualityMonitor,
+      attemptIceRestart,
+      supabase,
+    ],
   );
 
   /* ---------- Toggles ---------- */

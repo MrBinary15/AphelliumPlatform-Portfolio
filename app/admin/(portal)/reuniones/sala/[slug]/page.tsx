@@ -4,6 +4,7 @@ import { getAuthUser } from "@/utils/auth";
 import { redirect } from "next/navigation";
 import VideoRoomClient from "@/app/admin/(portal)/reuniones/sala/[slug]/VideoRoomClient";
 import AccessCodeGate from "@/app/admin/(portal)/reuniones/sala/[slug]/AccessCodeGate";
+import JoinApprovalGate from "@/app/admin/(portal)/reuniones/sala/[slug]/JoinApprovalGate";
 import { Lock } from "lucide-react";
 
 export default async function SalaPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -42,43 +43,45 @@ export default async function SalaPage({ params }: { params: Promise<{ slug: str
   }
 
   const isHostOrCoHost = meeting.host_id === auth.user.id || meeting.co_host_id === auth.user.id;
+  const requireHostApproval = !!meeting.settings?.require_host_approval;
 
-  // Check if meeting is locked and user is not host/co-host/existing participant
-  if (meeting.is_locked && !isHostOrCoHost) {
-    const { data: participant } = await supabase
-      .from("meeting_participants")
-      .select("id")
-      .eq("meeting_id", meeting.id)
-      .eq("user_id", auth.user.id)
-      .maybeSingle();
-
-    if (!participant) {
-      const { data: invitation } = await supabase
+  let hasParticipantAccess = false;
+  if (!isHostOrCoHost) {
+    const [{ data: participant }, { data: invitation }] = await Promise.all([
+      supabase
+        .from("meeting_participants")
+        .select("id")
+        .eq("meeting_id", meeting.id)
+        .eq("user_id", auth.user.id)
+        .maybeSingle(),
+      supabase
         .from("meeting_invitations")
         .select("id")
         .eq("meeting_id", meeting.id)
         .eq("user_id", auth.user.id)
-        .in("status", ["accepted", "pending"])
-        .maybeSingle();
+        .eq("status", "accepted")
+        .maybeSingle(),
+    ]);
+    hasParticipantAccess = !!participant || !!invitation;
 
-      if (!invitation) {
-        return (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
-                <Lock className="text-red-400" size={28} />
-              </div>
-              <h2 className="text-xl font-bold text-white mb-2">Sala privada</h2>
-              <p className="text-gray-400 text-sm">Esta reunión está bloqueada y no tienes acceso.<br />Contacta al anfitrión para que te invite.</p>
+    if (meeting.is_locked && !hasParticipantAccess) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <Lock className="text-red-400" size={28} />
             </div>
+            <h2 className="text-xl font-bold text-white mb-2">Sala privada</h2>
+            <p className="text-gray-400 text-sm">Esta reunión está bloqueada y no tienes acceso.<br />Contacta al anfitrión para que te invite.</p>
           </div>
-        );
-      }
+        </div>
+      );
     }
   }
 
   // Check if access code is required (use admin client to read access_code column securely)
   let needsCode = false;
+  let meetingAccessCode: string | null = null;
   if (!isHostOrCoHost) {
     const admin = createAdminClient();
     const { data: codeRow } = await admin
@@ -86,7 +89,18 @@ export default async function SalaPage({ params }: { params: Promise<{ slug: str
       .select("access_code")
       .eq("id", meeting.id)
       .single();
-    if (codeRow?.access_code) needsCode = true;
+    if (codeRow?.access_code) {
+      needsCode = true;
+      meetingAccessCode = codeRow.access_code;
+    }
+  } else {
+    const admin = createAdminClient();
+    const { data: codeRow } = await admin
+      .from("meetings")
+      .select("access_code")
+      .eq("id", meeting.id)
+      .single();
+    meetingAccessCode = codeRow?.access_code ?? null;
   }
 
   const { data: profile } = await supabase
@@ -106,6 +120,7 @@ export default async function SalaPage({ params }: { params: Promise<{ slug: str
         status: meeting.status,
         is_locked: meeting.is_locked ?? false,
         max_participants: meeting.max_participants ?? null,
+        access_code: meetingAccessCode,
         settings: meeting.settings ?? {
           allow_chat: true,
           allow_screen_share: true,
@@ -123,8 +138,20 @@ export default async function SalaPage({ params }: { params: Promise<{ slug: str
   if (needsCode) {
     return (
       <AccessCodeGate meetingId={meeting.id} meetingTitle={meeting.title}>
-        {videoRoom}
+        {requireHostApproval && !isHostOrCoHost && !hasParticipantAccess ? (
+          <JoinApprovalGate meetingId={meeting.id} meetingTitle={meeting.title}>
+            {videoRoom}
+          </JoinApprovalGate>
+        ) : videoRoom}
       </AccessCodeGate>
+    );
+  }
+
+  if (requireHostApproval && !isHostOrCoHost && !hasParticipantAccess) {
+    return (
+      <JoinApprovalGate meetingId={meeting.id} meetingTitle={meeting.title}>
+        {videoRoom}
+      </JoinApprovalGate>
     );
   }
 

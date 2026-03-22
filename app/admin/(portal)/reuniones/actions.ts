@@ -25,6 +25,7 @@ export async function createMeeting(formData: FormData) {
   const useMetered = formData.get("use_metered") === "1";
   const isPublic = formData.get("is_public") === "1";
   const requireCode = formData.get("require_code") === "1";
+  const requireApproval = formData.get("require_approval") === "1";
   const rawCode = (formData.get("access_code") as string)?.trim() || "";
 
   if (!title) return { error: "El título es requerido" };
@@ -49,6 +50,7 @@ export async function createMeeting(formData: FormData) {
     mute_on_join: false,
     camera_off_on_join: false,
     use_metered: useMetered,
+    require_host_approval: requireApproval,
   };
 
   const { data, error } = await supabase
@@ -358,4 +360,171 @@ export async function verifyMeetingCode(meetingId: string, code: string) {
   if (meeting.host_id === user.id || meeting.co_host_id === user.id) return { granted: true };
   if (code.toUpperCase() === meeting.access_code.toUpperCase()) return { granted: true };
   return { error: "Código incorrecto" };
+}
+
+export async function requestJoinApproval(meetingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autorizado" };
+
+  const admin = createAdminClient();
+  const { data: meeting } = await admin
+    .from("meetings")
+    .select("id, host_id, co_host_id")
+    .eq("id", meetingId)
+    .single();
+
+  if (!meeting) return { error: "Reunión no encontrada" };
+  if (meeting.host_id === user.id || meeting.co_host_id === user.id) return { status: "accepted" as const };
+
+  const { error } = await admin
+    .from("meeting_invitations")
+    .upsert(
+      {
+        meeting_id: meetingId,
+        user_id: user.id,
+        invited_by: user.id,
+        status: "pending",
+      },
+      { onConflict: "meeting_id,user_id" },
+    );
+
+  if (error) return { error: error.message };
+  return { status: "pending" as const };
+}
+
+export async function getMyJoinApprovalStatus(meetingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autorizado" };
+
+  const admin = createAdminClient();
+  const { data: meeting } = await admin
+    .from("meetings")
+    .select("host_id, co_host_id")
+    .eq("id", meetingId)
+    .single();
+
+  if (!meeting) return { error: "Reunión no encontrada" };
+  if (meeting.host_id === user.id || meeting.co_host_id === user.id) return { status: "accepted" as const };
+
+  const { data: participant } = await admin
+    .from("meeting_participants")
+    .select("id")
+    .eq("meeting_id", meetingId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (participant) return { status: "accepted" as const };
+
+  const { data: inv } = await admin
+    .from("meeting_invitations")
+    .select("status")
+    .eq("meeting_id", meetingId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return { status: (inv?.status ?? "none") as "none" | "pending" | "accepted" | "declined" };
+}
+
+export async function listPendingJoinApprovals(meetingId: string) {
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role } = auth;
+
+  const admin = createAdminClient();
+  const { data: meeting } = await admin
+    .from("meetings")
+    .select("host_id, co_host_id")
+    .eq("id", meetingId)
+    .single();
+
+  if (!meeting) return { error: "Reunión no encontrada" };
+  if (role !== "admin" && meeting.host_id !== user.id && meeting.co_host_id !== user.id) {
+    return { error: "No tienes permiso" };
+  }
+
+  const { data, error } = await admin
+    .from("meeting_invitations")
+    .select("id, user_id, created_at, profiles:user_id(full_name, avatar_url)")
+    .eq("meeting_id", meetingId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+
+  if (error) return { error: error.message };
+  return { requests: data ?? [] };
+}
+
+export async function respondJoinApproval(meetingId: string, participantUserId: string, accept: boolean) {
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role } = auth;
+
+  const admin = createAdminClient();
+  const { data: meeting } = await admin
+    .from("meetings")
+    .select("host_id, co_host_id")
+    .eq("id", meetingId)
+    .single();
+
+  if (!meeting) return { error: "Reunión no encontrada" };
+  if (role !== "admin" && meeting.host_id !== user.id && meeting.co_host_id !== user.id) {
+    return { error: "No tienes permiso" };
+  }
+
+  const { error } = await admin
+    .from("meeting_invitations")
+    .upsert(
+      {
+        meeting_id: meetingId,
+        user_id: participantUserId,
+        invited_by: user.id,
+        status: accept ? "accepted" : "declined",
+      },
+      { onConflict: "meeting_id,user_id" },
+    );
+
+  if (error) return { error: error.message };
+
+  if (accept) {
+    await admin
+      .from("meeting_participants")
+      .upsert(
+        {
+          meeting_id: meetingId,
+          user_id: participantUserId,
+          role: "participant",
+          left_at: null,
+        },
+        { onConflict: "meeting_id,user_id" },
+      );
+  }
+
+  return { success: true };
+}
+
+export async function resetMeetingSignals(meetingId: string) {
+  const auth = await getUserWithRole();
+  if (!auth) return { error: "No autorizado" };
+  const { user, role } = auth;
+
+  const admin = createAdminClient();
+  const { data: meeting } = await admin
+    .from("meetings")
+    .select("host_id, co_host_id")
+    .eq("id", meetingId)
+    .single();
+
+  if (!meeting) return { error: "Reunión no encontrada" };
+  if (role !== "admin" && meeting.host_id !== user.id && meeting.co_host_id !== user.id) {
+    return { error: "No tienes permiso" };
+  }
+
+  const { error } = await admin
+    .from("webrtc_signals")
+    .delete()
+    .eq("room_id", meetingId);
+
+  if (error) return { error: error.message };
+  return { success: true };
 }

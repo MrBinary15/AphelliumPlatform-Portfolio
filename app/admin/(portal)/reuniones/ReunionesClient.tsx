@@ -94,9 +94,16 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
   const [requireCode, setRequireCode] = useState(false);
   const [customCode, setCustomCode] = useState("");
   const [codeMode, setCodeMode] = useState<"random" | "custom">("random");
+  const [generatedCodePreview, setGeneratedCodePreview] = useState("");
+  const [requireApproval, setRequireApproval] = useState(false);
   const [showInviteFor, setShowInviteFor] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  function generateAccessCode() {
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  }
 
   const allMeetings = useMemo(() => {
     const participatingMeetings = participatingIn
@@ -142,6 +149,8 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
       setRequireCode(false);
       setCustomCode("");
       setCodeMode("random");
+      setGeneratedCodePreview("");
+      setRequireApproval(false);
       router.refresh();
     }
   }
@@ -394,11 +403,6 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                         <span className="flex items-center gap-1 font-mono text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded" title={`ID: ${meeting.slug}`}>
                           #{shortId}
                         </span>
-                        {canManage && meeting.access_code && (
-                          <span className="flex items-center gap-1 font-mono text-[10px] text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20" title="Código de acceso">
-                            <KeyRound size={9} /> {meeting.access_code}
-                          </span>
-                        )}
                         <span className="flex items-center gap-1">
                           <Users size={11} /> {hostName}
                         </span>
@@ -547,7 +551,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
       {/* Modal Crear Reunión */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-[#0a0f1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="w-full max-w-lg max-h-[92vh] bg-[#0a0f1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
             <div className="bg-gradient-to-r from-cyan-500/10 to-blue-600/10 px-6 py-4 border-b border-white/5">
               <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
@@ -557,7 +561,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
               </h2>
               <p className="text-xs text-gray-400 mt-1">Crea una videollamada o reunión programada</p>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+            <form onSubmit={handleCreate} className="p-6 space-y-4 max-h-[calc(92vh-84px)] overflow-y-auto pr-2">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Título *</label>
                 <input
@@ -649,19 +653,32 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                   </label>
                   <button
                     type="button"
-                    onClick={() => setRequireCode(!requireCode)}
+                    onClick={() => {
+                      const next = !requireCode;
+                      setRequireCode(next);
+                      if (next && codeMode === "random") {
+                        setGeneratedCodePreview((prev) => prev || generateAccessCode());
+                      }
+                    }}
                     className={`relative w-10 h-5 rounded-full transition-colors ${requireCode ? "bg-cyan-500" : "bg-white/10"}`}
                   >
                     <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${requireCode ? "translate-x-5" : ""}`} />
                   </button>
                 </div>
                 <input type="hidden" name="require_code" value={requireCode ? "1" : ""} />
+                {requireCode && codeMode === "random" && (
+                  <input type="hidden" name="access_code" value={generatedCodePreview} />
+                )}
                 {requireCode && (
                   <div className="space-y-3 mt-3 pt-3 border-t border-white/5">
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => { setCodeMode("random"); setCustomCode(""); }}
+                        onClick={() => {
+                          setCodeMode("random");
+                          setCustomCode("");
+                          setGeneratedCodePreview((prev) => prev || generateAccessCode());
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
                           codeMode === "random"
                             ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-400"
@@ -683,7 +700,19 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       </button>
                     </div>
                     {codeMode === "random" ? (
-                      <p className="text-[11px] text-gray-500">Se generará un código alfanumérico de 6 caracteres automáticamente.</p>
+                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                        <p className="text-[11px] text-gray-400 mb-1">Código que se usará al crear:</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-mono tracking-widest text-amber-300 text-sm">{generatedCodePreview || "------"}</p>
+                          <button
+                            type="button"
+                            onClick={() => setGeneratedCodePreview(generateAccessCode())}
+                            className="text-[10px] text-amber-300/90 hover:text-amber-200"
+                          >
+                            Regenerar
+                          </button>
+                        </div>
+                      </div>
                     ) : (
                       <input
                         name="access_code"
@@ -700,6 +729,27 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                 {!requireCode && (
                   <p className="text-[11px] text-gray-500">Actívalo para exigir un código antes de unirse a la reunión.</p>
                 )}
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="flex items-center justify-between mb-2.5">
+                  <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                    <Shield size={14} className="text-gray-400" /> Aprobación de ingreso
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setRequireApproval(!requireApproval)}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${requireApproval ? "bg-cyan-500" : "bg-white/10"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${requireApproval ? "translate-x-5" : ""}`} />
+                  </button>
+                </div>
+                <input type="hidden" name="require_approval" value={requireApproval ? "1" : ""} />
+                <p className="text-[11px] text-gray-500">
+                  {requireApproval
+                    ? "Los participantes deberán solicitar acceso y el anfitrión/co-anfitrión deberá aprobar su ingreso."
+                    : "Si está desactivado, cualquiera con acceso permitido entra directamente."}
+                </p>
               </div>
 
               {/* Quick feature indicators */}
@@ -750,7 +800,15 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowCreate(false); setCreatePublic(false); setRequireCode(false); setCustomCode(""); setCodeMode("random"); }}
+                  onClick={() => {
+                    setShowCreate(false);
+                    setCreatePublic(false);
+                    setRequireCode(false);
+                    setCustomCode("");
+                    setCodeMode("random");
+                    setGeneratedCodePreview("");
+                    setRequireApproval(false);
+                  }}
                   className="px-6 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 transition-colors text-sm"
                 >
                   Cancelar
