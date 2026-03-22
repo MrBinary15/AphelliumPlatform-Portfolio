@@ -24,6 +24,10 @@
     --text-secondary: #94a3b8;
   }
 
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     background-color: var(--bg-dark);
     color: var(--text-primary);
@@ -47,6 +51,7 @@
     opacity: 0.03;
     z-index: -2;
     pointer-events: none;
+    animation: fadeInWatermark 0.4s ease-out;
   }
 
   @media (max-width: 768px) {
@@ -198,6 +203,11 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+@keyframes fadeInWatermark {
+  from { opacity: 0; }
+  to { opacity: 0.03; }
 }
 
 /* Keep native select dropdown options readable on all OS/browser themes */

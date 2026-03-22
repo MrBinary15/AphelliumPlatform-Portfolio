@@ -39,7 +39,7 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen md:h-screen bg-[var(--bg-darker)] overflow-hidden md:overflow-hidden">
       {/* ─── Sidebar ─── */}
-      <aside className="hidden md:flex w-[260px] border-r border-white/[0.06] flex-col bg-[#060a14]">
+      <aside className="hidden md:flex w-[260px] shrink-0 border-r border-white/[0.06] flex-col bg-[#060a14]">
         {/* Brand */}
         <div className="px-5 pt-6 pb-4">
           <div className="flex items-center gap-2.5">
@@ -161,7 +161,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* ─── Main Content ─── */}
-      <main className="flex-1 w-full overflow-y-auto relative">
+      <main className="flex-1 min-w-0 w-full overflow-y-auto relative" style={{ scrollbarGutter: "stable" }}>
         {/* Mobile Header */}
         <div className="md:hidden sticky top-0 z-20 bg-[#060a14]/95 backdrop-blur-xl border-b border-white/[0.06]">
           <div className="flex items-center justify-between px-4 py-3">

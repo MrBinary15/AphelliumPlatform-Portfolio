@@ -42,7 +42,7 @@ export default async function MainLayout({
       <div className="fixed top-16 md:top-24 right-3 sm:right-4 z-[52] md:z-[60]">
         <LanguageSwitcher />
       </div>
-      <main id="main-content" className="min-h-screen relative z-[1] pb-20 md:pb-0" role="main">
+      <main id="main-content" className="min-h-screen relative z-[1] pb-20 md:pb-0" role="main" style={{ scrollbarGutter: "stable" }}>
         {children}
       </main>
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[58] border-t border-white/10 bg-[rgba(2,6,14,0.96)] backdrop-blur-xl supports-[padding:max(0px)]:pb-[max(env(safe-area-inset-bottom),0.4rem)]">

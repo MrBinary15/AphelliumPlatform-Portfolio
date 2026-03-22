@@ -41,6 +41,10 @@ export default function InlineTextOverrides() {
         const overrides = payload.overrides || {};
         if (!active) return;
 
+        // Check if there are any actual overrides before touching the DOM
+        const keys = Object.keys(overrides);
+        if (!keys.length) return;
+
         elements.forEach((el) => {
           const key = el.dataset.inlineEditKey || "";
           if (key && overrides[key] !== undefined) {
@@ -52,14 +56,19 @@ export default function InlineTextOverrides() {
       }
     };
 
-    // Delay until hydration/layout settles so node order is stable.
-    const timer = window.setTimeout(() => {
-      void applyOverrides();
-    }, 120);
+    // Use requestIdleCallback so overrides apply only when the browser is idle,
+    // avoiding visible layout shift during initial render.
+    const scheduleId = typeof requestIdleCallback !== "undefined"
+      ? requestIdleCallback(() => { void applyOverrides(); }, { timeout: 2000 })
+      : window.setTimeout(() => { void applyOverrides(); }, 500);
 
     return () => {
       active = false;
-      window.clearTimeout(timer);
+      if (typeof cancelIdleCallback !== "undefined" && typeof requestIdleCallback !== "undefined") {
+        cancelIdleCallback(scheduleId);
+      } else {
+        window.clearTimeout(scheduleId);
+      }
     };
   }, [pathname]);
 

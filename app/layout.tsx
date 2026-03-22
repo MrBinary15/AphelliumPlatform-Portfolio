@@ -13,11 +13,13 @@ import { isAdmin as checkIsAdmin } from "@/utils/roles";
 const outfit = Outfit({ 
   variable: "--font-heading",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const inter = Inter({ 
   variable: "--font-body",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
