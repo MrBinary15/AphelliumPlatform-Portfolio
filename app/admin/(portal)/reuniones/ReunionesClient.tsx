@@ -6,7 +6,7 @@ import {
   Video, Plus, Calendar, Clock, Users, Copy, Check, Trash2,
   Play, XCircle, UserPlus, Search,
   Lock, Unlock, Globe, Shield, Settings2, Mic, Camera,
-  ChevronRight, Phone, MonitorUp, StopCircle,
+  ChevronRight, Phone, MonitorUp, StopCircle, Shuffle, KeyRound, Eye, EyeOff,
 } from "lucide-react";
 import { createMeeting, cancelMeeting, deleteMeeting, endMeeting, inviteToMeeting, respondToInvitation, toggleMeetingPublic } from "./actions";
 
@@ -23,6 +23,7 @@ interface Meeting {
   ended_at: string | null;
   is_public: boolean;
   is_locked: boolean;
+  access_code: string | null;
   created_at: string;
 }
 
@@ -89,6 +90,10 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "planned" | "active" | "finished">("all");
   const [search, setSearch] = useState("");
+  const [createPublic, setCreatePublic] = useState(false);
+  const [requireCode, setRequireCode] = useState(false);
+  const [customCode, setCustomCode] = useState("");
+  const [codeMode, setCodeMode] = useState<"random" | "custom">("random");
   const [showInviteFor, setShowInviteFor] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -133,6 +138,10 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
     if (result.success) {
       setShowCreate(false);
       setCreateError(null);
+      setCreatePublic(false);
+      setRequireCode(false);
+      setCustomCode("");
+      setCodeMode("random");
       router.refresh();
     }
   }
@@ -385,6 +394,11 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                         <span className="flex items-center gap-1 font-mono text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded" title={`ID: ${meeting.slug}`}>
                           #{shortId}
                         </span>
+                        {canManage && meeting.access_code && (
+                          <span className="flex items-center gap-1 font-mono text-[10px] text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20" title="Código de acceso">
+                            <KeyRound size={9} /> {meeting.access_code}
+                          </span>
+                        )}
                         <span className="flex items-center gap-1">
                           <Users size={11} /> {hostName}
                         </span>
@@ -589,6 +603,105 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                 </div>
               </div>
 
+              {/* Visibility: Public / Private */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2.5">Visibilidad</label>
+                <input type="hidden" name="is_public" value={createPublic ? "1" : ""} />
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreatePublic(true)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all text-left ${
+                      createPublic
+                        ? "border-emerald-500/40 bg-emerald-500/5"
+                        : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                    }`}
+                  >
+                    <Eye size={16} className={createPublic ? "text-emerald-400 mt-0.5" : "text-gray-500 mt-0.5"} />
+                    <div>
+                      <p className="text-sm font-medium text-white">Pública</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Cualquier miembro del equipo puede ver y unirse.</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreatePublic(false)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all text-left ${
+                      !createPublic
+                        ? "border-amber-500/40 bg-amber-500/5"
+                        : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                    }`}
+                  >
+                    <EyeOff size={16} className={!createPublic ? "text-amber-400 mt-0.5" : "text-gray-500 mt-0.5"} />
+                    <div>
+                      <p className="text-sm font-medium text-white">Privada</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Solo invitados y el anfitrión pueden acceder.</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Access code */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="flex items-center justify-between mb-2.5">
+                  <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                    <KeyRound size={14} className="text-gray-400" /> Código de acceso
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setRequireCode(!requireCode)}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${requireCode ? "bg-cyan-500" : "bg-white/10"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${requireCode ? "translate-x-5" : ""}`} />
+                  </button>
+                </div>
+                <input type="hidden" name="require_code" value={requireCode ? "1" : ""} />
+                {requireCode && (
+                  <div className="space-y-3 mt-3 pt-3 border-t border-white/5">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setCodeMode("random"); setCustomCode(""); }}
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                          codeMode === "random"
+                            ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-400"
+                            : "border-white/10 bg-white/[0.02] text-gray-400 hover:border-white/20"
+                        }`}
+                      >
+                        <Shuffle size={12} /> Aleatorio
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCodeMode("custom")}
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                          codeMode === "custom"
+                            ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-400"
+                            : "border-white/10 bg-white/[0.02] text-gray-400 hover:border-white/20"
+                        }`}
+                      >
+                        <KeyRound size={12} /> Personalizado
+                      </button>
+                    </div>
+                    {codeMode === "random" ? (
+                      <p className="text-[11px] text-gray-500">Se generará un código alfanumérico de 6 caracteres automáticamente.</p>
+                    ) : (
+                      <input
+                        name="access_code"
+                        value={customCode}
+                        onChange={(e) => setCustomCode(e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase())}
+                        maxLength={20}
+                        minLength={4}
+                        placeholder="Escribe el código (4-20 caracteres)"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-mono tracking-widest placeholder:text-gray-500 placeholder:tracking-normal placeholder:font-sans focus:outline-none focus:border-cyan-500/50 transition-colors"
+                      />
+                    )}
+                  </div>
+                )}
+                {!requireCode && (
+                  <p className="text-[11px] text-gray-500">Actívalo para exigir un código antes de unirse a la reunión.</p>
+                )}
+              </div>
+
               {/* Quick feature indicators */}
               <div className="flex items-center gap-3 py-2 text-[10px] text-gray-500">
                 <span className="flex items-center gap-1"><Mic size={10} /> Audio</span>
@@ -637,7 +750,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowCreate(false)}
+                  onClick={() => { setShowCreate(false); setCreatePublic(false); setRequireCode(false); setCustomCode(""); setCodeMode("random"); }}
                   className="px-6 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 transition-colors text-sm"
                 >
                   Cancelar

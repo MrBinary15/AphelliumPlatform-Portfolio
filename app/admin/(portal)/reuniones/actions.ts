@@ -23,8 +23,24 @@ export async function createMeeting(formData: FormData) {
   const scheduledAt = formData.get("scheduled_at") as string;
   const coHostId = (formData.get("co_host_id") as string) || null;
   const useMetered = formData.get("use_metered") === "1";
+  const isPublic = formData.get("is_public") === "1";
+  const requireCode = formData.get("require_code") === "1";
+  const rawCode = (formData.get("access_code") as string)?.trim() || "";
 
   if (!title) return { error: "El título es requerido" };
+
+  // Validate access code if required
+  let accessCode: string | null = null;
+  if (requireCode) {
+    if (rawCode) {
+      if (!/^[a-zA-Z0-9]{4,20}$/.test(rawCode)) return { error: "El código debe ser alfanumérico (4-20 caracteres)" };
+      accessCode = rawCode.toUpperCase();
+    } else {
+      // Generate random 6-char alphanumeric code
+      const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+      accessCode = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    }
+  }
 
   const settings = {
     allow_chat: true,
@@ -43,6 +59,9 @@ export async function createMeeting(formData: FormData) {
       host_id: user.id,
       co_host_id: coHostId || null,
       scheduled_at: scheduledAt || null,
+      is_public: isPublic,
+      is_locked: !isPublic,
+      access_code: accessCode,
       settings,
     })
     .select("id, slug")
@@ -284,4 +303,23 @@ export async function updateMeetingSettings(meetingId: string, settings: Record<
 
   if (error) return { error: error.message };
   return { success: true };
+}
+
+export async function verifyMeetingCode(meetingId: string, code: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autorizado" };
+
+  const admin = createAdminClient();
+  const { data: meeting } = await admin
+    .from("meetings")
+    .select("access_code, host_id, co_host_id")
+    .eq("id", meetingId)
+    .single();
+
+  if (!meeting) return { error: "Reunión no encontrada" };
+  if (!meeting.access_code) return { granted: true };
+  if (meeting.host_id === user.id || meeting.co_host_id === user.id) return { granted: true };
+  if (code.toUpperCase() === meeting.access_code.toUpperCase()) return { granted: true };
+  return { error: "Código incorrecto" };
 }
