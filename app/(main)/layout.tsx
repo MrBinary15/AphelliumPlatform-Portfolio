@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { House, Users, Briefcase, Newspaper, MessageCircle, LogIn, LayoutDashboard } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -34,7 +35,9 @@ export default async function MainLayout({
 
   return (
     <>
-      <LazyFrostParticles />
+      <Suspense fallback={null}>
+        <LazyFrostParticles />
+      </Suspense>
       <a href="#main-content" className="sr-only focus:not-sr-only">
         {lang === "en" ? "Skip to content" : "Saltar al contenido"}
       </a>

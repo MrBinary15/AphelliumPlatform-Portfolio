@@ -1,12 +1,16 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const AdminFloatingPanel = dynamic(
-  () => import("@/components/AdminFloatingPanel"),
-  { ssr: false }
-);
+import { useEffect, useState } from "react";
 
 export default function LazyAdminPanel() {
-  return <AdminFloatingPanel />;
+  const [Panel, setPanel] = useState<React.ComponentType | null>(null);
+
+  useEffect(() => {
+    import("@/components/AdminFloatingPanel").then((mod) => {
+      setPanel(() => mod.default);
+    });
+  }, []);
+
+  if (!Panel) return null;
+  return <Panel />;
 }
