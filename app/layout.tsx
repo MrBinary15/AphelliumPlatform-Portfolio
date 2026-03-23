@@ -1,10 +1,11 @@
 import { Suspense } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, Inter } from "next/font/google";
 import "./globals.css";
 import LazyAdminPanel from "@/components/LazyAdminPanel";
 import InlineTextOverrides from "@/components/InlineTextOverrides";
 import ChatWidget from "@/components/ChatWidget";
+import PWAManager from "@/components/PWAManager";
 import { LanguageProvider } from "@/components/LanguageContext";
 import { ToastProvider } from "@/components/ToastProvider";
 import { getServerLanguage } from "@/utils/i18n";
@@ -30,12 +31,29 @@ export const metadata: Metadata = {
   },
   description: "Advanced passive hybrid eco-cooler integrating nanotechnology, AI, and blockchain for sustainable floriculture logistics.",
   metadataBase: new URL("https://aphellium.com"),
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Aphellium",
+  },
+  icons: {
+    apple: "/assets/icons/apple-touch-icon.png",
+  },
   openGraph: {
     type: "website",
     locale: "es_EC",
     siteName: "Aphellium",
   },
   robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#06b6d4",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default async function RootLayout({
@@ -64,6 +82,9 @@ export default async function RootLayout({
             ) : null}
             <Suspense fallback={null}>
               <ChatWidget userId={auth?.user.id || null} userName={chatUserName} userRole={auth?.role || null} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <PWAManager userId={auth?.user.id || null} />
             </Suspense>
           </ToastProvider>
         </LanguageProvider>

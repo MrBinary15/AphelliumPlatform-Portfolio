@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { normalizeRole } from "@/utils/roles";
 import { revalidatePath } from "next/cache";
+import { sendPushToUser } from "@/utils/pushNotifications";
 
 async function getUserWithRole() {
   const supabase = await createClient();
@@ -219,6 +220,31 @@ export async function inviteToMeeting(meetingId: string, userId: string) {
     });
 
   if (error) return { error: error.message };
+
+  // Send push notification for the call/meeting invitation
+  const admin = createAdminClient();
+  const { data: meeting } = await admin
+    .from("meetings")
+    .select("title, slug")
+    .eq("id", meetingId)
+    .single();
+  const { data: inviter } = await admin
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .single();
+
+  const inviterName = inviter?.full_name || "Un miembro del equipo";
+  const meetingTitle = meeting?.title || "Reunión";
+
+  sendPushToUser(userId, {
+    title: `📞 ${inviterName} te invita`,
+    body: `Te están llamando a: ${meetingTitle}`,
+    type: "call",
+    url: `/admin/reuniones/sala/${meeting?.slug || meetingId}`,
+    meetingSlug: meeting?.slug || meetingId,
+  }).catch(() => {});
+
   return { success: true };
 }
 

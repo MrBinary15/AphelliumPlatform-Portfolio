@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { rateLimit, getClientIp } from "@/utils/rateLimit";
+import { sendPushToUsers } from "@/utils/pushNotifications";
 
 // POST: Create a new support conversation (visitor) or send a message
 // GET: Get messages for a conversation (visitor polling)
@@ -94,6 +95,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Notify admin/coordinator users about new support conversation
+    const { data: admins } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("role", ["admin", "coordinador"]);
+    if (admins && admins.length > 0) {
+      sendPushToUsers(
+        admins.map((a) => a.id),
+        {
+          title: "Nueva conversación de soporte",
+          body: `${(body.visitorName || "Visitante").slice(0, 50)} necesita ayuda`,
+          type: "support",
+          url: "/admin/soporte",
+        }
+      ).catch(() => {});
+    }
+
     return NextResponse.json({ conversationId: data.id });
   }
 
@@ -140,6 +158,24 @@ export async function POST(request: NextRequest) {
 
     // Update conversation timestamp
     await supabase.from("support_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+
+    // Notify admin/coordinator users about new visitor message
+    const { data: admins } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("role", ["admin", "coordinador"]);
+    if (admins && admins.length > 0) {
+      sendPushToUsers(
+        admins.map((a) => a.id),
+        {
+          title: "Mensaje de soporte",
+          body: content.slice(0, 100),
+          type: "support",
+          url: "/admin/soporte",
+          tag: `support-${conversationId}`,
+        }
+      ).catch(() => {});
+    }
 
     return NextResponse.json({ ok: true });
   }
