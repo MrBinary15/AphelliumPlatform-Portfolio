@@ -1730,9 +1730,9 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                   <button
                     type="button"
                     onClick={() => startSupportConversation(false)}
-                    className="mt-2 w-full text-center text-[10px] text-gray-500 hover:text-emerald-300 transition-colors flex items-center justify-center gap-1"
+                    className="mt-2 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-medium hover:bg-emerald-500/20 hover:border-emerald-500/30 transition-all"
                   >
-                    <ArrowRightCircle size={10} /> ¿Prefieres hablar con una persona?
+                    <Headset size={12} /> Hablar con una persona
                   </button>
                 </div>
               </>
@@ -1748,12 +1748,41 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                       </div>
                     </div>
                   ) : (
-                    visitorSupportMessages.map((msg) => (
+                    visitorSupportMessages.map((msg) => {
+                      const isTranscript = msg.role === "system" && msg.content.startsWith("Contexto previo de IA");
+                      const isSystemNote = msg.role === "system" && !isTranscript;
+                      return (
                       <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
-                        {msg.role === "system" ? (
-                          <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                            <p className="text-[10px] text-gray-400">{msg.content}</p>
+                        {isSystemNote ? (
+                          <div className="max-w-[90%] px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-center">
+                            <p className="text-[11px] text-gray-300">{msg.content}</p>
                           </div>
+                        ) : isTranscript ? (
+                          <details className="max-w-[95%] w-full rounded-xl bg-cyan-500/5 border border-cyan-500/15 overflow-hidden">
+                            <summary className="px-3 py-2 cursor-pointer text-[11px] text-cyan-300 font-medium flex items-center gap-1.5 hover:bg-cyan-500/10 transition-colors">
+                              <Bot size={12} /> Resumen de conversación con IA
+                            </summary>
+                            <div className="px-3 pb-2.5 pt-0.5 space-y-1.5 border-t border-cyan-500/10">
+                              {msg.content.replace(/^Contexto previo de IA:\n?/, "").split("\n").filter(Boolean).map((line, i) => {
+                                const isClient = line.startsWith("Cliente:");
+                                const isAI = line.startsWith("IA:");
+                                const label = isClient ? "Cliente" : isAI ? "IA" : null;
+                                const text = label ? line.slice(label.length + 1).trim() : line;
+                                return (
+                                  <div key={i} className={`flex ${isClient ? "justify-end" : "justify-start"}`}>
+                                    <div className={`max-w-[88%] px-2.5 py-1.5 rounded-lg text-[10px] leading-relaxed ${
+                                      isClient
+                                        ? "bg-cyan-500/15 text-cyan-100 border border-cyan-500/10"
+                                        : "bg-white/[0.06] text-gray-300 border border-white/5"
+                                    }`}>
+                                      {label && <span className={`font-semibold ${isClient ? "text-cyan-300" : "text-gray-400"}`}>{label}: </span>}
+                                      {text}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </details>
                         ) : (
                           <div className={`max-w-[85%] flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
                             {msg.role === "assistant" && (
@@ -1769,7 +1798,8 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                           </div>
                         )}
                       </div>
-                    ))
+                      );
+                    })
                   )}
                   <div ref={visitorMessagesEndRef} />
                 </div>
@@ -2006,12 +2036,41 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                           </div>
                         </div>
                       ) : (
-                        visitorSupportMessages.map((msg) => (
+                        visitorSupportMessages.map((msg) => {
+                          const isTranscript = msg.role === "system" && msg.content.startsWith("Contexto previo de IA");
+                          const isSystemNote = msg.role === "system" && !isTranscript;
+                          return (
                           <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
-                            {msg.role === "system" ? (
-                              <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                                <p className="text-[10px] text-gray-400">{msg.content}</p>
+                            {isSystemNote ? (
+                              <div className="max-w-[90%] px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-center">
+                                <p className="text-[11px] text-gray-300">{msg.content}</p>
                               </div>
+                            ) : isTranscript ? (
+                              <details className="max-w-[95%] w-full rounded-xl bg-cyan-500/5 border border-cyan-500/15 overflow-hidden">
+                                <summary className="px-3 py-2 cursor-pointer text-[11px] text-cyan-300 font-medium flex items-center gap-1.5 hover:bg-cyan-500/10 transition-colors">
+                                  <Bot size={12} /> Resumen de conversación con IA
+                                </summary>
+                                <div className="px-3 pb-2.5 pt-0.5 space-y-1.5 border-t border-cyan-500/10">
+                                  {msg.content.replace(/^Contexto previo de IA:\n?/, "").split("\n").filter(Boolean).map((line, i) => {
+                                    const isClient = line.startsWith("Cliente:");
+                                    const isAI = line.startsWith("IA:");
+                                    const label = isClient ? "Cliente" : isAI ? "IA" : null;
+                                    const text = label ? line.slice(label.length + 1).trim() : line;
+                                    return (
+                                      <div key={i} className={`flex ${isClient ? "justify-end" : "justify-start"}`}>
+                                        <div className={`max-w-[88%] px-2.5 py-1.5 rounded-lg text-[10px] leading-relaxed ${
+                                          isClient
+                                            ? "bg-cyan-500/15 text-cyan-100 border border-cyan-500/10"
+                                            : "bg-white/[0.06] text-gray-300 border border-white/5"
+                                        }`}>
+                                          {label && <span className={`font-semibold ${isClient ? "text-cyan-300" : "text-gray-400"}`}>{label}: </span>}
+                                          {text}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </details>
                             ) : (
                               <div className={`max-w-[85%] flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
                                 {msg.role === "assistant" && (
@@ -2027,7 +2086,8 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                               </div>
                             )}
                           </div>
-                        ))
+                          );
+                        })
                       )}
                       <div ref={visitorMessagesEndRef} />
                     </div>
