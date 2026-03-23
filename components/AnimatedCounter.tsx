@@ -30,7 +30,7 @@ function parseValue(raw: string) {
 
 export default function AnimatedCounter({
   value,
-  duration = 2000,
+  duration = 3500,
   className = "",
 }: AnimatedCounterProps) {
   const { prefix, number: target, suffix, decimals } = parseValue(value);
@@ -60,15 +60,15 @@ export default function AnimatedCounter({
 
     const startTime = performance.now();
 
-    function easeOutExpo(t: number) {
-      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    function easeOutCubic(t: number) {
+      return 1 - Math.pow(1 - t, 3);
     }
 
     let raf: number;
     function tick(now: number) {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = easeOutExpo(progress);
+      const eased = easeOutCubic(progress);
       setCount(eased * target);
 
       if (progress < 1) {
