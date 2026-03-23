@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getServerLanguage } from "@/utils/i18n";
 import TeamMembersRealtime from "@/components/TeamMembersRealtime";
+import ScrollReveal from "@/components/ScrollReveal";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -124,23 +125,29 @@ export default async function NosotrosPage() {
   return (
     <main className="flex min-h-screen flex-col items-center">
       {/* Header / Hero Nosotros */}
-      <section className="relative w-full pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden bg-[var(--bg-darker)] border-b border-white/5">
-        <div className="absolute top-0 right-0 w-[50vw] h-[50vw] bg-[var(--accent-green)]/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
-        <div className="container mx-auto px-4 text-center z-10">
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold mb-4 tracking-tight">
-            {t.title.split(" ")[0]} <span className="text-gradient">{t.title.split(" ").slice(1).join(" ")}</span>
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
-            {t.subtitle}
-          </p>
+      <section className="relative w-full pt-28 md:pt-36 pb-16 md:pb-24 overflow-hidden bg-[var(--bg-darker)] section-mesh">
+        <div className="glow-orb glow-orb-green w-[600px] h-[600px] -top-40 right-0 opacity-15" />
+        <div className="glow-orb glow-orb-cyan w-[400px] h-[400px] bottom-0 left-0 opacity-10" />
+        <div className="divider-glow absolute bottom-0 left-0 right-0" />
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <ScrollReveal>
+            <span className="badge-premium-green mb-6 inline-flex">{lang === 'en' ? 'About Us' : 'Sobre Nosotros'}</span>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 tracking-tight hero-title-line">
+              {t.title.split(" ")[0]} <span className="text-gradient-animated">{t.title.split(" ").slice(1).join(" ")}</span>
+            </h1>
+            <p className="hero-description text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+              {t.subtitle}
+            </p>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* Historia, Misión y Visión */}
-      <section className="w-full py-12 md:py-20">
+      <section className="w-full py-16 md:py-24 relative section-noise">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
-            <div>
+            <ScrollReveal direction="left">
+              <span className="badge-premium mb-4 inline-flex">{t.story}</span>
               <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">{t.story}</h2>
               <p className="text-gray-300 mb-4 leading-relaxed">
                 {t.storyP1}
@@ -148,63 +155,100 @@ export default async function NosotrosPage() {
               <p className="text-gray-300 leading-relaxed">
                 {t.storyP2}
               </p>
-            </div>
+            </ScrollReveal>
             
             <div className="grid grid-cols-1 gap-6">
-              <div className="bg-glass p-5 sm:p-8 rounded-2xl border border-white/10 hover:border-[var(--accent-cyan)]/50 transition-colors">
-                <h3 className="text-lg sm:text-xl font-bold text-[var(--accent-cyan)] mb-3">{t.mission}</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  {t.missionText}
-                </p>
-              </div>
+              <ScrollReveal direction="right" delay={1}>
+                <div className="card-premium p-5 sm:p-8">
+                  <div className="feature-icon feature-icon-cyan mb-4">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold text-[var(--accent-cyan)] mb-3">{t.mission}</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    {t.missionText}
+                  </p>
+                </div>
+              </ScrollReveal>
               
-              <div className="bg-glass p-5 sm:p-8 rounded-2xl border border-white/10 hover:border-[var(--accent-green)]/50 transition-colors">
-                <h3 className="text-lg sm:text-xl font-bold text-[var(--accent-green)] mb-3">{t.vision}</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  {t.visionText}
-                </p>
-              </div>
+              <ScrollReveal direction="right" delay={2}>
+                <div className="card-premium-green p-5 sm:p-8">
+                  <div className="feature-icon feature-icon-green mb-4">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold text-[var(--accent-green)] mb-3">{t.vision}</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    {t.visionText}
+                  </p>
+                </div>
+              </ScrollReveal>
             </div>
           </div>
         </div>
       </section>
 
       {/* Valores */}
-      <section className="w-full py-12 md:py-20 bg-black/40 border-y border-white/5">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-8 md:mb-12">{t.values}</h2>
+      <section className="w-full py-16 md:py-24 relative overflow-hidden section-dots">
+        <div className="divider-glow absolute top-0 left-0 right-0" />
+        <div className="glow-orb glow-orb-purple w-[400px] h-[400px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10" />
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <ScrollReveal>
+            <span className="badge-premium-amber mb-4 inline-flex">{t.values}</span>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-10 md:mb-14">{t.values}</h2>
+          </ScrollReveal>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-            <div className="p-6">
-              <div className="w-16 h-16 rounded-full bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] flex items-center justify-center mx-auto mb-4 text-2xl border border-[var(--accent-cyan)]/30">🌱</div>
-              <h4 className="font-bold mb-2">{t.sustainability}</h4>
-              <p className="text-sm text-gray-400">{t.sustainabilityDesc}</p>
-            </div>
-            <div className="p-6">
-              <div className="w-16 h-16 rounded-full bg-[var(--accent-green)]/10 text-[var(--accent-green)] flex items-center justify-center mx-auto mb-4 text-2xl border border-[var(--accent-green)]/30">⚙️</div>
-              <h4 className="font-bold mb-2">{t.innovation}</h4>
-              <p className="text-sm text-gray-400">{t.innovationDesc}</p>
-            </div>
-            <div className="p-6">
-              <div className="w-16 h-16 rounded-full bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] flex items-center justify-center mx-auto mb-4 text-2xl border border-[var(--accent-cyan)]/30">🤝</div>
-              <h4 className="font-bold mb-2">{t.transparency}</h4>
-              <p className="text-sm text-gray-400">{t.transparencyDesc}</p>
-            </div>
-            <div className="p-6">
-              <div className="w-16 h-16 rounded-full bg-[var(--accent-green)]/10 text-[var(--accent-green)] flex items-center justify-center mx-auto mb-4 text-2xl border border-[var(--accent-green)]/30">⭐</div>
-              <h4 className="font-bold mb-2">{t.excellence}</h4>
-              <p className="text-sm text-gray-400">{t.excellenceDesc}</p>
-            </div>
+            <ScrollReveal delay={1}>
+              <div className="card-premium p-6 text-center h-full">
+                <div className="feature-icon feature-icon-cyan mx-auto mb-4">
+                  <span className="text-lg">🌱</span>
+                </div>
+                <h4 className="font-bold mb-2">{t.sustainability}</h4>
+                <p className="text-sm text-gray-400">{t.sustainabilityDesc}</p>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal delay={2}>
+              <div className="card-premium-green p-6 text-center h-full">
+                <div className="feature-icon feature-icon-green mx-auto mb-4">
+                  <span className="text-lg">⚙️</span>
+                </div>
+                <h4 className="font-bold mb-2">{t.innovation}</h4>
+                <p className="text-sm text-gray-400">{t.innovationDesc}</p>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal delay={3}>
+              <div className="card-premium p-6 text-center h-full">
+                <div className="feature-icon feature-icon-cyan mx-auto mb-4">
+                  <span className="text-lg">🤝</span>
+                </div>
+                <h4 className="font-bold mb-2">{t.transparency}</h4>
+                <p className="text-sm text-gray-400">{t.transparencyDesc}</p>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal delay={4}>
+              <div className="card-premium-green p-6 text-center h-full">
+                <div className="feature-icon feature-icon-green mx-auto mb-4">
+                  <span className="text-lg">⭐</span>
+                </div>
+                <h4 className="font-bold mb-2">{t.excellence}</h4>
+                <p className="text-sm text-gray-400">{t.excellenceDesc}</p>
+              </div>
+            </ScrollReveal>
           </div>
         </div>
+        <div className="divider-gradient absolute bottom-0 left-0 right-0" />
       </section>
 
       {/* El Equipo */}
-      <section className="w-full py-12 md:py-20 pb-20 md:pb-32">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4">{t.team}</h2>
-          <p className="text-gray-400 mb-8 md:mb-12 max-w-2xl mx-auto text-sm sm:text-base">
-            {t.teamSubtitle}
-          </p>
+      <section className="w-full py-16 md:py-24 pb-20 md:pb-32 relative section-mesh">
+        <div className="glow-orb glow-orb-cyan w-[500px] h-[500px] -top-40 -right-40 opacity-10" />
+        <div className="glow-orb glow-orb-green w-[400px] h-[400px] bottom-0 -left-40 opacity-10" />
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <ScrollReveal>
+            <span className="badge-premium mb-4 inline-flex">{t.team}</span>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">{t.team}</h2>
+            <p className="text-gray-400 mb-10 md:mb-14 max-w-2xl mx-auto text-sm sm:text-base">
+              {t.teamSubtitle}
+            </p>
+          </ScrollReveal>
           
           <TeamMembersRealtime
             initialTeamMembers={teamMembers}

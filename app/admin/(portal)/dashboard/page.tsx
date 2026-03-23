@@ -33,7 +33,7 @@ export default async function AdminDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <Link href="/admin/noticias" className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 hover:border-[var(--accent-cyan)]/30 transition-all duration-200">
+        <Link href="/admin/noticias" className="group admin-card p-5 hover:border-[var(--accent-cyan)]/30">
           <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-cyan)]/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
@@ -47,7 +47,7 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/admin/mensajes" className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 hover:border-[var(--accent-green)]/30 transition-all duration-200">
+        <Link href="/admin/mensajes" className="group admin-card p-5 hover:border-[var(--accent-green)]/30">
           <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-green)]/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
@@ -66,7 +66,7 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/admin/proyectos" className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 hover:border-amber-400/30 transition-all duration-200">
+        <Link href="/admin/proyectos" className="group admin-card p-5 hover:border-amber-400/30">
           <div className="absolute inset-0 bg-gradient-to-br from-amber-400/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
@@ -80,7 +80,7 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <div className="admin-card p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 rounded-xl bg-emerald-500/10">
               <ShieldCheck className="text-emerald-400" size={18} />
@@ -122,7 +122,7 @@ export default async function AdminDashboardPage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="group flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-200"
+                className="group admin-card flex items-center gap-4 p-4 hover:bg-white/[0.04] hover:border-white/[0.12]"
               >
                 <div className="shrink-0 p-2.5 rounded-xl" style={{ backgroundColor: `color-mix(in srgb, ${accent} 12%, transparent)` }}>
                   <item.icon size={20} style={{ color: accent }} />
@@ -157,7 +157,7 @@ export default async function AdminDashboardPage() {
               href={item.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex flex-col items-center gap-2 rounded-xl border border-white/[0.04] bg-white/[0.01] py-4 px-2 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200"
+              className="group flex flex-col items-center gap-2 admin-card py-4 px-2 hover:bg-white/[0.04] hover:border-white/[0.1]"
             >
               <item.icon size={20} style={{ color: item.color }} className="opacity-70 group-hover:opacity-100 transition-opacity" />
               <span className="text-[11px] font-medium text-gray-500 group-hover:text-gray-300 transition-colors">{item.label}</span>

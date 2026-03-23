@@ -48,10 +48,10 @@ export default async function MainLayout({
       <main id="main-content" className="min-h-screen relative z-[1] pb-20 md:pb-0" role="main" style={{ scrollbarGutter: "stable" }}>
         {children}
       </main>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[58] border-t border-white/10 bg-[rgba(2,6,14,0.96)] backdrop-blur-xl supports-[padding:max(0px)]:pb-[max(env(safe-area-inset-bottom),0.4rem)]">
+      <nav className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-[58] supports-[padding:max(0px)]:pb-[max(env(safe-area-inset-bottom),0.4rem)]">
         <div className="grid grid-cols-6 gap-1 px-2 py-2">
           {mobileNav.map((item) => (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium text-gray-300 hover:text-[var(--accent-cyan)] hover:bg-white/10 transition-colors">
               <item.icon size={16} />
               <span className="truncate max-w-[64px]">{item.label}</span>
             </Link>

@@ -32,14 +32,15 @@ export default async function AdminLayout({
     return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-400/10 text-amber-300 border border-amber-400/20"><Eye size={10} />{roleLabel}</span>;
   };
 
-  const linkCls = "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all duration-150 group";
-  const iconCls = "shrink-0 opacity-60 group-hover:opacity-100 transition-opacity";
-  const sectionLabelCls = "px-3.5 text-[10px] font-bold text-gray-600 uppercase tracking-[0.12em] mb-1.5";
+  const linkCls = "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all duration-200 group hover:translate-x-0.5";
+  const iconCls = "shrink-0 opacity-60 group-hover:opacity-100 transition-all duration-200 group-hover:text-[var(--accent-cyan)]";
+  const sectionLabelCls = "px-3.5 text-[10px] font-bold text-gray-600 uppercase tracking-[0.15em] mb-2";
 
   return (
     <div className="flex min-h-screen md:h-screen bg-[var(--bg-darker)] overflow-hidden md:overflow-hidden">
       {/* ─── Sidebar ─── */}
-      <aside className="hidden md:flex w-[260px] shrink-0 border-r border-white/[0.06] flex-col bg-[#060a14]" data-no-inline-edit="true">
+      <aside className="hidden md:flex w-[260px] shrink-0 border-r border-white/[0.06] flex-col bg-[#060a14] relative" data-no-inline-edit="true">
+        <div className="glow-orb glow-orb-cyan w-[200px] h-[200px] -top-20 -left-20 opacity-5" />
         {/* Brand */}
         <div className="px-5 pt-6 pb-4">
           <div className="flex items-center gap-2.5">
@@ -147,7 +148,7 @@ export default async function AdminLayout({
 
         {/* Footer: Version + Site link + Logout */}
         <div className="px-3 pb-4 pt-2 border-t border-white/[0.06] space-y-2">
-          <p className="px-3.5 text-[10px] text-gray-600 text-center select-none">Aphellium v2.2.0</p>
+          <p className="px-3.5 text-[10px] text-gray-600 text-center select-none">Aphellium v2.3.0</p>
           <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] text-gray-500 hover:text-gray-300 hover:bg-white/[0.04] transition-all">
             <ExternalLink size={14} />
             <span>Ver sitio público</span>
@@ -174,7 +175,7 @@ export default async function AdminLayout({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[9px] text-gray-600 select-none">v2.2.0</span>
+              <span className="text-[9px] text-gray-600 select-none">v2.3.0</span>
               <RoleBadge />
             </div>
           </div>

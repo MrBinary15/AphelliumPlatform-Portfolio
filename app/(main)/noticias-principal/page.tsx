@@ -4,6 +4,7 @@ import NoticiasGridClient from "@/components/NoticiasGridClient";
 import { getServerLanguage } from "@/utils/i18n";
 import { pickLocalizedField } from "@/utils/i18n";
 import { translateText } from "@/utils/autoTranslate";
+import ScrollReveal from "@/components/ScrollReveal";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -82,21 +83,26 @@ export default async function NoticiasMainPage() {
   return (
     <main className="flex min-h-screen flex-col items-center">
       {/* Header */}
-      <section className="relative w-full pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden bg-[var(--bg-darker)] border-b border-white/5">
-         <div className="absolute top-0 right-1/4 w-[40vw] h-[40vw] bg-[var(--accent-green)]/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
-        <div className="container mx-auto px-4 text-center z-10">
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold mb-4 tracking-tight">
-            {lang === "en" ? "News &" : "Noticias y"} <span className="text-gradient">{lang === "en" ? "Updates" : "Novedades"}</span>
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
-            {t.subtitle}
-          </p>
+      <section className="relative w-full pt-28 md:pt-36 pb-16 md:pb-24 overflow-hidden bg-[var(--bg-darker)] section-mesh">
+        <div className="glow-orb glow-orb-green w-[500px] h-[500px] -top-40 right-1/4 opacity-15" />
+        <div className="glow-orb glow-orb-cyan w-[300px] h-[300px] bottom-0 left-1/4 opacity-10" />
+        <div className="divider-glow absolute bottom-0 left-0 right-0" />
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <ScrollReveal>
+            <span className="badge-premium-green mb-6 inline-flex">{lang === 'en' ? 'Blog & Press' : 'Blog y Prensa'}</span>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 tracking-tight hero-title-line">
+              {lang === "en" ? "News &" : "Noticias y"} <span className="text-gradient-animated">{lang === "en" ? "Updates" : "Novedades"}</span>
+            </h1>
+            <p className="hero-description text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+              {t.subtitle}
+            </p>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* Feed de Noticias */}
-      <section className="w-full py-12 md:py-20 pb-20 md:pb-32">
-        <div className="container mx-auto px-4 max-w-5xl">
+      <section className="w-full py-16 md:py-24 pb-20 md:pb-32 relative section-noise">
+        <div className="container mx-auto px-4 max-w-5xl relative z-10">
           <NoticiasGridClient articles={localizedArticles} isAdmin={isAdmin} lang={lang} t={t} />
         </div>
       </section>

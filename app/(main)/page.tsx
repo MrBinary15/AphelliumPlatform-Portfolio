@@ -8,6 +8,8 @@ import { pickLocalizedField } from "@/utils/i18n";
 import { translateText } from "@/utils/autoTranslate";
 import NoticiaImage from "@/components/NoticiaImage";
 import HeroVideoBackground from "@/components/HeroVideoBackground";
+import ScrollReveal from "@/components/ScrollReveal";
+import AnimatedCounter from "@/components/AnimatedCounter";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -370,37 +372,40 @@ export default async function Home() {
       ═══════════════════════════════════════════ */}
       <section className="relative w-full min-h-[100vh] flex items-center pt-20 md:pt-0 overflow-hidden">
         <HeroVideoBackground />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(2,6,16,0.55)_0%,rgba(2,6,16,0.30)_40%,rgba(2,6,16,0.80)_100%)] z-[1]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_20%,rgba(6,182,212,0.15),transparent_50%),radial-gradient(ellipse_at_80%_80%,rgba(16,185,129,0.12),transparent_50%)] z-[1]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(2,6,16,0.60)_0%,rgba(2,6,16,0.25)_35%,rgba(2,6,16,0.85)_100%)] z-[1]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_20%,rgba(6,182,212,0.12),transparent_50%),radial-gradient(ellipse_at_80%_80%,rgba(16,185,129,0.10),transparent_50%)] z-[1]" />
+        {/* Mesh gradient orbs */}
+        <div className="absolute top-1/4 -left-32 w-96 h-96 glow-orb glow-orb-cyan opacity-[0.08] animate-[orbFloat_20s_ease-in-out_infinite] z-[1]" />
+        <div className="absolute bottom-1/4 -right-32 w-80 h-80 glow-orb glow-orb-green opacity-[0.06] animate-[orbFloat_25s_ease-in-out_infinite_reverse] z-[1]" />
 
         <div className="container mx-auto px-5 sm:px-6 z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center py-16 md:py-24">
           {/* Left: Text */}
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[var(--accent-cyan)]/40 bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] font-semibold text-[11px] sm:text-xs mb-6 uppercase tracking-[0.15em]">
+            <div className="hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[var(--accent-cyan)]/30 bg-[var(--accent-cyan)]/8 text-[var(--accent-cyan)] font-semibold text-[11px] sm:text-xs mb-6 uppercase tracking-[0.15em] backdrop-blur-sm">
               <span className="w-2 h-2 rounded-full bg-[var(--accent-cyan)] animate-pulse" />
               {t.badge}
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold mb-6 leading-[1.08] tracking-tight text-white">
+            <h1 className="hero-title-line text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold mb-6 leading-[1.08] tracking-tight text-white">
               {firstPart}{" "}
-              {lastWords && <><br className="hidden sm:block" /><span className="text-gradient">{lastWords}</span></>}
+              {lastWords && <><br className="hidden sm:block" /><span className="text-gradient-animated">{lastWords}</span></>}
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-gray-200/90 mb-8 max-w-xl leading-relaxed">
+            <p className="hero-description text-base sm:text-lg md:text-xl text-gray-200/90 mb-8 max-w-xl leading-relaxed">
               {heroDescription}
             </p>
 
-            <div className="flex flex-wrap gap-2.5 mb-8">
+            <div className="hero-description flex flex-wrap gap-2.5 mb-8">
               {[t.heroChipA, t.heroChipB, t.heroChipC].map((chip) => (
-                <span key={chip} className="px-3 py-1.5 rounded-full bg-white/8 border border-white/12 text-xs font-semibold text-gray-200 backdrop-blur-sm">{chip}</span>
+                <span key={chip} className="px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-xs font-semibold text-gray-200 backdrop-blur-sm hover:bg-white/10 hover:border-white/20 transition-all cursor-default">{chip}</span>
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <Link href="/proyectos" className="bg-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/85 text-white font-bold px-7 py-3.5 sm:px-9 sm:py-4 rounded-xl transition-all hover:-translate-y-0.5 shadow-[0_8px_32px_var(--accent-cyan-glow)] text-center text-sm sm:text-base">
+            <div className="hero-cta flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Link href="/proyectos" className="btn-glow bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-green)] text-white font-bold px-7 py-3.5 sm:px-9 sm:py-4 rounded-xl text-center text-sm sm:text-base">
                 {t.viewCatalog}
               </Link>
-              <Link href="/contacto" className="bg-white/5 border border-white/20 hover:border-white/40 hover:bg-white/10 text-white font-bold px-7 py-3.5 sm:px-9 sm:py-4 rounded-xl transition-all hover:-translate-y-0.5 text-center backdrop-blur-md text-sm sm:text-base">
+              <Link href="/contacto" className="btn-glass font-bold px-7 py-3.5 sm:px-9 sm:py-4 rounded-xl text-center text-white text-sm sm:text-base">
                 {t.contactUs}
               </Link>
             </div>
@@ -469,22 +474,26 @@ export default async function Home() {
           2. IMPACT STATS — Key numbers strip
       ═══════════════════════════════════════════ */}
       <section className="w-full relative z-10 -mt-1">
-        <div className="bg-gradient-to-r from-[var(--accent-cyan)]/10 via-[var(--accent-green)]/8 to-[var(--accent-cyan)]/10 border-y border-white/8 backdrop-blur-xl">
-          <div className="container mx-auto px-5 sm:px-6 py-8 md:py-10">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-              {[
-                { value: t.stat1Value, label: t.stat1Label, icon: Zap },
-                { value: t.stat2Value, label: t.stat2Label, icon: BarChart3 },
-                { value: t.stat3Value, label: t.stat3Label, icon: ShieldCheck },
-                { value: t.stat4Value, label: t.stat4Label, icon: Leaf },
-              ].map((stat) => (
-                <div key={stat.label} className="flex flex-col items-center text-center gap-2">
-                  <stat.icon size={20} className="text-[var(--accent-cyan)] mb-1" />
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight">{stat.value}</span>
-                  <span className="text-[11px] sm:text-xs text-gray-400 font-medium leading-snug max-w-[140px]">{stat.label}</span>
-                </div>
-              ))}
-            </div>
+        <div className="bg-gradient-to-r from-[var(--accent-cyan)]/[0.06] via-[var(--accent-green)]/[0.04] to-[var(--accent-cyan)]/[0.06] border-y border-white/[0.06] backdrop-blur-xl">
+          <div className="container mx-auto px-5 sm:px-6 py-10 md:py-14">
+            <ScrollReveal>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+                {[
+                  { value: t.stat1Value, label: t.stat1Label, icon: Zap },
+                  { value: t.stat2Value, label: t.stat2Label, icon: BarChart3 },
+                  { value: t.stat3Value, label: t.stat3Label, icon: ShieldCheck },
+                  { value: t.stat4Value, label: t.stat4Label, icon: Leaf },
+                ].map((stat) => (
+                  <div key={stat.label} className="stat-card flex flex-col items-center text-center gap-2 hover-glow-cyan">
+                    <div className="feature-icon feature-icon-cyan mb-2">
+                      <stat.icon size={20} />
+                    </div>
+                    <AnimatedCounter value={stat.value} className="stat-value text-2xl sm:text-3xl md:text-4xl text-gradient" />
+                    <span className="stat-label max-w-[140px]">{stat.label}</span>
+                  </div>
+                ))}
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -492,22 +501,24 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════
           3. ABOUT APHELLIUM — Story + Features
       ═══════════════════════════════════════════ */}
-      <section className="w-full py-20 md:py-28 lg:py-32">
-        <div className="container mx-auto px-5 sm:px-6 max-w-7xl">
+      <section className="w-full py-24 md:py-32 lg:py-40 relative section-noise">
+        {/* Section background effects */}
+        <div className="absolute inset-0 section-mesh" />
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl relative z-10">
           {/* Section header */}
-          <div className="text-center mb-14 md:mb-20">
-            <span className="inline-flex px-4 py-1.5 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/8 text-[var(--accent-cyan)] text-xs font-semibold uppercase tracking-wider mb-4">
+          <ScrollReveal className="text-center mb-14 md:mb-20">
+            <span className="badge-premium mb-4">
               {t.aboutBadge}
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-6">
               {t.aboutTitle}
             </h2>
-          </div>
+          </ScrollReveal>
 
           {/* Content: Image + Text */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center mb-16 md:mb-24">
             {/* Product Image */}
-            <div className="relative group">
+            <ScrollReveal direction="left" className="relative group">
               <div className="absolute -inset-3 rounded-3xl bg-gradient-to-br from-[var(--accent-cyan)]/20 to-[var(--accent-green)]/20 blur-2xl opacity-50 group-hover:opacity-70 transition-opacity" />
               <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-white flex items-center justify-center p-8 sm:p-12 md:p-16">
                 <Image
@@ -520,10 +531,10 @@ export default async function Home() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               </div>
-            </div>
+            </ScrollReveal>
 
             {/* Description */}
-            <div className="space-y-6">
+            <ScrollReveal direction="right" className="space-y-6">
               <p className="text-base sm:text-lg text-gray-300 leading-relaxed">
                 {t.aboutDescription}
               </p>
@@ -531,12 +542,12 @@ export default async function Home() {
                 {t.aboutDescription2}
               </p>
               <div className="pt-2">
-                <Link href="/nosotros" className="inline-flex items-center gap-2.5 text-[var(--accent-cyan)] font-semibold text-sm hover:gap-3.5 transition-all">
+                <Link href="/nosotros" className="inline-flex items-center gap-2.5 text-[var(--accent-cyan)] font-semibold text-sm hover:gap-3.5 transition-all group">
                   {t.ctaSecondary}
-                  <ArrowRight size={16} />
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
-            </div>
+            </ScrollReveal>
           </div>
 
           {/* Feature Cards — 4-column grid */}
@@ -546,14 +557,16 @@ export default async function Home() {
               { icon: Zap, title: t.aboutFeature2Title, desc: t.aboutFeature2Desc, color: "green" },
               { icon: ShieldCheck, title: t.aboutFeature3Title, desc: t.aboutFeature3Desc, color: "cyan" },
               { icon: BarChart3, title: t.aboutFeature4Title, desc: t.aboutFeature4Desc, color: "green" },
-            ].map((f) => (
-              <div key={f.title} className="group bg-white/[0.03] border border-white/8 rounded-2xl p-6 hover:border-[var(--accent-cyan)]/30 hover:bg-white/[0.05] transition-all">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${f.color === "cyan" ? "bg-[var(--accent-cyan)]/15 text-[var(--accent-cyan)]" : "bg-[var(--accent-green)]/15 text-[var(--accent-green)]"}`}>
-                  <f.icon size={22} />
+            ].map((f, i) => (
+              <ScrollReveal key={f.title} delay={i + 1}>
+                <div className={`card-premium ${f.color === 'green' ? 'card-premium-green' : ''} p-6 h-full`}>
+                  <div className={`feature-icon mb-4 ${f.color === "cyan" ? "feature-icon-cyan" : "feature-icon-green"}`}>
+                    <f.icon size={22} />
+                  </div>
+                  <h3 className="text-white font-bold text-base mb-2">{f.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
                 </div>
-                <h3 className="text-white font-bold text-base mb-2">{f.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -562,15 +575,15 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════
           4. THE PROBLEM — Why this matters
       ═══════════════════════════════════════════ */}
-      <section className="w-full py-20 md:py-28 relative overflow-hidden">
+      <section className="w-full py-24 md:py-32 relative overflow-hidden section-noise">
         {/* Subtle background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--accent-cyan)]/[0.03] to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="absolute inset-0 section-dots" />
+        <div className="divider-glow absolute top-0 left-0 right-0" />
+        <div className="divider-glow absolute bottom-0 left-0 right-0" />
 
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl relative z-10">
-          <div className="text-center mb-12 md:mb-16">
-            <span className="inline-flex px-4 py-1.5 rounded-full border border-amber-400/25 bg-amber-400/8 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-4">
+          <ScrollReveal className="text-center mb-12 md:mb-16">
+            <span className="badge-premium-amber mb-4">
               {t.problemBadge}
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-6">
@@ -579,7 +592,7 @@ export default async function Home() {
             <p className="text-gray-400 text-base sm:text-lg max-w-3xl mx-auto leading-relaxed">
               {t.problemDescription}
             </p>
-          </div>
+          </ScrollReveal>
 
           {/* Problem Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-6">
@@ -587,12 +600,13 @@ export default async function Home() {
               { value: t.problemStat1, label: t.problemStat1Label },
               { value: t.problemStat2, label: t.problemStat2Label },
               { value: t.problemStat3, label: t.problemStat3Label },
-            ].map((s) => (
-              <div key={s.value} className="relative bg-white/[0.03] border border-white/8 rounded-2xl p-8 text-center overflow-hidden group hover:border-amber-400/20 transition-all">
-                <div className="absolute inset-0 bg-gradient-to-b from-amber-400/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="relative text-3xl sm:text-4xl md:text-5xl font-black text-gradient mb-3 block">{s.value}</span>
-                <span className="relative text-gray-400 text-sm leading-snug">{s.label}</span>
-              </div>
+            ].map((s, i) => (
+              <ScrollReveal key={s.value} delay={i + 1}>
+                <div className="card-premium p-8 text-center group hover:border-[var(--accent-amber)]/20">
+                  <AnimatedCounter value={s.value} className="text-3xl sm:text-4xl md:text-5xl font-black text-gradient-amber mb-3 block" />
+                  <span className="text-gray-400 text-sm leading-snug">{s.label}</span>
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -601,23 +615,24 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════
           5. CORE TECHNOLOGY — Visual showcase
       ═══════════════════════════════════════════ */}
-      <section className="w-full py-20 md:py-28 relative overflow-hidden">
+      <section className="w-full py-24 md:py-32 relative overflow-hidden">
         {/* Background image */}
         <div className="absolute inset-0 z-0">
           <Image
             src="/assets/aphellium-bg-tech.png"
             alt=""
             fill
-            className="object-cover opacity-15"
+            className="object-cover opacity-10"
             aria-hidden="true"
           />
-          <div className="absolute inset-0 bg-[var(--bg-dark)]/85" />
+          <div className="absolute inset-0 bg-[var(--bg-dark)]/90" />
         </div>
+        <div className="absolute inset-0 section-grid z-[1]" />
 
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            <div>
-              <span className="inline-flex px-4 py-1.5 rounded-full border border-[var(--accent-green)]/25 bg-[var(--accent-green)]/8 text-[var(--accent-green)] text-xs font-semibold uppercase tracking-wider mb-5">
+            <ScrollReveal direction="left">
+              <span className="badge-premium-green mb-5">
                 {lang === "en" ? "Core Technology" : "Tecnología Central"}
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]">
@@ -647,18 +662,18 @@ export default async function Home() {
                   ? ["Nanoparticles", "Aerogel Insulation", "Solar Ventilation", "Green H₂ Recycling"]
                   : ["Nanopartículas", "Aislamiento Aerogel", "Ventilación Solar", "Reciclaje H₂ Verde"]
                 ).map((item) => (
-                  <div key={item} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/8">
-                    <div className="w-2 h-2 rounded-full bg-[var(--accent-green)]" />
+                  <div key={item} className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:border-[var(--accent-green)]/20 hover:bg-white/[0.06] transition-all">
+                    <div className="w-2 h-2 rounded-full bg-[var(--accent-green)] animate-pulse" />
                     <span className="text-sm text-gray-300 font-medium">{item}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </ScrollReveal>
 
             {/* Tech visual */}
-            <div className="relative">
+            <ScrollReveal direction="right" className="relative">
               <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-[var(--accent-green)]/15 to-[var(--accent-cyan)]/15 blur-3xl" />
-              <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+              <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl hover:shadow-[0_0_60px_rgba(16,185,129,0.1)] transition-shadow duration-500">
                 <Image
                   src="/assets/aphellium-bg-hero.png"
                   alt="Aphellium Technology"
@@ -667,7 +682,7 @@ export default async function Home() {
                   className="w-full h-auto object-cover"
                 />
               </div>
-            </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -675,10 +690,10 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════
           6. VIDEO SHOWCASE — YouTube embed
       ═══════════════════════════════════════════ */}
-      <section className="w-full py-20 md:py-28">
+      <section className="w-full py-24 md:py-32">
         <div className="container mx-auto px-5 sm:px-6 max-w-5xl">
-          <div className="text-center mb-10 md:mb-14">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/8 text-[var(--accent-cyan)] text-xs font-semibold uppercase tracking-wider mb-4">
+          <ScrollReveal className="text-center mb-10 md:mb-14">
+            <span className="badge-premium mb-4">
               <Play size={13} />
               {t.videoBadge}
             </span>
@@ -688,7 +703,7 @@ export default async function Home() {
             <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto">
               {t.videoSubtitle}
             </p>
-          </div>
+          </ScrollReveal>
 
           {/* Video embed */}
           <div className="relative group">
@@ -712,27 +727,29 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════
           7. PROJECTS SECTION
       ═══════════════════════════════════════════ */}
-      <section className="w-full py-20 md:py-28 relative">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 md:mb-14">
+      <section className="w-full py-24 md:py-32 relative section-noise">
+        <div className="divider-gradient absolute top-0 left-0 right-0" />
+        <div className="absolute inset-0 section-mesh" />
+        <div className="container mx-auto px-5 sm:px-6 max-w-6xl relative z-10">
+          <ScrollReveal className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 md:mb-14">
             <div>
-              <span className="inline-flex px-4 py-1.5 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/8 text-[var(--accent-cyan)] text-xs font-semibold uppercase tracking-wider mb-4">
+              <span className="badge-premium mb-4">
                 {t.projectsBadge}
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white">{t.projectsTitle}</h2>
               <p className="text-gray-400 mt-3 max-w-2xl text-base sm:text-lg">{t.projectsSubtitle}</p>
             </div>
-            <Link href="/proyectos" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]/80 transition-colors shrink-0">
+            <Link href="/proyectos" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]/80 transition-colors shrink-0 group">
               {t.viewAllProjects}
-              <ArrowRight size={16} />
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-          </div>
+          </ScrollReveal>
 
           {latestProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {latestProjects.map((project) => (
-                <Link key={project.id} href={`/proyectos/${project.id}`} className="group bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-[var(--accent-cyan)]/30 transition-all block">
+              {latestProjects.map((project, i) => (
+                <ScrollReveal key={project.id} delay={i + 1}>
+                  <Link href={`/proyectos/${project.id}`} className="card-premium group overflow-hidden block h-full">
                   <div className="relative h-44 sm:h-52 bg-slate-900 overflow-hidden">
                     {project.img_url ? (
                       <Image src={project.img_url} alt={project.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -771,7 +788,8 @@ export default async function Home() {
                       <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
                     </span>
                   </div>
-                </Link>
+                  </Link>
+                </ScrollReveal>
               ))}
             </div>
           ) : (
@@ -786,24 +804,24 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════
           8. TEAM PREVIEW SECTION
       ═══════════════════════════════════════════ */}
-      <section className="w-full py-20 md:py-28 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--accent-cyan)]/[0.02] to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <section className="w-full py-24 md:py-32 relative overflow-hidden section-noise">
+        <div className="absolute inset-0 section-dots" />
+        <div className="divider-glow absolute top-0 left-0 right-0" />
 
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 md:mb-14">
+          <ScrollReveal className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 md:mb-14">
             <div>
-              <span className="inline-flex px-4 py-1.5 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/8 text-[var(--accent-cyan)] text-xs font-semibold uppercase tracking-wider mb-4">
+              <span className="badge-premium mb-4">
                 {t.teamPreviewBadge}
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white">{t.teamPreviewTitle}</h2>
               <p className="text-gray-400 mt-3 max-w-2xl text-base sm:text-lg">{t.teamPreviewSubtitle}</p>
             </div>
-            <Link href="/nosotros" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]/80 transition-colors shrink-0">
+            <Link href="/nosotros" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]/80 transition-colors shrink-0 group">
               {t.viewFullTeam}
-              <ArrowRight size={16} />
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-          </div>
+          </ScrollReveal>
 
           {teamPreview.length > 0 ? (
             <div className="space-y-8">
@@ -812,7 +830,7 @@ export default async function Home() {
                   <h3 className="text-center text-sm sm:text-base font-bold text-[var(--accent-cyan)]/80 tracking-widest uppercase">{t.foundersPreviewTitle}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-4xl mx-auto">
                     {founderPreview.map((member) => (
-                      <Link key={member.id} href="/nosotros" className="group bg-white/[0.03] border border-[var(--accent-cyan)]/20 rounded-2xl overflow-hidden hover:border-[var(--accent-cyan)]/40 transition-all block">
+                      <Link key={member.id} href="/nosotros" className="card-premium group overflow-hidden block">
                         <div className="relative h-44 sm:h-52 bg-slate-900 overflow-hidden">
                           {member.avatar_url ? (
                             <Image src={member.avatar_url} alt={member.full_name || "Miembro"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -854,28 +872,28 @@ export default async function Home() {
           9. NEWS SECTION
       ═══════════════════════════════════════════ */}
       {displayArticles.length > 0 && (
-      <section className="w-full py-20 md:py-28 relative">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 md:mb-14">
+      <section className="w-full py-24 md:py-32 relative section-noise">
+        <div className="divider-gradient absolute top-0 left-0 right-0" />
+        <div className="container mx-auto px-5 sm:px-6 max-w-6xl relative z-10">
+          <ScrollReveal className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 md:mb-14">
             <div>
-              <span className="inline-flex px-4 py-1.5 rounded-full border border-[var(--accent-green)]/25 bg-[var(--accent-green)]/8 text-[var(--accent-green)] text-xs font-semibold uppercase tracking-wider mb-4">
+              <span className="badge-premium-green mb-4">
                 {t.latestNewsBadge}
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white">{t.latestNewsTitle}</h2>
               <p className="text-gray-400 mt-3 max-w-2xl text-base sm:text-lg">{t.latestNewsSubtitle}</p>
             </div>
-            <Link href="/noticias-principal" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]/80 transition-colors shrink-0">
+            <Link href="/noticias-principal" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]/80 transition-colors shrink-0 group">
               {t.viewAllNews}
-              <ArrowRight size={16} />
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-          </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {displayArticles.map((article) => {
               const articleHref = article.id.startsWith("placeholder-") ? "/noticias-principal" : `/noticias-principal/${article.id}`;
               return (
-                <Link key={article.id} href={articleHref} className="group bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-[var(--accent-cyan)]/30 transition-all block">
+                <Link key={article.id} href={articleHref} className="card-premium group overflow-hidden block">
                   <div className="relative h-44 sm:h-52 bg-slate-900 overflow-hidden">
                     {article.img_url ? (
                       <NoticiaImage src={article.img_url} alt={article.title} />
@@ -912,29 +930,31 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════
           10. CTA SECTION — Final call to action
       ═══════════════════════════════════════════ */}
-      <section className="w-full py-20 md:py-28 relative overflow-hidden" data-no-inline-edit="true">
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent-cyan)]/[0.06] via-[var(--accent-green)]/[0.04] to-[var(--accent-cyan)]/[0.06]" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)]/30 to-transparent" />
+      <section className="w-full py-24 md:py-32 relative overflow-hidden section-mesh" data-no-inline-edit="true">
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent-cyan)]/[0.08] via-[var(--accent-green)]/[0.05] to-[var(--accent-purple)]/[0.08]" />
+        <div className="divider-glow absolute top-0 left-0 right-0" />
+        <div className="glow-orb glow-orb-cyan w-[500px] h-[500px] -top-40 left-1/2 -translate-x-1/2 opacity-20" />
+        <div className="glow-orb glow-orb-green w-[300px] h-[300px] bottom-0 right-1/4 opacity-15" />
 
-        <div className="container mx-auto px-5 sm:px-6 max-w-4xl relative z-10 text-center">
+        <ScrollReveal className="container mx-auto px-5 sm:px-6 max-w-4xl relative z-10 text-center">
           <div className="mb-8">
-            <Image src="/assets/aphellium-logo-4.png" alt="Aphellium" width={64} height={64} className="mx-auto mb-6 opacity-80" />
+            <Image src="/assets/aphellium-logo-4.png" alt="Aphellium" width={72} height={72} className="mx-auto mb-6 opacity-90 hover:opacity-100 transition-opacity duration-300 drop-shadow-[0_0_20px_var(--accent-cyan-glow)]" />
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-5 leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-5 leading-tight hero-title-line">
             {t.ctaTitle}
           </h2>
-          <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="hero-description text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
             {t.ctaSubtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/contacto" className="bg-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/85 text-white font-bold px-8 py-4 rounded-xl transition-all hover:-translate-y-0.5 shadow-[0_8px_32px_var(--accent-cyan-glow)] text-center text-base">
+            <Link href="/contacto" className="btn-glow text-white font-bold px-8 py-4 rounded-xl text-center text-base">
               {t.ctaButton}
             </Link>
-            <Link href="/nosotros" className="bg-white/5 border border-white/20 hover:border-white/40 hover:bg-white/10 text-white font-bold px-8 py-4 rounded-xl transition-all hover:-translate-y-0.5 text-center backdrop-blur-md text-base">
+            <Link href="/nosotros" className="btn-glass text-white font-bold px-8 py-4 rounded-xl text-center text-base">
               {t.ctaSecondary}
             </Link>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
     </main>
   );

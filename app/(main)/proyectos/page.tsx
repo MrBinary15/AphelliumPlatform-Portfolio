@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getServerLanguage, pickLocalizedField } from "@/utils/i18n";
 import { Star } from "lucide-react";
 import ProyectosClient from "./ProyectosClient";
+import ScrollReveal from "@/components/ScrollReveal";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -125,23 +126,26 @@ export default async function ProyectosPage() {
   return (
     <main className="flex min-h-screen flex-col items-center">
       {/* Hero Header */}
-      <section className="relative w-full pt-24 md:pt-32 pb-16 md:pb-24 overflow-hidden bg-[var(--bg-darker)] border-b border-white/5">
-        <div className="absolute top-0 left-0 w-[60vw] h-[60vw] bg-[var(--accent-cyan)]/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-[40vw] h-[40vw] bg-[var(--accent-green)]/5 rounded-full blur-[100px] -z-10 pointer-events-none" />
+      <section className="relative w-full pt-28 md:pt-36 pb-16 md:pb-24 overflow-hidden bg-[var(--bg-darker)] section-mesh">
+        <div className="glow-orb glow-orb-cyan w-[600px] h-[600px] -top-40 left-0 opacity-12" />
+        <div className="glow-orb glow-orb-green w-[400px] h-[400px] bottom-0 right-0 opacity-10" />
+        <div className="divider-glow absolute bottom-0 left-0 right-0" />
 
-        <div className="container mx-auto px-4 text-center z-10 relative">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/20 text-[var(--accent-cyan)] text-xs font-medium mb-6">
-            <Star size={14} className="fill-current" />
-            {items.length} {t.resultsCount}
-          </div>
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <ScrollReveal>
+            <span className="badge-premium mb-6 inline-flex items-center gap-2">
+              <Star size={14} className="fill-current" />
+              {items.length} {t.resultsCount}
+            </span>
 
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold mb-5 tracking-tight leading-tight">
-            {t.title.split(" ")[0]}{" "}
-            <span className="text-gradient">{t.title.split(" ").slice(1).join(" ")}</span>
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
-            {t.subtitle}
-          </p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 tracking-tight leading-tight hero-title-line">
+              {t.title.split(" ")[0]}{" "}
+              <span className="text-gradient-animated">{t.title.split(" ").slice(1).join(" ")}</span>
+            </h1>
+            <p className="hero-description text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
+              {t.subtitle}
+            </p>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -164,10 +168,11 @@ export default async function ProyectosPage() {
       )}
 
       {/* Testimonial */}
-      <section className="w-full py-16 bg-[var(--bg-darker)] border-t border-white/5">
+      <section className="w-full py-16 relative section-dots">
+        <div className="divider-glow absolute top-0 left-0 right-0" />
         <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="p-8 rounded-2xl bg-glass border border-white/5">
+          <ScrollReveal className="max-w-2xl mx-auto text-center">
+            <div className="card-premium-green p-8">
               <p className="text-sm md:text-base text-gray-400 italic mb-3 leading-relaxed">
                 {t.testimonial}
               </p>
@@ -175,7 +180,7 @@ export default async function ProyectosPage() {
                 {t.testimonialAuthor}
               </p>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
     </main>

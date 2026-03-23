@@ -43,7 +43,7 @@ export default function NoticiasGridClient({ articles, lang, isAdmin, t }: Notic
           visibleArticles.map((article) => (
             <article
               key={article.id}
-              className="group bg-glass rounded-2xl border border-white/5 overflow-hidden flex flex-col hover:border-[var(--accent-cyan)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_40px_-15px_rgba(0,186,224,0.1)]"
+              className="group card-premium overflow-hidden flex flex-col"
             >
               <div className="relative h-48 bg-gray-900 w-full overflow-hidden">
                 <NoticiaImage src={article.img_url} alt={article.title} />
@@ -104,7 +104,7 @@ export default function NoticiasGridClient({ articles, lang, isAdmin, t }: Notic
           <button
             type="button"
             onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+            className="btn-glass px-6 py-3 text-sm font-semibold text-white"
           >
             {t.loadMore}
           </button>

@@ -77,7 +77,7 @@ export default function ContactForm() {
   }
 
   return (
-    <div className="bg-glass p-5 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl border border-white/10 relative overflow-hidden">
+    <div className="card-premium p-5 sm:p-8 md:p-10 relative overflow-hidden">
        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[var(--accent-cyan)]/10 to-transparent blur-[60px] -z-10 pointer-events-none"></div>
       <h3 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6 flex items-center gap-3">
         <MessageSquare className="text-[var(--accent-green)]" />
@@ -108,7 +108,7 @@ export default function ContactForm() {
               id="name" 
               name="name"
               required
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-all"
+              className="w-full input-premium"
               placeholder={t.fullNamePh}
             />
           </div>
@@ -118,7 +118,7 @@ export default function ContactForm() {
               type="text" 
               id="company" 
               name="company"
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-all"
+              className="w-full input-premium"
               placeholder={t.companyPh}
             />
           </div>
@@ -131,7 +131,7 @@ export default function ContactForm() {
             id="email" 
             name="email"
             required
-            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-all"
+            className="w-full input-premium"
             placeholder={t.emailPh}
           />
         </div>
@@ -141,7 +141,7 @@ export default function ContactForm() {
           <select 
             id="topic" 
             name="topic"
-            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-all appearance-none"
+            className="w-full input-premium appearance-none"
           >
             <option value="" className="bg-gray-900 text-gray-400">{t.topicPlaceholder}</option>
             <option value="sales" className="bg-gray-900">{t.sales}</option>
@@ -158,7 +158,7 @@ export default function ContactForm() {
             name="message"
             required
             rows={4}
-            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-all resize-none"
+            className="w-full input-premium resize-none"
             placeholder={t.messagePh}
           ></textarea>
         </div>
@@ -167,7 +167,7 @@ export default function ContactForm() {
           <button 
             type="submit" 
             disabled={loading || success}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-green)] text-black font-bold text-lg py-4 rounded-xl shadow-[0_0_20px_rgba(0,186,224,0.3)] hover:shadow-[0_0_30px_rgba(0,186,224,0.5)] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full btn-glow flex items-center justify-center gap-2 font-bold text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? t.sending : t.submit}
           </button>
