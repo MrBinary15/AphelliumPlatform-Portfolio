@@ -220,31 +220,31 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
   }), [allMeetings]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in-up">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center border border-cyan-500/20">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center border border-cyan-500/15 shadow-lg shadow-cyan-500/5">
               <Video className="text-[var(--accent-cyan)]" size={22} />
             </div>
             Reuniones
           </h1>
           <p className="text-gray-400 mt-1.5 text-sm">Gestiona videollamadas, llamadas de audio y reuniones programadas</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2.5">
           {(stats.finished > 0 || allMeetings.some((m) => m.status === "cancelled")) && (
             <button
               onClick={handleCleanupFinished}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.06] hover:border-white/10 transition-all text-sm active:scale-95"
               title="Eliminar reuniones finalizadas y canceladas"
             >
-              <Trash2 size={16} /> Limpiar
+              <Trash2 size={16} /> <span className="hidden sm:inline">Limpiar</span>
             </button>
           )}
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:brightness-110 transition-all text-sm shadow-lg shadow-cyan-500/20"
+            className="btn-premium flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:brightness-110 transition-all text-sm shadow-lg shadow-cyan-500/20 active:scale-95"
           >
             <Plus size={18} /> Nueva Reunión
           </button>
@@ -252,35 +252,41 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 stagger-children">
         {[
-          { label: "Total", value: stats.total, icon: Video, gradient: "from-cyan-500/10 to-cyan-600/5", iconColor: "text-cyan-400", border: "border-cyan-500/10" },
-          { label: "Programadas", value: stats.planned, icon: Calendar, gradient: "from-blue-500/10 to-blue-600/5", iconColor: "text-blue-400", border: "border-blue-500/10" },
-          { label: "En curso", value: stats.active, icon: Play, gradient: "from-green-500/10 to-green-600/5", iconColor: "text-green-400", border: "border-green-500/10" },
-          { label: "Finalizadas", value: stats.finished, icon: Clock, gradient: "from-gray-500/10 to-gray-600/5", iconColor: "text-gray-400", border: "border-gray-500/10" },
+          { label: "Total", value: stats.total, icon: Video, gradient: "from-cyan-500/8 to-cyan-600/3", iconColor: "text-cyan-400", border: "border-cyan-500/8", glow: "shadow-cyan-500/5" },
+          { label: "Programadas", value: stats.planned, icon: Calendar, gradient: "from-blue-500/8 to-blue-600/3", iconColor: "text-blue-400", border: "border-blue-500/8", glow: "shadow-blue-500/5" },
+          { label: "En curso", value: stats.active, icon: Play, gradient: "from-green-500/8 to-green-600/3", iconColor: "text-green-400", border: "border-green-500/8", glow: "shadow-green-500/5" },
+          { label: "Finalizadas", value: stats.finished, icon: Clock, gradient: "from-gray-500/8 to-gray-600/3", iconColor: "text-gray-400", border: "border-gray-500/8", glow: "shadow-gray-500/5" },
         ].map((s) => (
-          <div key={s.label} className={`bg-gradient-to-br ${s.gradient} rounded-xl border ${s.border} p-4 transition-all hover:scale-[1.02]`}>
-            <div className="flex items-center gap-2 mb-2">
-              <s.icon size={16} className={s.iconColor} />
+          <div key={s.label} className={`animate-fade-in-up bg-gradient-to-br ${s.gradient} rounded-2xl border ${s.border} p-4 transition-all duration-300 hover:scale-[1.03] hover:shadow-lg ${s.glow}`}>
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <div className={`w-8 h-8 rounded-xl ${s.gradient.replace('from-', 'bg-gradient-to-br from-').replace('/8', '/15').replace('/3', '/8')} flex items-center justify-center`}>
+                <s.icon size={15} className={s.iconColor} />
+              </div>
               <span className="text-xs text-gray-400 font-medium">{s.label}</span>
             </div>
-            <p className="text-2xl font-bold text-white">{s.value}</p>
+            <p className="text-3xl font-bold text-white tabular-nums">{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Invitaciones pendientes */}
       {invitations.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
-            <Phone size={16} /> Llamadas / invitaciones pendientes
+        <div className="glass-card rounded-2xl p-4 border-amber-500/15 animate-fade-in-up">
+          <h3 className="text-sm font-semibold text-amber-300 mb-3 flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Phone size={13} className="text-amber-400" />
+            </div>
+            Llamadas / invitaciones pendientes
+            <span className="ml-auto text-[10px] text-amber-400/60 bg-amber-500/10 px-2 py-0.5 rounded-full">{invitations.length}</span>
           </h3>
           <div className="space-y-2">
             {invitations.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between bg-black/20 rounded-lg p-3 border border-white/5">
+              <div key={inv.id} className="flex items-center justify-between bg-white/[0.02] rounded-xl p-3.5 border border-white/[0.04] hover:bg-white/[0.04] transition-all">
                 <div>
                   <p className="text-sm font-medium text-white">{inv.meetings?.title}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500 mt-0.5">
                     {inv.meetings?.scheduled_at
                       ? new Date(inv.meetings.scheduled_at).toLocaleString("es-ES")
                       : "Llamada directa"}
@@ -289,13 +295,13 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleRespondInvitation(inv.id, true)}
-                    className="flex items-center gap-1 px-4 py-2 rounded-xl bg-green-500/20 text-green-400 text-xs font-semibold hover:bg-green-500/30 border border-green-500/20 transition-all"
+                    className="btn-premium flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-500/15 text-green-400 text-xs font-semibold hover:bg-green-500/25 border border-green-500/15 transition-all active:scale-95"
                   >
                     <Phone size={12} /> Aceptar
                   </button>
                   <button
                     onClick={() => handleRespondInvitation(inv.id, false)}
-                    className="px-3 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-all"
+                    className="px-3.5 py-2 rounded-xl bg-red-500/8 text-red-400 text-xs font-medium hover:bg-red-500/15 border border-red-500/10 transition-all active:scale-95"
                   >
                     Rechazar
                   </button>
@@ -307,15 +313,15 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
       )}
 
       {/* Filtros */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+      <div className="flex flex-col sm:flex-row gap-3 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+        <div className="relative flex-1 group">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
           <input
             type="text"
             placeholder="Buscar reuniones..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/40 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/30 focus:shadow-[0_0_20px_rgba(6,182,212,0.05)] transition-all"
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -323,9 +329,9 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`shrink-0 px-4 py-2 rounded-xl text-xs font-medium border transition-all ${filter === f
-                ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-sm shadow-cyan-500/10"
-                : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"
+              className={`shrink-0 px-4 py-2 rounded-2xl text-xs font-medium border transition-all duration-200 active:scale-95 ${filter === f
+                ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/20 shadow-sm shadow-cyan-500/10"
+                : "bg-white/[0.02] text-gray-400 border-white/[0.06] hover:bg-white/[0.05] hover:text-gray-300"
               }`}
             >
               {f === "all" ? "Todas" : STATUS_LABELS[f].label}
@@ -335,14 +341,14 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
       </div>
 
       {/* Lista de reuniones */}
-      <div className="space-y-3">
+      <div className="space-y-3 stagger-children">
         {sortedMeetings.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
-              <Video size={28} className="opacity-30" />
+          <div className="text-center py-20 text-gray-400 animate-fade-in-up">
+            <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-5">
+              <Video size={32} className="opacity-20" />
             </div>
-            <p className="text-lg font-medium">No hay reuniones</p>
-            <p className="text-sm mt-1 text-gray-500">Crea una nueva reunión para comenzar</p>
+            <p className="text-lg font-semibold text-gray-300">No hay reuniones</p>
+            <p className="text-sm mt-1.5 text-gray-500">Crea una nueva reunión para comenzar</p>
           </div>
         ) : (
           sortedMeetings.map((meeting) => {
@@ -360,38 +366,38 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
             return (
               <div
                 key={meeting.id}
-                className={`rounded-xl border transition-all ${
+                className={`group/card rounded-2xl border transition-all duration-300 animate-fade-in-up ${
                   isActive
-                    ? "bg-gradient-to-r from-green-500/5 to-cyan-500/5 border-green-500/20 shadow-lg shadow-green-500/5"
-                    : "bg-white/[0.03] border-white/10 hover:border-white/20"
+                    ? "bg-gradient-to-br from-green-500/[0.06] via-emerald-500/[0.03] to-cyan-500/[0.06] border-green-500/25 shadow-lg shadow-green-500/[0.08] hover:shadow-xl hover:shadow-green-500/[0.12]"
+                    : "bg-white/[0.02] border-white/[0.07] hover:bg-white/[0.04] hover:border-white/[0.14] hover:shadow-lg hover:shadow-black/20"
                 }`}
               >
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-                        <h3 className="text-lg font-semibold text-white truncate">{meeting.title}</h3>
-                        <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${status.bg} ${status.color}`}>
+                      <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                        <h3 className="text-lg font-bold text-white truncate group-hover/card:text-cyan-50 transition-colors">{meeting.title}</h3>
+                        <span className={`shrink-0 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border backdrop-blur-sm ${status.bg} ${status.color}`}>
                           {isActive && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse mr-1 align-middle" />}
                           {status.label}
                         </span>
                         {isHost && (
-                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20">
+                          <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20">
                             Anfitrión
                           </span>
                         )}
                         {isCoHost && (
-                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20">
+                          <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20">
                             Co-anfitrión
                           </span>
                         )}
                         {meeting.is_public && (
-                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                          <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
                             <Globe size={8} className="inline mr-0.5" /> Pública
                           </span>
                         )}
                         {meeting.is_locked && (
-                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20">
+                          <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20">
                             <Lock size={8} className="inline mr-0.5" /> Privada
                           </span>
                         )}
@@ -399,16 +405,16 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       {meeting.description && (
                         <p className="text-sm text-gray-400 line-clamp-1 mt-1">{meeting.description}</p>
                       )}
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 flex-wrap">
-                        <span className="flex items-center gap-1 font-mono text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded" title={`ID: ${meeting.slug}`}>
+                      <div className="flex items-center gap-4 mt-2.5 text-xs text-gray-500 flex-wrap">
+                        <span className="flex items-center gap-1 font-mono text-[10px] text-gray-500 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.06]" title={`ID: ${meeting.slug}`}>
                           #{shortId}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Users size={11} /> {hostName}
+                        <span className="flex items-center gap-1.5">
+                          <Users size={11} className="text-gray-600" /> {hostName}
                         </span>
                         {meeting.scheduled_at && (
-                          <span className="flex items-center gap-1">
-                            <Calendar size={12} />
+                          <span className="flex items-center gap-1.5">
+                            <Calendar size={12} className="text-gray-600" />
                             {new Date(meeting.scheduled_at).toLocaleString("es-ES", {
                               day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
                             })}
@@ -425,10 +431,10 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       {canJoin && (
                         <button
                           onClick={() => router.push(`/admin/reuniones/sala/${meeting.slug}`)}
-                          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg ${
+                          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200 shadow-lg active:scale-95 ${
                             isActive
-                              ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-green-500/20 hover:brightness-110"
-                              : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-cyan-500/20 hover:brightness-110"
+                              ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 hover:brightness-110"
+                              : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/30 hover:brightness-110"
                           }`}
                         >
                           {isActive ? <Phone size={16} /> : <Video size={16} />}
@@ -437,7 +443,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       )}
                       <button
                         onClick={() => handleCopyLink(meeting.slug, meeting.id)}
-                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                        className="p-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 active:scale-90"
                         title="Copiar enlace"
                       >
                         {copiedId === meeting.id ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
@@ -447,7 +453,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       {canManage && isActive && (
                         <button
                           onClick={() => handleEnd(meeting.id)}
-                          className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all"
+                          className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all duration-200 active:scale-90"
                           title="Finalizar reunión"
                         >
                           <StopCircle size={16} />
@@ -458,7 +464,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       {canManage && (isAdmin || meeting.status === "finished" || meeting.status === "cancelled") && (
                         <button
                           onClick={() => handleDelete(meeting.id)}
-                          className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+                          className="p-2.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all duration-200 active:scale-90"
                           title="Eliminar reunión"
                         >
                           <Trash2 size={16} />
@@ -468,12 +474,12 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       {canManage && (
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : meeting.id)}
-                          className={`p-2.5 rounded-xl border transition-all ${
-                            isExpanded ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10"
+                          className={`p-2.5 rounded-2xl border transition-all duration-200 active:scale-90 ${
+                            isExpanded ? "bg-white/10 border-white/20 text-white shadow-inner" : "bg-white/[0.04] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.08]"
                           }`}
                           title="Opciones"
                         >
-                          <Settings2 size={16} />
+                          <Settings2 size={16} className={`transition-transform duration-300 ${isExpanded ? "rotate-90" : ""}`} />
                         </button>
                       )}
                     </div>
@@ -482,17 +488,17 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
 
                 {/* Expanded management panel */}
                 {isExpanded && canManage && (
-                  <div className="px-4 sm:px-5 pb-4 border-t border-white/5">
+                  <div className="px-4 sm:px-5 pb-4 border-t border-white/[0.05] animate-fade-in-up">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
                       <button
                         onClick={() => setShowInviteFor(showInviteFor === meeting.id ? null : meeting.id)}
-                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 transition-all"
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-xs font-medium text-gray-300 hover:bg-white/[0.07] hover:border-cyan-500/20 transition-all duration-200 active:scale-95"
                       >
-                        <UserPlus size={14} /> Invitar
+                        <UserPlus size={14} className="text-cyan-400" /> Invitar
                       </button>
                       <button
                         onClick={() => handleTogglePublic(meeting.id, meeting.is_public)}
-                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 transition-all"
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-xs font-medium text-gray-300 hover:bg-white/[0.07] transition-all duration-200 active:scale-95"
                       >
                         {meeting.is_public ? <Shield size={14} className="text-red-400" /> : <Globe size={14} className="text-green-400" />}
                         {meeting.is_public ? "Hacer privada" : "Hacer pública"}
@@ -500,7 +506,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       {canJoin && (
                         <button
                           onClick={() => handleCancel(meeting.id)}
-                          className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-500/10 text-xs text-red-400 hover:bg-red-500/10 transition-all"
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-red-500/[0.06] border border-red-500/[0.12] text-xs font-medium text-red-400 hover:bg-red-500/[0.12] transition-all duration-200 active:scale-95"
                         >
                           <XCircle size={14} /> Cancelar
                         </button>
@@ -508,7 +514,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       {(isAdmin || meeting.status === "finished" || meeting.status === "cancelled") && (
                         <button
                           onClick={() => handleDelete(meeting.id)}
-                          className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-500/10 text-xs text-red-400 hover:bg-red-500/10 transition-all"
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-red-500/[0.06] border border-red-500/[0.12] text-xs font-medium text-red-400 hover:bg-red-500/[0.12] transition-all duration-200 active:scale-95"
                         >
                           <Trash2 size={14} /> Eliminar
                         </button>
@@ -517,19 +523,19 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
 
                     {/* Invite dropdown */}
                     {showInviteFor === meeting.id && (
-                      <div className="mt-3 pt-3 border-t border-white/5">
-                        <p className="text-xs text-gray-400 mb-2">Invitar miembros del equipo:</p>
+                      <div className="mt-3 pt-3 border-t border-white/[0.05] animate-fade-in-up">
+                        <p className="text-xs text-gray-400 mb-2.5 font-medium">Invitar miembros del equipo:</p>
                         <div className="flex flex-wrap gap-2">
                           {teamMembers.map((member) => (
                             <button
                               key={member.id}
                               disabled={inviting}
                               onClick={() => handleInvite(meeting.id, member.id)}
-                              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 hover:border-cyan-500/20 disabled:opacity-50 transition-all"
+                              className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-xs text-gray-300 hover:bg-white/[0.07] hover:border-cyan-500/25 disabled:opacity-40 transition-all duration-200 active:scale-95"
                             >
-                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center text-[10px] font-bold text-white border border-white/10">
+                              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center text-[10px] font-bold text-white border border-white/10 overflow-hidden">
                                 {member.avatar_url ? (
-                                  <img src={member.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                                  <img src={member.avatar_url} alt="" className="w-full h-full rounded-xl object-cover" />
                                 ) : (
                                   (member.full_name || "?")[0].toUpperCase()
                                 )}
@@ -550,25 +556,25 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
 
       {/* Modal Crear Reunión */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-          <div className="w-full max-w-lg my-4 sm:my-6 bg-[#0a0f1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-2rem)]">
-            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-600/10 px-6 py-4 border-b border-white/5">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                  <Video className="text-cyan-400" size={18} />
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-md p-3 sm:p-4 overflow-y-auto animate-fade-in-up">
+          <div className="w-full max-w-lg my-4 sm:my-6 bg-gradient-to-b from-[#0c1220] to-[#080d18] border border-white/[0.08] rounded-3xl overflow-hidden shadow-2xl shadow-black/40 flex flex-col max-h-[calc(100dvh-2rem)]">
+            <div className="bg-gradient-to-r from-cyan-500/[0.08] to-blue-600/[0.08] px-6 py-5 border-b border-white/[0.05]">
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center border border-cyan-500/20">
+                  <Video className="text-cyan-400" size={20} />
                 </div>
                 Nueva Reunión
               </h2>
-              <p className="text-xs text-gray-400 mt-1">Crea una videollamada o reunión programada</p>
+              <p className="text-xs text-gray-400 mt-1.5 ml-[52px]">Crea una videollamada o reunión programada</p>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-scroll pr-2 flex-1 min-h-0" style={{ scrollbarGutter: "stable" }}>
+            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-scroll pr-2 flex-1 min-h-0 meeting-scrollbar" style={{ scrollbarGutter: "stable" }}>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Título *</label>
                 <input
                   name="title"
                   required
                   maxLength={200}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/40 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.08)] transition-all duration-200"
                   placeholder="Ej: Revisión semanal del equipo"
                 />
               </div>
@@ -578,7 +584,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                   name="description"
                   rows={2}
                   maxLength={500}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 resize-none transition-colors"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/40 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.08)] resize-none transition-all duration-200"
                   placeholder="Opcional: agenda o descripción"
                 />
               </div>
@@ -588,14 +594,14 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                   <input
                     name="scheduled_at"
                     type="datetime-local"
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:border-cyan-500/40 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.08)] transition-all duration-200"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">Co-anfitrión</label>
                   <select
                     name="co_host_id"
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:border-cyan-500/40 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.08)] transition-all duration-200"
                   >
                     <option value="">Ninguno</option>
                     {teamMembers.map((m) => (
@@ -608,37 +614,37 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
               </div>
 
               {/* Visibility: Public / Private */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
                 <label className="block text-sm font-medium text-gray-300 mb-2.5">Visibilidad</label>
                 <input type="hidden" name="is_public" value={createPublic ? "1" : ""} />
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setCreatePublic(true)}
-                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all text-left ${
+                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 text-left ${
                       createPublic
-                        ? "border-emerald-500/40 bg-emerald-500/5"
-                        : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                        ? "border-emerald-500/40 bg-emerald-500/[0.06] shadow-lg shadow-emerald-500/[0.06]"
+                        : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"
                     }`}
                   >
                     <Eye size={16} className={createPublic ? "text-emerald-400 mt-0.5" : "text-gray-500 mt-0.5"} />
                     <div>
-                      <p className="text-sm font-medium text-white">Pública</p>
+                      <p className="text-sm font-semibold text-white">Pública</p>
                       <p className="text-[10px] text-gray-500 mt-0.5">Cualquier miembro del equipo puede ver y unirse.</p>
                     </div>
                   </button>
                   <button
                     type="button"
                     onClick={() => setCreatePublic(false)}
-                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all text-left ${
+                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 text-left ${
                       !createPublic
-                        ? "border-amber-500/40 bg-amber-500/5"
-                        : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                        ? "border-amber-500/40 bg-amber-500/[0.06] shadow-lg shadow-amber-500/[0.06]"
+                        : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"
                     }`}
                   >
                     <EyeOff size={16} className={!createPublic ? "text-amber-400 mt-0.5" : "text-gray-500 mt-0.5"} />
                     <div>
-                      <p className="text-sm font-medium text-white">Privada</p>
+                      <p className="text-sm font-semibold text-white">Privada</p>
                       <p className="text-[10px] text-gray-500 mt-0.5">Solo invitados y el anfitrión pueden acceder.</p>
                     </div>
                   </button>
@@ -646,7 +652,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
               </div>
 
               {/* Access code */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between mb-2.5">
                   <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
                     <KeyRound size={14} className="text-gray-400" /> Código de acceso
@@ -660,9 +666,9 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                         setGeneratedCodePreview((prev) => prev || generateAccessCode());
                       }
                     }}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${requireCode ? "bg-cyan-500" : "bg-white/10"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${requireCode ? "bg-cyan-500" : "bg-white/10"}`}
                   >
-                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${requireCode ? "translate-x-5" : ""}`} />
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${requireCode ? "translate-x-5" : ""}`} />
                   </button>
                 </div>
                 <input type="hidden" name="require_code" value={requireCode ? "1" : ""} />
@@ -670,7 +676,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                   <input type="hidden" name="access_code" value={generatedCodePreview} />
                 )}
                 {requireCode && (
-                  <div className="space-y-3 mt-3 pt-3 border-t border-white/5">
+                  <div className="space-y-3 mt-3 pt-3 border-t border-white/[0.05]">
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
@@ -679,10 +685,10 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                           setCustomCode("");
                           setGeneratedCodePreview((prev) => prev || generateAccessCode());
                         }}
-                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all duration-200 ${
                           codeMode === "random"
                             ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-400"
-                            : "border-white/10 bg-white/[0.02] text-gray-400 hover:border-white/20"
+                            : "border-white/[0.08] bg-white/[0.02] text-gray-400 hover:border-white/[0.15]"
                         }`}
                       >
                         <Shuffle size={12} /> Aleatorio
@@ -690,24 +696,24 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                       <button
                         type="button"
                         onClick={() => setCodeMode("custom")}
-                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all duration-200 ${
                           codeMode === "custom"
                             ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-400"
-                            : "border-white/10 bg-white/[0.02] text-gray-400 hover:border-white/20"
+                            : "border-white/[0.08] bg-white/[0.02] text-gray-400 hover:border-white/[0.15]"
                         }`}
                       >
                         <KeyRound size={12} /> Personalizado
                       </button>
                     </div>
                     {codeMode === "random" ? (
-                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3.5 py-2.5">
                         <p className="text-[11px] text-gray-400 mb-1">Código que se usará al crear:</p>
                         <div className="flex items-center justify-between gap-2">
-                          <p className="font-mono tracking-widest text-amber-300 text-sm">{generatedCodePreview || "------"}</p>
+                          <p className="font-mono tracking-widest text-amber-300 text-sm font-bold">{generatedCodePreview || "------"}</p>
                           <button
                             type="button"
                             onClick={() => setGeneratedCodePreview(generateAccessCode())}
-                            className="text-[10px] text-amber-300/90 hover:text-amber-200"
+                            className="text-[10px] text-amber-300/90 hover:text-amber-200 transition-colors"
                           >
                             Regenerar
                           </button>
@@ -721,7 +727,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                         maxLength={20}
                         minLength={4}
                         placeholder="Escribe el código (4-20 caracteres)"
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-mono tracking-widest placeholder:text-gray-500 placeholder:tracking-normal placeholder:font-sans focus:outline-none focus:border-cyan-500/50 transition-colors"
+                        className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white text-sm font-mono tracking-widest placeholder:text-gray-500 placeholder:tracking-normal placeholder:font-sans focus:outline-none focus:border-cyan-500/40 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.08)] transition-all duration-200"
                       />
                     )}
                   </div>
@@ -731,7 +737,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                 )}
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between mb-2.5">
                   <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
                     <Shield size={14} className="text-gray-400" /> Aprobación de ingreso
@@ -739,9 +745,9 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                   <button
                     type="button"
                     onClick={() => setRequireApproval(!requireApproval)}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${requireApproval ? "bg-cyan-500" : "bg-white/10"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${requireApproval ? "bg-cyan-500" : "bg-white/10"}`}
                   >
-                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${requireApproval ? "translate-x-5" : ""}`} />
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${requireApproval ? "translate-x-5" : ""}`} />
                   </button>
                 </div>
                 <input type="hidden" name="require_approval" value={requireApproval ? "1" : ""} />
@@ -753,29 +759,29 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
               </div>
 
               {/* Quick feature indicators */}
-              <div className="flex items-center gap-3 py-2 text-[10px] text-gray-500">
-                <span className="flex items-center gap-1"><Mic size={10} /> Audio</span>
-                <span className="flex items-center gap-1"><Camera size={10} /> Video</span>
-                <span className="flex items-center gap-1"><MonitorUp size={10} /> Pantalla</span>
-                <span className="flex items-center gap-1"><Users size={10} /> Chat</span>
-                <span className="text-gray-600">— incluido por defecto</span>
+              <div className="flex items-center gap-3 py-2.5 px-3 rounded-2xl bg-white/[0.02] border border-white/[0.05] text-[10px] text-gray-500">
+                <span className="flex items-center gap-1"><Mic size={10} className="text-gray-600" /> Audio</span>
+                <span className="flex items-center gap-1"><Camera size={10} className="text-gray-600" /> Video</span>
+                <span className="flex items-center gap-1"><MonitorUp size={10} className="text-gray-600" /> Pantalla</span>
+                <span className="flex items-center gap-1"><Users size={10} className="text-gray-600" /> Chat</span>
+                <span className="text-gray-600 ml-auto">incluido por defecto</span>
               </div>
 
               {/* Connection type */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
                 <label className="block text-sm font-medium text-gray-300 mb-2.5">Tipo de conexión</label>
                 <div className="grid grid-cols-2 gap-3">
-                  <label className="flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.02] cursor-pointer hover:border-white/20 transition-all has-[:checked]:border-cyan-500/40 has-[:checked]:bg-cyan-500/5">
+                  <label className="flex items-start gap-3 p-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.02] cursor-pointer hover:border-white/[0.15] transition-all duration-200 has-[:checked]:border-cyan-500/40 has-[:checked]:bg-cyan-500/[0.06] has-[:checked]:shadow-lg has-[:checked]:shadow-cyan-500/[0.06]">
                     <input type="radio" name="use_metered" value="" defaultChecked className="mt-1 accent-cyan-500" />
                     <div>
-                      <p className="text-sm font-medium text-white">Normal (P2P)</p>
+                      <p className="text-sm font-semibold text-white">Normal (P2P)</p>
                       <p className="text-[10px] text-gray-500 mt-0.5">Conexión directa. Funciona bien en redes abiertas.</p>
                     </div>
                   </label>
-                  <label className="flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.02] cursor-pointer hover:border-blue-500/20 transition-all has-[:checked]:border-blue-500/40 has-[:checked]:bg-blue-500/5">
+                  <label className="flex items-start gap-3 p-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.02] cursor-pointer hover:border-blue-500/20 transition-all duration-200 has-[:checked]:border-blue-500/40 has-[:checked]:bg-blue-500/[0.06] has-[:checked]:shadow-lg has-[:checked]:shadow-blue-500/[0.06]">
                     <input type="radio" name="use_metered" value="1" className="mt-1 accent-blue-500" />
                     <div>
-                      <p className="text-sm font-medium text-white flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-white flex items-center gap-1.5">
                         <Globe size={12} className="text-blue-400" /> Metered
                       </p>
                       <p className="text-[10px] text-gray-500 mt-0.5">Usa servidor TURN. Mejor conexión en redes restrictivas.</p>
@@ -785,7 +791,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
               </div>
 
               {createError && (
-                <div className="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                <div className="px-4 py-3 rounded-2xl bg-red-500/[0.08] border border-red-500/20 text-red-400 text-xs font-medium">
                   {createError}
                 </div>
               )}
@@ -794,7 +800,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:brightness-110 disabled:opacity-50 transition-all text-sm shadow-lg shadow-cyan-500/20"
+                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:brightness-110 disabled:opacity-50 transition-all duration-200 text-sm shadow-lg shadow-cyan-500/25 active:scale-[0.98]"
                 >
                   {creating ? "Creando..." : "Crear Reunión"}
                 </button>
@@ -809,7 +815,7 @@ export default function ReunionesClient({ initialMeetings, invitations, particip
                     setGeneratedCodePreview("");
                     setRequireApproval(false);
                   }}
-                  className="px-6 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 transition-colors text-sm"
+                  className="px-6 py-3 rounded-2xl border border-white/[0.08] text-gray-300 hover:bg-white/[0.05] transition-all duration-200 text-sm font-medium"
                 >
                   Cancelar
                 </button>

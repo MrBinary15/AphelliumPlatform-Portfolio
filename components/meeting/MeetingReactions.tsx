@@ -105,7 +105,15 @@ export function useReactions({ meetingId, currentUserId, currentUserName }: Prop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, currentUserId, currentUserName, myHandRaised]);
 
-  return { floating, handRaisedUsers, myHandRaised, sendReaction, toggleHandRaise, REACTION_EMOJIS };
+  const clearUserHandRaise = useCallback((userId: string) => {
+    setHandRaisedUsers((prev) => {
+      const next = new Map(prev);
+      next.delete(userId);
+      return next;
+    });
+  }, []);
+
+  return { floating, handRaisedUsers, myHandRaised, sendReaction, toggleHandRaise, clearUserHandRaise, REACTION_EMOJIS };
 }
 
 /* Floating reactions overlay — renders the rising emoji bubbles */
@@ -119,9 +127,9 @@ export function FloatingReactions({ reactions }: { reactions: FloatingEmoji[] })
           style={{ left: `${r.left}%` }}
         >
           <div className="flex flex-col items-center">
-            <span className="text-3xl drop-shadow-lg">{r.emoji}</span>
+            <span className="text-4xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">{r.emoji}</span>
             {r.userName && (
-              <span className="text-[9px] text-white/60 bg-black/40 rounded-full px-1.5 mt-0.5">{r.userName}</span>
+              <span className="text-[9px] text-white/70 bg-black/50 backdrop-blur-sm rounded-xl px-2 py-0.5 mt-1 font-medium border border-white/[0.06]">{r.userName}</span>
             )}
           </div>
         </div>
@@ -129,12 +137,13 @@ export function FloatingReactions({ reactions }: { reactions: FloatingEmoji[] })
 
       <style>{`
         @keyframes floatUp {
-          0% { opacity: 1; transform: translateY(0) scale(1); }
-          70% { opacity: 0.8; transform: translateY(-200px) scale(1.2); }
-          100% { opacity: 0; transform: translateY(-350px) scale(0.8); }
+          0% { opacity: 1; transform: translateY(0) scale(0.6); }
+          15% { opacity: 1; transform: translateY(-30px) scale(1.3); }
+          70% { opacity: 0.7; transform: translateY(-220px) scale(1.1); }
+          100% { opacity: 0; transform: translateY(-380px) scale(0.7); }
         }
         .animate-float-up {
-          animation: floatUp 3s ease-out forwards;
+          animation: floatUp 3s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
         }
       `}</style>
     </div>
@@ -146,9 +155,9 @@ export function HandRaiseBanner({ users }: { users: Map<string, string> }) {
   if (users.size === 0) return null;
   const names = Array.from(users.values());
   return (
-    <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 backdrop-blur-sm animate-pulse">
-      <span className="text-lg">✋</span>
-      <span className="text-xs text-amber-300 font-medium">
+    <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/15 border border-amber-500/25 backdrop-blur-md shadow-lg shadow-amber-500/[0.08] animate-fade-in-down">
+      <span className="text-xl animate-bounce">✋</span>
+      <span className="text-xs text-amber-300 font-bold">
         {names.length === 1 ? `${names[0]} levantó la mano` : `${names.length} personas levantaron la mano`}
       </span>
     </div>
@@ -166,13 +175,13 @@ export function ReactionPicker({
   onClose: () => void;
 }) {
   return (
-    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[#0a0f1a]/95 backdrop-blur-sm border border-white/10 rounded-2xl p-2 shadow-xl z-50">
+    <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-gradient-to-b from-[#0c1220]/98 to-[#080d18]/98 backdrop-blur-xl border border-white/[0.08] rounded-3xl p-2.5 shadow-2xl shadow-black/40 z-50 animate-fade-in-up">
       <div className="flex gap-1">
         {emojis.map((emoji) => (
           <button
             key={emoji}
             onClick={() => { onSelect(emoji); onClose(); }}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-xl transition-all hover:scale-125"
+            className="w-11 h-11 flex items-center justify-center rounded-2xl hover:bg-white/[0.08] text-xl transition-all duration-200 hover:scale-125 active:scale-90"
           >
             {emoji}
           </button>

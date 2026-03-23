@@ -239,12 +239,17 @@ export function useWebRTC({ roomId, userId, isInitiator, extraIceServers }: UseW
         setRemoteStream(remote);
 
         conn.ontrack = (e) => {
-          e.streams[0]?.getTracks().forEach((t) => {
-            if (!remote.getTracks().find((rt) => rt.id === t.id)) {
-              remote.addTrack(t);
-            }
-          });
+          // Use e.track directly — e.streams[0] can be empty in some browsers
+          const track = e.track;
+          if (!remote.getTracks().find((rt) => rt.id === track.id)) {
+            remote.addTrack(track);
+          }
           setRemoteStream(new MediaStream(remote.getTracks()));
+
+          // Re-publish stream state when tracks unmute or end
+          const refresh = () => setRemoteStream(new MediaStream(remote.getTracks()));
+          track.addEventListener("unmute", refresh);
+          track.addEventListener("ended", refresh);
         };
 
         conn.onicecandidate = async (e) => {

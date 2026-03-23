@@ -213,19 +213,30 @@ export default function MeetingChat({ meetingId, currentUserId, currentUserName,
   if (!visible) return null;
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0f1a]/95 backdrop-blur-sm border-l border-white/10">
+    <div className="flex flex-col h-full bg-gradient-to-b from-[#0c1220]/98 to-[#080d18]/98 backdrop-blur-md border-l border-white/[0.06]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <h3 className="text-sm font-semibold text-white">Chat de reunión</h3>
-        <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">
+        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center border border-cyan-500/15">
+            <Send size={12} className="text-cyan-400" />
+          </div>
+          Chat de reunión
+        </h3>
+        <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-white/[0.08] text-gray-400 hover:text-white transition-all duration-200">
           <X size={16} />
         </button>
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 scrollbar-thin">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2 meeting-scrollbar">
         {messages.length === 0 && (
-          <p className="text-center text-gray-500 text-xs mt-8">No hay mensajes aún. ¡Escribe algo!</p>
+          <div className="text-center mt-12 animate-fade-in-up">
+            <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-3">
+              <Send size={18} className="text-gray-600" />
+            </div>
+            <p className="text-gray-500 text-xs">No hay mensajes aún</p>
+            <p className="text-gray-600 text-[10px] mt-0.5">¡Escribe algo!</p>
+          </div>
         )}
         {messages.map((msg) => {
           const isMine = msg.sender_id === currentUserId;
@@ -235,8 +246,8 @@ export default function MeetingChat({ meetingId, currentUserId, currentUserName,
 
           if (isSystem || isHandRaise) {
             return (
-              <div key={msg.id} className="text-center py-1">
-                <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">
+              <div key={msg.id} className="text-center py-1.5">
+                <span className="text-[10px] text-gray-500 bg-white/[0.04] px-3 py-1 rounded-xl border border-white/[0.04]">
                   {isHandRaise ? `✋ ${msg.sender_name} levantó la mano` : msg.content}
                 </span>
               </div>
@@ -249,42 +260,42 @@ export default function MeetingChat({ meetingId, currentUserId, currentUserName,
           }
 
           return (
-            <div key={msg.id} className={`flex gap-2 ${isMine ? "flex-row-reverse" : ""}`}>
+            <div key={msg.id} className={`flex gap-2.5 ${isMine ? "flex-row-reverse" : ""}`}>
               {!isMine && (
-                <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-1">
+                <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-1 border border-white/[0.08] overflow-hidden">
                   {msg.sender_avatar ? (
-                    <img src={msg.sender_avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    <img src={msg.sender_avatar} alt="" className="w-full h-full rounded-xl object-cover" />
                   ) : (
                     msg.sender_name[0]?.toUpperCase()
                   )}
                 </div>
               )}
               <div className={`max-w-[80%] ${isMine ? "items-end" : ""}`}>
-                {!isMine && <p className="text-[10px] text-gray-500 mb-0.5 px-1">{msg.sender_name}</p>}
+                {!isMine && <p className="text-[10px] text-gray-500 mb-0.5 px-1.5 font-medium">{msg.sender_name}</p>}
                 {isFile && fileInfo ? (
                   <a
                     href={fileInfo.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition-colors ${
-                      isMine ? "bg-cyan-600/20 text-cyan-300 hover:bg-cyan-600/30" : "bg-white/10 text-gray-200 hover:bg-white/15"
+                    className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs transition-all duration-200 border ${
+                      isMine ? "bg-cyan-600/15 text-cyan-300 hover:bg-cyan-600/25 border-cyan-500/15" : "bg-white/[0.06] text-gray-200 hover:bg-white/[0.1] border-white/[0.08]"
                     }`}
                   >
                     <FileIcon type={fileInfo.file_type || ""} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{fileInfo.file_name}</p>
+                      <p className="truncate font-semibold">{fileInfo.file_name}</p>
                       <p className="text-[10px] text-gray-400">{formatSize(fileInfo.file_size || 0)}</p>
                     </div>
-                    <Download size={14} className="shrink-0 opacity-60" />
+                    <Download size={14} className="shrink-0 opacity-50" />
                   </a>
                 ) : (
-                  <p className={`px-3 py-1.5 rounded-2xl text-xs leading-relaxed break-words ${
-                    isMine ? "bg-cyan-600/20 text-cyan-100 rounded-tr-sm" : "bg-white/10 text-gray-200 rounded-tl-sm"
+                  <p className={`px-3.5 py-2 rounded-2xl text-xs leading-relaxed break-words ${
+                    isMine ? "bg-gradient-to-br from-cyan-600/20 to-cyan-700/15 text-cyan-100 rounded-tr-md border border-cyan-500/10" : "bg-white/[0.06] text-gray-200 rounded-tl-md border border-white/[0.06]"
                   }`}>
                     {msg.content}
                   </p>
                 )}
-                <p className={`text-[9px] text-gray-600 mt-0.5 px-1 ${isMine ? "text-right" : ""}`}>
+                <p className={`text-[9px] text-gray-600 mt-0.5 px-1.5 ${isMine ? "text-right" : ""}`}>
                   {new Date(msg.created_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
@@ -295,12 +306,12 @@ export default function MeetingChat({ meetingId, currentUserId, currentUserName,
 
       {/* Emoji quick picker */}
       {showEmoji && (
-        <div className="px-3 py-2 border-t border-white/10 flex gap-1 flex-wrap">
+        <div className="px-3 py-2.5 border-t border-white/[0.06] flex gap-1.5 flex-wrap bg-white/[0.02] animate-fade-in-up">
           {EMOJI_QUICK.map((emoji) => (
             <button
               key={emoji}
               onClick={() => sendEmoji(emoji)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-lg transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/[0.08] hover:scale-110 text-lg transition-all duration-200"
             >
               {emoji}
             </button>
@@ -309,11 +320,11 @@ export default function MeetingChat({ meetingId, currentUserId, currentUserName,
       )}
 
       {/* Input bar */}
-      <div className="px-3 py-2 border-t border-white/10">
+      <div className="px-3 py-2.5 border-t border-white/[0.06] bg-white/[0.02]">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowEmoji(!showEmoji)}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+            className={`p-2 rounded-xl transition-all duration-200 ${showEmoji ? "bg-cyan-500/15 text-cyan-400" : "hover:bg-white/[0.08] text-gray-400 hover:text-white"}`}
             title="Emojis"
           >
             <Smile size={18} />
@@ -321,7 +332,7 @@ export default function MeetingChat({ meetingId, currentUserId, currentUserName,
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+            className="p-2 rounded-xl hover:bg-white/[0.08] text-gray-400 hover:text-white transition-all duration-200 disabled:opacity-40"
             title="Adjuntar archivo"
           >
             <Paperclip size={18} />
@@ -334,12 +345,12 @@ export default function MeetingChat({ meetingId, currentUserId, currentUserName,
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
             placeholder={uploading ? "Subiendo archivo..." : "Escribe un mensaje..."}
             disabled={uploading}
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/40 disabled:opacity-50"
+            className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-2.5 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/30 focus:shadow-[0_0_0_3px_rgba(6,182,212,0.06)] disabled:opacity-40 transition-all duration-200"
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || uploading}
-            className="p-1.5 rounded-lg bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/30 disabled:opacity-30 transition-colors"
+            className="p-2.5 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400 hover:from-cyan-500/30 hover:to-blue-500/30 disabled:opacity-25 transition-all duration-200 active:scale-90 border border-cyan-500/15"
             title="Enviar"
           >
             <Send size={16} />
