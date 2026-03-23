@@ -4,18 +4,27 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 function collectEditableElements(pathname: string): HTMLElement[] {
-  const nodes = Array.from(document.querySelectorAll<HTMLElement>("h1, h2, h3, h4, p"));
+  const nodes = Array.from(document.querySelectorAll<HTMLElement>("h1, h2, h3, h4, p, button, a, li, span"));
   const filtered = nodes.filter((el) => {
     if (el.closest("#admin-floating-panel")) return false;
     if (el.closest("[data-no-inline-edit='true']")) return false;
+    // Skip elements with no meaningful text or only whitespace
+    const text = (el.textContent || "").trim();
+    if (!text || text.length < 2) return false;
+    // Skip elements whose text is entirely from child elements already in the list
+    // (e.g. a <button> containing a <span> — keep the deepest text node)
+    if ((el.tagName === "SPAN" || el.tagName === "A" || el.tagName === "BUTTON") && el.children.length > 0) {
+      const childText = Array.from(el.children)
+        .map((c) => (c.textContent || "").trim())
+        .join("");
+      if (childText === text) return false;
+    }
     return true;
   });
 
-  const allowAutoKeys = pathname !== "/nosotros" && pathname !== "/";
   let autoIndex = 0;
   filtered.forEach((el) => {
     if (el.dataset.inlineEditKey && el.dataset.inlineEditKey.trim().length > 0) return;
-    if (!allowAutoKeys) return;
     el.dataset.inlineEditKey = `${pathname}:${autoIndex}`;
     autoIndex += 1;
   });

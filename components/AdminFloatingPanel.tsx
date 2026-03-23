@@ -356,19 +356,25 @@ export default function AdminFloatingPanel() {
 
   const getEditableElements = () => {
     const pathname = window.location.pathname || "/";
-    const nodes = Array.from(document.querySelectorAll("h1, h2, h3, h4, p"));
+    const nodes = Array.from(document.querySelectorAll("h1, h2, h3, h4, p, button, a, li, span"));
     const filtered = nodes.filter((el) => {
       const htmlEl = el as HTMLElement;
       if (htmlEl.closest("#admin-floating-panel")) return false;
       if (htmlEl.closest("[data-no-inline-edit='true']")) return false;
+      const text = (htmlEl.textContent || "").trim();
+      if (!text || text.length < 2) return false;
+      if ((htmlEl.tagName === "SPAN" || htmlEl.tagName === "A" || htmlEl.tagName === "BUTTON") && htmlEl.children.length > 0) {
+        const childText = Array.from(htmlEl.children)
+          .map((c) => (c.textContent || "").trim())
+          .join("");
+        if (childText === text) return false;
+      }
       return true;
     }) as HTMLElement[];
 
-    const allowAutoKeys = pathname !== "/nosotros" && pathname !== "/";
     let autoIndex = 0;
     filtered.forEach((el) => {
       if (el.dataset.inlineEditKey && el.dataset.inlineEditKey.trim().length > 0) return;
-      if (!allowAutoKeys) return;
       el.dataset.inlineEditKey = `${pathname}:${autoIndex}`;
       autoIndex += 1;
     });

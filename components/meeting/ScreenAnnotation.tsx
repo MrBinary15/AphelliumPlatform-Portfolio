@@ -162,22 +162,21 @@ export default function ScreenAnnotation({ meetingId, userId, enabled, onClose }
     pointsRef.current = [];
   }, [tool, color, width, broadcastDraw]);
 
-  if (!enabled) return null;
-
   return (
-    <div className="absolute inset-0 z-40">
+    <div className={`absolute inset-0 ${enabled ? "z-40" : "z-30 pointer-events-none"}`}>
       {/* Transparent drawing canvas */}
       <canvas
         ref={canvasRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        className="absolute inset-0 w-full h-full cursor-crosshair"
-        style={{ touchAction: "none" }}
+        onPointerDown={enabled ? handlePointerDown : undefined}
+        onPointerMove={enabled ? handlePointerMove : undefined}
+        onPointerUp={enabled ? handlePointerUp : undefined}
+        onPointerLeave={enabled ? handlePointerUp : undefined}
+        className={`absolute inset-0 w-full h-full ${enabled ? "cursor-crosshair" : ""}`}
+        style={{ touchAction: "none", pointerEvents: enabled ? "auto" : "none" }}
       />
 
-      {/* Toolbar */}
+      {/* Toolbar — only when local drawing is enabled */}
+      {enabled && (
       <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-[#0a0f1a]/90 backdrop-blur-sm border border-white/10 rounded-full px-3 py-1.5 shadow-xl">
         {/* Tools */}
         <button
@@ -239,6 +238,7 @@ export default function ScreenAnnotation({ meetingId, userId, enabled, onClose }
           <X size={14} />
         </button>
       </div>
+      )}
     </div>
   );
 }

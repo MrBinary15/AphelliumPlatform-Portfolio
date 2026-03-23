@@ -284,6 +284,11 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
             playLeaveSound();
             setPeerLeft(true);
 
+            // Clear frozen remote video
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = null;
+            }
+
             // Clear their hand raise
             clearUserHandRaise(updated.user_id);
 
@@ -600,8 +605,8 @@ export default function VideoRoomClient({ meeting, currentUserId, currentUserNam
             </>
           )}
 
-          {/* Screen annotation overlay */}
-          {annotationMode && allowAnnotations && (
+          {/* Screen annotation overlay — always mounted for receiving peer drawings */}
+          {allowAnnotations && (
             <ScreenAnnotation
               meetingId={meeting.id}
               userId={currentUserId}

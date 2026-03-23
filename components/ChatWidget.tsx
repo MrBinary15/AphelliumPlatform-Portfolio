@@ -1515,8 +1515,14 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
               {!isAuthenticated && visitorMode !== "menu" ? (
                 <button
                   type="button"
-                  onClick={() => { setVisitorMode("menu"); setVisitorDraft(""); }}
-                  className="p-1.5 rounded-lg text-gray-300 hover:bg-white/10"
+                  onClick={() => {
+                    setVisitorMode("menu");
+                    setVisitorDraft("");
+                    setVisitorSupportConvId(null);
+                    setVisitorSupportMessages([]);
+                    setVisitorSupportStatus("open");
+                  }}
+                  className="p-2 rounded-lg text-gray-300 hover:bg-white/10 active:bg-white/20"
                 >
                   <ArrowLeft size={14} />
                 </button>
@@ -1910,7 +1916,32 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                         </div>
                       ) : (
                         visitorAiMessages.map((msg) => (
-                          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
+                            {msg.role === "system" ? (
+                              <div className="w-full space-y-2">
+                                <div className="mx-auto max-w-[90%] p-3 rounded-xl border border-amber-400/20 bg-amber-500/10 text-center">
+                                  <p className="text-xs text-amber-200">{msg.content}</p>
+                                </div>
+                                <div className="flex justify-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => { setChatMode("support"); startSupportConversation(true); }}
+                                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/20 hover:bg-emerald-500/30 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <Headset size={12} /> Sí, conectar con asesor
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setVisitorAiMessages((prev) => prev.filter((m) => m.role !== "system"));
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/10 text-gray-300 hover:bg-white/15 transition-colors"
+                                  >
+                                    Continuar con IA
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
                             <div className={`max-w-[85%] flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
                               {msg.role === "assistant" && (
                                 <span className="text-[10px] text-cyan-300 mb-1 px-1 flex items-center gap-1"><Bot size={10} /> Aphellium AI</span>
@@ -1923,6 +1954,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                                 {msg.content}
                               </div>
                             </div>
+                            )}
                           </div>
                         ))
                       )}

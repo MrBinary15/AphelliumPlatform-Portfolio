@@ -546,7 +546,7 @@ export function useWebRTC({ roomId, userId, isInitiator, extraIceServers }: UseW
     setRemoteStream(null);
     setScreenStream(null);
     setIsScreenSharing(false);
-    setStatus("idle");
+    setStatus("ended");
     setConnectionQuality("unknown");
     pendingCandidates.current = [];
     startedRef.current = false;
