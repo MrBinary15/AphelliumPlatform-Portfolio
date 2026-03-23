@@ -53,6 +53,16 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md bg-glass/80 backdrop-blur-xl p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl relative">
          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-green)]"></div>
          
+        <div className="flex justify-center mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[var(--accent-cyan)] transition-colors py-1.5 px-3 rounded-lg hover:bg-white/5"
+          >
+            <Home size={16} />
+            Ir al Menú Principal
+          </Link>
+        </div>
+
         <div className="text-center mb-7 sm:mb-10">
           <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-cyan)]/20 to-[var(--accent-green)]/20 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Lock className="text-[var(--accent-cyan)]" size={32} />
@@ -225,15 +235,6 @@ export default function AdminLoginPage() {
           <p className="mt-1">Monitoreo de Telemetría APHE v2.2</p>
         </div>
 
-        <div className="mt-4 flex justify-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[var(--accent-cyan)] transition-colors py-2"
-          >
-            <Home size={16} />
-            Ir al Menú Principal
-          </Link>
-        </div>
       </div>
     </main>
   );
