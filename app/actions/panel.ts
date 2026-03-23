@@ -220,3 +220,39 @@ export async function saveInlineEdits(pathname: string, edits: Array<{ key: stri
   }
   return { success: true };
 }
+
+/**
+ * Purge all auto-indexed inline-edit overrides from site_settings.
+ * Only removes keys matching `inline_edit:{path}:{number}` patterns,
+ * NOT profile-based keys (profile:uuid:field).
+ */
+export async function purgeInlineOverrides(pathname?: string) {
+  const { requireAdmin } = await import("@/utils/auth");
+  const permResult = await requireAdmin();
+  if ("error" in permResult) return { error: permResult.error };
+
+  const admin = createAdminClient();
+  const prefix = pathname
+    ? `inline_edit:${pathname === "/" ? "/" : pathname.replace(/\/+$/, "")}:`
+    : "inline_edit:";
+
+  const { data, error } = await admin
+    .from("site_settings")
+    .select("key")
+    .like("key", `${prefix}%`);
+
+  if (error) return { error: "Error al leer overrides." };
+  if (!data || data.length === 0) return { deleted: 0 };
+
+  const keysToDelete = data.map((row) => String(row.key));
+  const { error: delError } = await admin
+    .from("site_settings")
+    .delete()
+    .in("key", keysToDelete);
+
+  if (delError) return { error: "Error al eliminar overrides." };
+
+  revalidatePath("/");
+  revalidatePath("/nosotros");
+  return { deleted: keysToDelete.length };
+}

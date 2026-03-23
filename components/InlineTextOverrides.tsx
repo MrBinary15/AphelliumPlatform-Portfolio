@@ -22,14 +22,12 @@ function collectEditableElements(pathname: string): HTMLElement[] {
     return true;
   });
 
-  let autoIndex = 0;
-  filtered.forEach((el) => {
-    if (el.dataset.inlineEditKey && el.dataset.inlineEditKey.trim().length > 0) return;
-    el.dataset.inlineEditKey = `${pathname}:${autoIndex}`;
-    autoIndex += 1;
+  // Only apply overrides to elements with explicit data-inline-edit-key.
+  // Skip auto-indexing: it causes misalignment when the DOM changes.
+  return filtered.filter((el) => {
+    const key = (el.dataset.inlineEditKey || "").trim();
+    return key.length > 0;
   });
-
-  return filtered;
 }
 
 export default function InlineTextOverrides() {

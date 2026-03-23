@@ -375,7 +375,9 @@ export default function AdminFloatingPanel() {
     let autoIndex = 0;
     filtered.forEach((el) => {
       if (el.dataset.inlineEditKey && el.dataset.inlineEditKey.trim().length > 0) return;
-      el.dataset.inlineEditKey = `${pathname}:${autoIndex}`;
+      // Assign a temporary auto-index for visual editing, but these
+      // will be filtered out before saving to avoid stale index drift.
+      el.dataset.inlineEditKey = `_auto:${pathname}:${autoIndex}`;
       autoIndex += 1;
     });
 
@@ -412,7 +414,7 @@ export default function AdminFloatingPanel() {
       const edits = editable.map((el) => ({
         key: el.dataset.inlineEditKey || "",
         text: (el.textContent || "").trim(),
-      })).filter((item) => item.key.length > 0);
+      })).filter((item) => item.key.length > 0 && !item.key.startsWith("_auto:"));
 
       const result = await saveInlineEdits(pathname, edits);
       if (result?.error) {
