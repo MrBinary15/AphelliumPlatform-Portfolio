@@ -55,14 +55,17 @@ export default async function Footer() {
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-12 md:mb-20">
           <div className="flex flex-col">
-            <Link href="/" className="inline-flex items-center no-underline mb-5 group">
+            <Link href="/" className="inline-flex items-center gap-2.5 no-underline mb-5 group">
               <Image 
-                src="/assets/aphellium-logo-3.png" 
-                alt="Aphellium — Passive Cooling" 
-                width={200} 
-                height={118} 
-                className="h-[50px] sm:h-[64px] w-auto object-contain transition-all duration-300 group-hover:drop-shadow-[0_0_12px_var(--accent-cyan)] brightness-0 invert"
+                src="/assets/aphellium-logo-4.png" 
+                alt="Aphellium Logo" 
+                width={48} 
+                height={48} 
+                className="h-[36px] sm:h-[44px] w-auto object-contain transition-all duration-300 group-hover:drop-shadow-[0_0_12px_var(--accent-cyan)]"
               />
+              <span className="font-bold text-xl sm:text-2xl tracking-[3px] text-[#f8fafc] uppercase">
+                APHELLIUM
+              </span>
             </Link>
             <p className="text-gray-400 text-sm max-w-xs mb-5 leading-relaxed">
               {t.tagline}
