@@ -35,15 +35,16 @@ export async function POST(request: NextRequest) {
   const notifBody = isFile ? "Te envió un archivo" : (message.length > 120 ? message.slice(0, 120) + "…" : message);
 
   try {
-    await sendPushToUser(receiverId, {
+    const result = await sendPushToUser(receiverId, {
       title: senderName,
       body: notifBody,
       type: "message",
       url: "/admin/dashboard",
       tag: `dm-${user.id}`,
     });
-    return NextResponse.json({ sent: true });
-  } catch {
-    return NextResponse.json({ sent: false });
+    return NextResponse.json({ sent: result.sent > 0, count: result.sent });
+  } catch (err) {
+    console.error("[ChatNotify] Push error:", err);
+    return NextResponse.json({ sent: false, error: "push_failed" }, { status: 500 });
   }
 }

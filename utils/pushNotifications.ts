@@ -9,6 +9,8 @@ let vapidConfigured = false;
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
   vapidConfigured = true;
+} else {
+  console.warn("[Push] VAPID keys not configured. PUBLIC:", !!VAPID_PUBLIC, "PRIVATE:", !!VAPID_PRIVATE);
 }
 
 interface PushPayload {
@@ -28,15 +30,26 @@ export async function sendPushToUser(
   targetUserId: string,
   payload: PushPayload
 ): Promise<{ sent: number }> {
-  if (!vapidConfigured) return { sent: 0 };
+  if (!vapidConfigured) {
+    console.warn("[Push] Cannot send — VAPID not configured");
+    return { sent: 0 };
+  }
 
   const admin = createAdminClient();
-  const { data: subscriptions } = await admin
+  const { data: subscriptions, error: subErr } = await admin
     .from("push_subscriptions")
     .select("endpoint, keys_p256dh, keys_auth")
     .eq("user_id", targetUserId);
 
-  if (!subscriptions || subscriptions.length === 0) return { sent: 0 };
+  if (subErr) {
+    console.error("[Push] Error fetching subscriptions:", subErr.message);
+    return { sent: 0 };
+  }
+
+  if (!subscriptions || subscriptions.length === 0) {
+    console.warn(`[Push] No subscriptions for user ${targetUserId}`);
+    return { sent: 0 };
+  }
 
   const notifPayload = JSON.stringify(payload);
   let sent = 0;

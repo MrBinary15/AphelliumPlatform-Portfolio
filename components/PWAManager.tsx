@@ -26,6 +26,43 @@ export default function PWAManager({ userId }: { userId: string | null }) {
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const subscribedRef = useRef(false);
 
+  // ─── Auto-subscribe to push if permission granted ──
+  const subscribeToPush = useCallback(async () => {
+    if (subscribedRef.current || !userId || !registrationRef.current) return;
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) {
+      console.warn("[PWA] VAPID public key missing");
+      return;
+    }
+
+    try {
+      let subscription = await registrationRef.current.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registrationRef.current.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
+        });
+      }
+
+      // Send subscription to server and verify it was saved
+      const res = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: subscription.toJSON(), userId }),
+      });
+
+      if (res.ok) {
+        subscribedRef.current = true;
+      } else {
+        console.warn("[PWA] Server rejected push subscription:", res.status);
+      }
+    } catch (err) {
+      console.warn("[PWA] Push subscription failed:", err);
+    }
+  }, [userId]);
+
   // ─── Register Service Worker ─────────────────────
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -41,9 +78,11 @@ export default function PWAManager({ userId }: { userId: string | null }) {
           (reg as unknown as { periodicSync: { register: (tag: string, opts: { minInterval: number }) => Promise<void> } })
             .periodicSync.register("keep-alive", { minInterval: 12 * 60 * 60 * 1000 }).catch(() => {});
         }
+        // Auto-subscribe if permission already granted
+        subscribeToPush();
       })
       .catch((err) => console.warn("SW registration failed:", err));
-  }, []);
+  }, [subscribeToPush]);
 
   // ─── Track notification permission ───────────────
   useEffect(() => {
@@ -66,36 +105,6 @@ export default function PWAManager({ userId }: { userId: string | null }) {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
-
-  // ─── Auto-subscribe to push if permission granted ──
-  const subscribeToPush = useCallback(async () => {
-    if (subscribedRef.current || !userId || !registrationRef.current) return;
-    if (Notification.permission !== "granted") return;
-
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidKey) return;
-
-    try {
-      let subscription = await registrationRef.current.pushManager.getSubscription();
-      if (!subscription) {
-        subscription = await registrationRef.current.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
-        });
-      }
-
-      // Send subscription to server
-      await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: subscription.toJSON(), userId }),
-      });
-
-      subscribedRef.current = true;
-    } catch (err) {
-      console.warn("Push subscription failed:", err);
-    }
-  }, [userId]);
 
   useEffect(() => {
     if (notifPermission === "granted" && userId) {
