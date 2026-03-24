@@ -93,16 +93,39 @@ export default function HeroVideoBackground() {
     };
   }, [fitCanvas]);
 
-  /* ── Pause video when tab hidden ── */
+  /* ── Keep video playing (visibility + mobile scroll resilience) ── */
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+
+    const ensurePlay = () => {
+      if (!document.hidden && v.paused) v.play().catch(() => {});
+    };
+
     const onVis = () => {
       if (document.hidden) v.pause();
-      else v.play().catch(() => {});
+      else ensurePlay();
     };
     document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
+
+    // On mobile, browsers may pause the video during scroll.
+    // Re-trigger play on scroll-end and via periodic check.
+    let scrollTimer: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(ensurePlay, 150);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    // Periodic check every 2s as a safety net for mobile pausing
+    const interval = setInterval(ensurePlay, 2000);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(scrollTimer);
+      clearInterval(interval);
+    };
   }, []);
 
   /* ── Animation loop ── */

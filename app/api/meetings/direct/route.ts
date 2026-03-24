@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   // Use admin client for DB operations to avoid RLS edge cases
   const admin = createAdminClient();
 
-  let body: { peerId?: string };
+  let body: { peerId?: string; useMetered?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
   }
 
   const peerId = body.peerId;
+  const useMetered = body.useMetered === true;
 
   // Validate UUID format
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
       status: "planned",
       is_locked: true,
       max_participants: 2,
+      use_metered: useMetered,
     })
     .select("id, slug")
     .single();

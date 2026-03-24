@@ -36,6 +36,11 @@ export default function PWAManager({ userId }: { userId: string | null }) {
         registrationRef.current = reg;
         // Check for updates periodically
         setInterval(() => reg.update(), 60 * 60 * 1000); // hourly
+        // Register periodic background sync to keep SW alive for push
+        if ("periodicSync" in reg) {
+          (reg as unknown as { periodicSync: { register: (tag: string, opts: { minInterval: number }) => Promise<void> } })
+            .periodicSync.register("keep-alive", { minInterval: 12 * 60 * 60 * 1000 }).catch(() => {});
+        }
       })
       .catch((err) => console.warn("SW registration failed:", err));
   }, []);

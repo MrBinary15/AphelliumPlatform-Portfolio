@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { getInvitationDetails } from "@/app/admin/(portal)/reuniones/actions";
 import {
@@ -236,6 +237,8 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
   const [toast, setToast] = useState<ToastData | null>(null);
   const [incomingCall, setIncomingCall] = useState<{ invitationId: string; meetingSlug: string; callerName: string } | null>(null);
   const [callingPeer, setCallingPeer] = useState(false);
+  const [callModal, setCallModal] = useState<{ peerId: string } | null>(null);
+  const router = useRouter();
   const [panelSize, setPanelSize] = useState({ width: PANEL_W, height: PANEL_H });
   const [launcherPosition, setLauncherPosition] = useState({ x: 24, y: 24 });
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -262,18 +265,19 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
   const activeMember = useMemo(() => members.find((m) => m.id === activeChatId) || null, [members, activeChatId]);
 
-  const handleDirectCall = useCallback(async (peerId: string) => {
+  const handleDirectCall = useCallback(async (peerId: string, useMetered = false) => {
     if (callingPeer) return;
     setCallingPeer(true);
+    setCallModal(null);
     try {
       const res = await fetch("/api/meetings/direct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ peerId }),
+        body: JSON.stringify({ peerId, useMetered }),
       });
       const data = await res.json();
       if (res.ok && data.slug) {
-        window.location.href = `/admin/reuniones/sala/${data.slug}`;
+        router.push(`/admin/reuniones/sala/${data.slug}`);
       } else {
         alert(data.error || "No se pudo iniciar la videollamada");
         setCallingPeer(false);
@@ -282,7 +286,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       alert("Error de conexión al iniciar videollamada");
       setCallingPeer(false);
     }
-  }, [callingPeer]);
+  }, [callingPeer, router]);
 
   const startRing = useCallback(() => {
     try {
@@ -1302,6 +1306,13 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     }
 
     await supabase.from("chat_messages").insert({ sender_id: userIdSafe, receiver_id: receiverId, content });
+
+    // Fire-and-forget push notification
+    fetch("/api/chat/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ receiverId, message: content }),
+    }).catch(() => {});
   };
 
   const sendFile = async (receiverId: string, file: File) => {
@@ -1417,6 +1428,54 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         )}
       </button>
 
+      {/* ── Call type selection modal ── */}
+      {callModal && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCallModal(null)}>
+          <div
+            className="relative w-80 bg-[#0a1020] border border-cyan-500/20 rounded-2xl p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => setCallModal(null)} className="absolute top-3 right-3 text-gray-500 hover:text-white"><X size={16} /></button>
+            <p className="text-white text-lg font-bold text-center mb-1">Tipo de llamada</p>
+            <p className="text-gray-400 text-xs text-center mb-5">Selecciona cómo conectar la videollamada</p>
+
+            <button
+              onClick={() => handleDirectCall(callModal.peerId, false)}
+              disabled={callingPeer}
+              className="w-full flex items-center gap-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/15 transition-colors mb-3 text-left"
+            >
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <Phone size={18} className="text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Normal (P2P)</p>
+                <p className="text-[10px] text-gray-400">Conexión directa, baja latencia</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleDirectCall(callModal.peerId, true)}
+              disabled={callingPeer}
+              className="w-full flex items-center gap-3 p-3 rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/15 transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                <Video size={18} className="text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Metered</p>
+                <p className="text-[10px] text-gray-400">Servidor intermedio, más estable</p>
+              </div>
+            </button>
+
+            {callingPeer && (
+              <div className="flex items-center justify-center gap-2 mt-4 text-cyan-400 text-xs">
+                <Loader2 size={14} className="animate-spin" /> Conectando…
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Incoming call full-screen overlay ── */}
       {incomingCall && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 backdrop-blur-md">
@@ -1446,7 +1505,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                     await supabase.from("meeting_invitations").update({ status: "accepted" }).eq("id", incomingCall.invitationId);
                     const slug = incomingCall.meetingSlug;
                     setIncomingCall(null);
-                    window.location.href = `/admin/reuniones/sala/${slug}`;
+                    router.push(`/admin/reuniones/sala/${slug}`);
                   }}
                   className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center shadow-lg transition-all active:scale-95"
                   style={{ boxShadow: "0 0 20px rgba(52,211,153,0.5)" }}
@@ -1576,7 +1635,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
                   type="button"
                   title="Videollamada"
                   disabled={callingPeer}
-                  onClick={() => handleDirectCall(activeMember.id)}
+                  onClick={() => setCallModal({ peerId: activeMember.id })}
                   className={`p-1.5 rounded-lg transition-colors ${
                     callingPeer
                       ? "text-cyan-400 animate-pulse cursor-wait"

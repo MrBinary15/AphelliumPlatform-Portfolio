@@ -145,15 +145,13 @@ export default function MobileAdminNav({
 
             {/* Quick actions */}
             <div className="flex gap-2 p-3 pt-1 border-t border-white/[0.04]">
-              <a
+              <Link
                 href="/"
-                target="_blank"
-                rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[11px] font-medium text-gray-400 hover:text-white transition-colors"
               >
                 <ExternalLink size={13} />
                 Ver sitio
-              </a>
+              </Link>
               <form action="/auth/signout" method="post" className="flex-1">
                 <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/10 text-[11px] font-medium text-red-400 hover:bg-red-500/15 transition-colors">
                   <LogOut size={13} />

@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const SW_VERSION = "1.0.0";
+const SW_VERSION = "2.3.0";
 const CACHE_NAME = `aphellium-v${SW_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -149,4 +149,20 @@ self.addEventListener("notificationclick", (event) => {
 // ─── NOTIFICATION CLOSE (for declined calls) ──────────
 self.addEventListener("notificationclose", (event) => {
   // Could send a "declined" signal back to the server if needed
+});
+
+// ─── PERIODIC BACKGROUND SYNC ─────────────────────────
+// Keeps the SW warm so push notifications arrive even when the app is closed.
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "keep-alive") {
+    event.waitUntil(Promise.resolve());
+  }
+});
+
+// ─── MESSAGE HANDLER ──────────────────────────────────
+// Accept messages from the client (e.g. skip-waiting on update).
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
