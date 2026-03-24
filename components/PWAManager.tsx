@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Download, Bell, X } from "lucide-react";
+import { Download, Bell, X, Share, PlusSquare } from "lucide-react";
 
 // ─── Utility: URL-safe base64 to Uint8Array ───────────
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -21,6 +21,7 @@ interface BeforeInstallPromptEvent extends Event {
 export default function PWAManager({ userId }: { userId: string | null }) {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showIOSInstallBanner, setShowIOSInstallBanner] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>("default");
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
@@ -106,6 +107,29 @@ export default function PWAManager({ userId }: { userId: string | null }) {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, [userId]);
+
+  // ─── iOS/Safari install prompt (no beforeinstallprompt on iOS) ──
+  useEffect(() => {
+    if (!userId) return;
+    // Detect iOS Safari (not standalone already)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in navigator && (navigator as unknown as { standalone: boolean }).standalone);
+    const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+
+    if ((isIOS || isSafari) && !isStandalone) {
+      const dismissed = localStorage.getItem("pwa-ios-install-dismissed");
+      if (!dismissed) {
+        setTimeout(() => setShowIOSInstallBanner(true), 3000);
+      }
+    }
+  }, [userId]);
+
+  const dismissIOSInstall = () => {
+    setShowIOSInstallBanner(false);
+    localStorage.setItem("pwa-ios-install-dismissed", "1");
+  };
 
   useEffect(() => {
     if (notifPermission === "granted" && userId) {
@@ -198,8 +222,54 @@ export default function PWAManager({ userId }: { userId: string | null }) {
         </div>
       )}
 
+      {/* ── iOS/Safari Install Banner ── */}
+      {showIOSInstallBanner && !installPrompt && (
+        <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-[380px] z-[70] animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="bg-[#0f1117]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/40">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-green)] flex items-center justify-center">
+                <Download size={18} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white mb-1">Instalar Aphellium</p>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Instala la app para acceso rápido, notificaciones de llamadas y mensajes.
+                </p>
+              </div>
+              <button onClick={dismissIOSInstall} className="text-gray-500 hover:text-white transition-colors p-1">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="mt-3 bg-white/5 rounded-xl p-3 space-y-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 shrink-0 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <Share size={14} className="text-blue-400" />
+                </div>
+                <p className="text-xs text-gray-300">
+                  <span className="font-semibold text-white">1.</span> Toca el botón <span className="font-semibold text-blue-400">Compartir</span> <span className="text-[10px] text-gray-500">(cuadrado con flecha ↑)</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 shrink-0 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <PlusSquare size={14} className="text-green-400" />
+                </div>
+                <p className="text-xs text-gray-300">
+                  <span className="font-semibold text-white">2.</span> Selecciona <span className="font-semibold text-green-400">&quot;Añadir a pantalla de inicio&quot;</span>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={dismissIOSInstall}
+              className="w-full mt-3 text-sm text-gray-400 hover:text-white transition-colors py-2 rounded-xl hover:bg-white/5"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Notification Permission Prompt ── */}
-      {showNotifPrompt && (
+      {showNotifPrompt && !showIOSInstallBanner && (
         <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-[360px] z-[70] animate-in slide-in-from-bottom-4 fade-in duration-300">
           <div className="bg-[#0f1117]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/40">
             <div className="flex items-start gap-3">
