@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getAuthUser, requirePermission } from "@/utils/auth";
 import { revalidatePath } from "next/cache";
+import { notifyUsers, createNotification } from "@/utils/notifications";
 
 // ─── Types ───
 export type TaskStatus = "pendiente" | "en_progreso" | "completada" | "cancelada" | "postergada";
@@ -191,6 +192,16 @@ export async function createTask(formData: FormData) {
     action: "created",
     details: { title, assignees_count: assignees.length },
   });
+
+  // Notify assigned users
+  if (assignees.length > 0) {
+    notifyUsers(assignees, {
+      type: "task",
+      title: "Nueva tarea asignada",
+      body: title,
+      url: `/admin/tareas/${task.id}`,
+    }).catch(() => {});
+  }
 
   revalidatePath("/admin/tareas");
   return { success: true, taskId: task.id };

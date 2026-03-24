@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3, Headset, Bot, Video, ChevronRight, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Newspaper, Mail as MailIcon, LogOut, Settings, Users, User as UserIcon, FolderOpen, Pencil, Eye, Shield, ClipboardList, BarChart3, Headset, Bot, Video, ChevronRight, ExternalLink, Bell } from "lucide-react";
 import { getAuthUser } from "@/utils/auth";
 import { hasPermission, canModifyContent, ROLE_LABELS } from "@/utils/roles";
 import { AdminContentWrapper } from "@/components/AdminContentWrapper";
@@ -77,6 +77,10 @@ export default async function AdminLayout({
                   <span>Mensajes</span>
                 </Link>
               )}
+              <Link href="/admin/notificaciones" className={linkCls}>
+                <Bell size={18} className={iconCls} />
+                <span>Notificaciones</span>
+              </Link>
             </div>
           </div>
 

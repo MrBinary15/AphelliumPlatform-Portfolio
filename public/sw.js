@@ -111,6 +111,11 @@ self.addEventListener("push", (event) => {
     options.actions = [
       { action: "open", title: "📋 Abrir soporte" },
     ];
+  } else if (type === "task" || type === "noticia" || type === "proyecto") {
+    options.tag = `${type}-${tag || Date.now()}`;
+    options.actions = [
+      { action: "open", title: "📂 Ver" },
+    ];
   }
 
   event.waitUntil(self.registration.showNotification(title, options));

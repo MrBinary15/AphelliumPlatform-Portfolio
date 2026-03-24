@@ -8,6 +8,7 @@ import {
   Newspaper,
   FolderOpen,
   Mail,
+  Bell,
   ClipboardList,
   Video,
   BarChart3,
@@ -71,6 +72,7 @@ export default function MobileAdminNav({
   ];
 
   const moreItems: NavItem[] = [
+    { href: "/admin/notificaciones", label: "Notificaciones", icon: <Bell size={20} /> },
     ...(permissions.viewTasks
       ? [
           { href: "/admin/tareas", label: "Tareas", icon: <ClipboardList size={20} /> },

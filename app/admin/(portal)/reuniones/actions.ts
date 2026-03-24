@@ -5,6 +5,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { normalizeRole } from "@/utils/roles";
 import { revalidatePath } from "next/cache";
 import { sendPushToUser } from "@/utils/pushNotifications";
+import { notifyUsers, getTeamUserIds } from "@/utils/notifications";
 
 async function getUserWithRole() {
   const supabase = await createClient();
@@ -72,6 +73,16 @@ export async function createMeeting(formData: FormData) {
 
   if (error) return { error: `Error al crear: ${error.message}` };
   if (!data) return { error: "No se pudo crear la reunión" };
+
+  // Notify all team members about new meeting
+  getTeamUserIds(user.id).then((ids) =>
+    notifyUsers(ids, {
+      type: "meeting",
+      title: "Nueva reunión creada",
+      body: title,
+      url: `/admin/reuniones/${data.slug || data.id}`,
+    })
+  ).catch(() => {});
 
   revalidatePath("/admin/reuniones");
   return { success: true, meetingId: data.id, slug: data.slug };

@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { bilingualFromSource } from "@/utils/autoTranslate";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { notifyUsers, getTeamUserIds } from "@/utils/notifications";
 
 export async function publishNoticia(formData: FormData) {
   // --- RBAC: require create_noticia permission ---
@@ -81,6 +82,16 @@ export async function publishNoticia(formData: FormData) {
 
   if (error) return { error: "Error al publicar la noticia." };
 
+  // Notify all team members about new noticia
+  getTeamUserIds(user.id).then((ids) =>
+    notifyUsers(ids, {
+      type: "noticia",
+      title: "Nueva noticia publicada",
+      body: title,
+      url: "/admin/noticias",
+    })
+  ).catch(() => {});
+
   revalidatePath("/noticias");
   revalidatePath("/admin/noticias");
   return { success: true };
@@ -143,6 +154,16 @@ export async function publishProyecto(formData: FormData) {
   }
 
   if (error) return { error: "Error al publicar el proyecto. ¿Existe la tabla 'proyectos' en Supabase?" };
+
+  // Notify all team members about new project
+  getTeamUserIds(user.id).then((ids) =>
+    notifyUsers(ids, {
+      type: "proyecto",
+      title: "Nuevo proyecto publicado",
+      body: title,
+      url: "/admin/proyectos",
+    })
+  ).catch(() => {});
 
   revalidatePath("/proyectos");
   return { success: true };
