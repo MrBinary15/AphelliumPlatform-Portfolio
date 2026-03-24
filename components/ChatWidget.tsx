@@ -830,7 +830,6 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
 
   const loadChatHistory = useCallback(async (otherUserId: string) => {
     if (!isAuthenticated) return;
-    if (messagesByUser[otherUserId]) return;
 
     const { data } = await supabase
       .from("chat_messages")
@@ -842,11 +841,10 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
     if (data) {
       setMessagesByUser((prev) => ({ ...prev, [otherUserId]: data }));
     }
-  }, [messagesByUser, supabase, userIdSafe, isAuthenticated]);
+  }, [supabase, userIdSafe, isAuthenticated]);
 
   const loadRoomHistory = useCallback(async (roomId: string) => {
     if (!isAuthenticated) return;
-    if (roomMessagesById[roomId]) return;
 
     const { data } = await supabase
       .from("chat_room_messages")
@@ -863,7 +861,7 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
         }));
       setRoomMessagesById((prev) => ({ ...prev, [roomId]: normalized }));
     }
-  }, [roomMessagesById, supabase, isAuthenticated]);
+  }, [supabase, isAuthenticated]);
 
   const openConversation = useCallback(async (member: Member) => {
     setIsOpen(true);
@@ -910,7 +908,15 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       setRoomDraftById((prev) => ({ ...prev, [roomId]: "" }));
     }
 
-    await supabase.from("chat_room_messages").insert({ room_id: roomId, sender_id: userIdSafe, content });
+    const { error } = await supabase.from("chat_room_messages").insert({ room_id: roomId, sender_id: userIdSafe, content });
+
+    if (error) {
+      console.error("Error al enviar mensaje grupal:", error.message);
+      setRoomMessagesById((prev) => ({
+        ...prev,
+        [roomId]: (prev[roomId] || []).filter((m) => m.id !== optimistic.id),
+      }));
+    }
   }, [isAuthenticated, roomDraftById, userIdSafe, userName, supabase]);
 
   const createGroupRoom = useCallback(async () => {
@@ -1305,7 +1311,16 @@ export default function ChatWidget({ userId, userName, userRole }: { userId: str
       setDraftByUser((prev) => ({ ...prev, [receiverId]: "" }));
     }
 
-    await supabase.from("chat_messages").insert({ sender_id: userIdSafe, receiver_id: receiverId, content });
+    const { error } = await supabase.from("chat_messages").insert({ sender_id: userIdSafe, receiver_id: receiverId, content });
+
+    if (error) {
+      console.error("Error al enviar mensaje:", error.message);
+      setMessagesByUser((prev) => ({
+        ...prev,
+        [receiverId]: (prev[receiverId] || []).filter((m) => m.id !== optimistic.id),
+      }));
+      return;
+    }
 
     // Fire-and-forget push notification
     fetch("/api/chat/notify", {
