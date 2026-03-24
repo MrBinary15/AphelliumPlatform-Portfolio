@@ -155,8 +155,6 @@ export default async function AdminDashboardPage() {
             <a
               key={item.href}
               href={item.href}
-              target="_blank"
-              rel="noopener noreferrer"
               className="group flex flex-col items-center gap-2 admin-card py-4 px-2 hover:bg-white/[0.04] hover:border-white/[0.1]"
             >
               <item.icon size={20} style={{ color: item.color }} className="opacity-70 group-hover:opacity-100 transition-opacity" />
