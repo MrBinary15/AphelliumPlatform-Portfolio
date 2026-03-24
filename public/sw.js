@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const SW_VERSION = "2.3.0";
+const SW_VERSION = "2.4.0";
 const CACHE_NAME = `aphellium-v${SW_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 

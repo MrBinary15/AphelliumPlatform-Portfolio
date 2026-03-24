@@ -63,8 +63,19 @@ export default function PWAManager({ userId }: { userId: string | null }) {
     }
   }, [userId]);
 
+  // ─── Inject manifest only for authenticated users ──
+  useEffect(() => {
+    if (!userId) return;
+    if (document.querySelector('link[rel="manifest"]')) return;
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = "/manifest.json";
+    document.head.appendChild(link);
+  }, [userId]);
+
   // ─── Register Service Worker ─────────────────────
   useEffect(() => {
+    if (!userId) return; // Only for authenticated users
     if (!("serviceWorker" in navigator)) return;
 
     navigator.serviceWorker
@@ -82,7 +93,7 @@ export default function PWAManager({ userId }: { userId: string | null }) {
         subscribeToPush();
       })
       .catch((err) => console.warn("SW registration failed:", err));
-  }, [subscribeToPush]);
+  }, [userId, subscribeToPush]);
 
   // ─── Track notification permission ───────────────
   useEffect(() => {
@@ -91,8 +102,9 @@ export default function PWAManager({ userId }: { userId: string | null }) {
     }
   }, []);
 
-  // ─── Install prompt handling ─────────────────────
+  // ─── Install prompt handling (only for logged-in users) ──
   useEffect(() => {
+    if (!userId) return;
     const handler = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e as BeforeInstallPromptEvent);
@@ -104,7 +116,7 @@ export default function PWAManager({ userId }: { userId: string | null }) {
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (notifPermission === "granted" && userId) {
