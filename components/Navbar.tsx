@@ -45,17 +45,15 @@ export default async function Navbar() {
   return (
     <NavbarShell>
       <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link href="/" className="inline-flex items-center gap-2.5 no-underline group">
+        <Link href="/" className="inline-flex items-center no-underline group">
           <Image 
-            src="/assets/aphellium-logo-4.png" 
-            alt="Aphellium Logo" 
-            width={38} 
-            height={38} 
-            className="h-[30px] md:h-[38px] w-auto object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.1)] transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_16px_var(--accent-cyan)]"
+            src="/assets/aphellium-logo-3.png" 
+            alt="Aphellium — Passive Cooling" 
+            width={160} 
+            height={94} 
+            className="h-[38px] md:h-[48px] w-auto object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.1)] transition-all duration-300 group-hover:scale-105 group-hover:drop-shadow-[0_0_16px_var(--accent-cyan)] brightness-0 invert"
+            priority
           />
-          <span className="font-bold text-lg md:text-[1.4rem] tracking-[3px] text-[#f8fafc] uppercase transition-all duration-300 group-hover:text-[var(--accent-cyan)] group-hover:drop-shadow-[0_0_10px_var(--accent-cyan-glow)]">
-            APHELLIUM
-          </span>
         </Link>
         <nav className="hidden md:flex gap-7 items-center">
           <Link href="/" className="nav-link-premium text-sm">{t.home}</Link>
