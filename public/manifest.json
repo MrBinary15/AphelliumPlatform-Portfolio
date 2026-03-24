@@ -2,7 +2,7 @@
   "name": "Aphellium — Sustainable Cooling Technology",
   "short_name": "Aphellium",
   "description": "Plataforma de enfriamiento sostenible con nanotecnología, IA y blockchain.",
-  "start_url": "/admin/dashboard",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

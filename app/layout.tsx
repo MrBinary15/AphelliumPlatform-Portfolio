@@ -31,6 +31,7 @@ export const metadata: Metadata = {
   },
   description: "Advanced passive hybrid eco-cooler integrating nanotechnology, AI, and blockchain for sustainable floriculture logistics.",
   metadataBase: new URL("https://aphellium.com"),
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

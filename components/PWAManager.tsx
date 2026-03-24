@@ -63,19 +63,8 @@ export default function PWAManager({ userId }: { userId: string | null }) {
     }
   }, [userId]);
 
-  // ─── Inject manifest only for authenticated users ──
+  // ─── Register Service Worker (always, needed for PWA detection) ──
   useEffect(() => {
-    if (!userId) return;
-    if (document.querySelector('link[rel="manifest"]')) return;
-    const link = document.createElement("link");
-    link.rel = "manifest";
-    link.href = "/manifest.json";
-    document.head.appendChild(link);
-  }, [userId]);
-
-  // ─── Register Service Worker ─────────────────────
-  useEffect(() => {
-    if (!userId) return; // Only for authenticated users
     if (!("serviceWorker" in navigator)) return;
 
     navigator.serviceWorker
@@ -90,7 +79,7 @@ export default function PWAManager({ userId }: { userId: string | null }) {
             .periodicSync.register("keep-alive", { minInterval: 12 * 60 * 60 * 1000 }).catch(() => {});
         }
         // Auto-subscribe if permission already granted
-        subscribeToPush();
+        if (userId) subscribeToPush();
       })
       .catch((err) => console.warn("SW registration failed:", err));
   }, [userId, subscribeToPush]);
