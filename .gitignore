@@ -37,7 +37,17 @@ yarn-error.log*
 
 # vercel
 .vercel
+.vercel_old
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# build/lint output artifacts
+build_debug.txt
+build_output.txt
+lint.json
+lint.log
+lint8.json
+tsc.txt
+tsc8.txt
